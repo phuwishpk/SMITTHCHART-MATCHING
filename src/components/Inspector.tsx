@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppState, useDispatch, useDerived } from '../state/store';
-import { ELEMENT_SPECS, wavelength } from '../engine/circuit';
+import { ELEMENT_SPECS, wavelength, antennaZ, AntennaPoint } from '../engine/circuit';
 import { NumField } from './NumField';
 import { fmtNum, fmtEng, abs, isFiniteC, Complex } from '../engine/complex';
 import { admittance } from '../engine/rf';
@@ -85,6 +85,63 @@ export const Inspector: React.FC = () => {
         {computed}
 
         {/* ---- special helpers ---- */}
+        {(el.type === 'stub_short' || el.type === 'stub_open') && el.orient === 'series' && stage && (
+          <div className="insp-section">
+            <div className="insp-calc">series stub: X = <b>{fmtNum(stage.X ?? 0, 2)} Ω</b> ที่ f นี้ ({el.type === 'stub_open' ? 'X = −Z₀ cot βl' : 'X = Z₀ tan βl'}) · เทียบเท่า {(stage.X ?? 0) < 0 ? `C = ${fmtEng(-1 / (2 * Math.PI * circuit.f * (stage.X ?? -1)), 'F', 3)}` : `L = ${fmtEng((stage.X ?? 0) / (2 * Math.PI * circuit.f), 'H', 3)}`}</div>
+            <div className="insp-presets">
+              <span>ตั้ง X ที่ f นี้:</span>
+              {[-65, -50, -25, 25, 50].map((X) => {
+                const kind = el.type === 'stub_open' ? 'open' : 'short';
+                const bl = kind === 'open' ? Math.atan(-el.params.Z0 / X) : Math.atan(X / el.params.Z0);
+                const len = (((bl / (2 * Math.PI)) % 0.5) + 0.5) % 0.5;
+                return <button key={X} className="mini wide" onClick={() => setP('len', Number(len.toFixed(4)))}>{X > 0 ? '+' : ''}{X} Ω</button>;
+              })}
+            </div>
+          </div>
+        )}
+        {el.type === 'antenna' && (
+          <div className="insp-section">
+            <div className="insp-calc">ที่ f = {fmtNum(circuit.f / 1e6, 3)} MHz: Z = <b>{fz({ re: antennaZ(el.table, circuit.f).re, im: antennaZ(el.table, circuit.f).im }, 2)} Ω</b> (ประมาณเชิงเส้นจากตาราง)</div>
+            <table className="ant-table">
+              <thead><tr><th>f (MHz)</th><th>R (Ω)</th><th>X (Ω)</th><th></th></tr></thead>
+              <tbody>
+                {(el.table ?? []).map((pt, i) => (
+                  <tr key={i}>
+                    {(['f', 'R', 'X'] as const).map((k) => (
+                      <td key={k}>
+                        <input
+                          type="number"
+                          step={k === 'f' ? 0.01 : 0.5}
+                          value={k === 'f' ? Number((pt.f / 1e6).toPrecision(6)) : pt[k]}
+                          onChange={(ev) => {
+                            const v = parseFloat(ev.target.value);
+                            if (!Number.isFinite(v)) return;
+                            const table = (el.table ?? []).map((q, j) => (j === i ? { ...q, [k]: k === 'f' ? v * 1e6 : v } : q));
+                            dispatch({ type: 'antenna_table', id: el.id, table });
+                          }}
+                        />
+                      </td>
+                    ))}
+                    <td><button className="mini" title="ลบแถว" onClick={() => dispatch({ type: 'antenna_table', id: el.id, table: (el.table ?? []).filter((_q, j) => j !== i) })}>✕</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="insp-presets">
+              <button className="mini wide" onClick={() => { const t = [...(el.table ?? [])]; const last = t[t.length - 1] ?? { f: circuit.f, R: 50, X: 0 }; const prev = t[t.length - 2]; const df = prev ? last.f - prev.f : 0.2e6; t.push({ f: last.f + df, R: last.R, X: last.X }); dispatch({ type: 'antenna_table', id: el.id, table: t }); }}>+ เพิ่มแถว</button>
+              <span>ชุดข้อมูลจากหนังสือ:</span>
+              {([
+                ['Ex1 12.0–12.4 MHz', 12.2e6, [[12.0, 10, -60], [12.2, 16.5, -55], [12.4, 20, -50]]],
+                ['Ex2 50–54 MHz', 52e6, [[50, 52, -45], [51, 67.5, -32.5], [52, 87, -20], [53, 120, -26], [54, 110, -70]]],
+                ['Ex5 28–30 MHz', 29e6, [[28, 20, -120], [29, 20, -110], [30, 20, -100]]],
+                ['Ch.II 175–225 MHz', 200e6, [[175, 32, 42], [200, 50, 65], [225, 100, 65]]],
+              ] as [string, number, number[][]][]).map(([name, f0, rows]) => (
+                <button key={name} className="mini wide" onClick={() => { dispatch({ type: 'antenna_table', id: el.id, table: rows.map(([f, R, X]) => ({ f: f * 1e6, R, X }) as AntennaPoint) }); dispatch({ type: 'freq', f: f0 }); }}>{name}</button>
+              ))}
+            </div>
+            <div className="insp-note">แผง Smith Chart จะพล็อตจุดทุกความถี่ในตาราง (กวาดความถี่) สายส่ง/สตับคงความยาวจริงไว้ ความยาวไฟฟ้าจึงเปลี่ยนตาม f · ตั้ง "เป้า SWR" เพื่อดูว่าทุกจุดอยู่ในวงกลมเป้าหมายหรือไม่</div>
+          </div>
+        )}
         {el.type === 'load' && (
           <div className="insp-presets">
             <span>ค่าตัวอย่าง:</span>
@@ -148,7 +205,7 @@ export const Inspector: React.FC = () => {
           </div>
         )}
 
-        {(el.type === 'stub_short' || el.type === 'stub_open') && (
+        {(el.type === 'stub_short' || el.type === 'stub_open') && el.orient === 'shunt' && (
           <div className="insp-section">
             {nextIsLine && nextStage ? (
               <>

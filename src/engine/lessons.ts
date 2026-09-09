@@ -6,6 +6,7 @@ import { SolveResult } from './solver';
 import { abs } from './complex';
 import { admittance } from './rf';
 import { Complex } from './complex';
+import { solveSweep, sweepMaxSwr } from './solver';
 
 export interface CheckCtx {
   /** true when every numeric answer the learner typed is within tolerance */
@@ -46,7 +47,7 @@ export interface Lesson {
   solution?: () => Circuit;
   /** ---- practice problems ---- */
   kind?: 'lesson' | 'problem';
-  category?: 'impedance' | 'admittance';
+  category?: 'impedance' | 'admittance' | 'book';
   /** problem statement shown to the learner */
   statement?: string;
   answers?: AnswerSpec[];
@@ -286,6 +287,9 @@ export const EXAMPLES: Example[] = [
   { id: 'ex8', title: 'Example 08', subtitle: 'Double Stub Matching (λ/8)', circuit: () => buildCircuit(2e9, 50, [['stub_short', 'shunt', { Z0: 50, len: 0.1 }], ['tline', 'series', { Z0: 50, len: 0.125, vf: 0.66, lossDb: 0 }], ['stub_short', 'shunt', { Z0: 50, len: 0.232 }], ['tline', 'series', { Z0: 50, len: 0, vf: 0.66, lossDb: 0 }], ['load', 'series', { R: 60, X: -80 }]]) },
   { id: 'ex9', title: 'Example 09', subtitle: 'L-Section Match (200 − j100 Ω)', circuit: () => buildCircuit(500e6, 100, [['inductor', 'series', { L: 38.8 }], ['capacitor', 'shunt', { C: 0.92 }], ['load', 'series', { R: 200, X: -100 }]]) },
   { id: 'ex10', title: 'Example 10', subtitle: 'Parallel RLC', circuit: () => buildCircuit(100e6, 50, [['resistor', 'shunt', { R: 100 }], ['capacitor', 'shunt', { C: 31.8 }], ['inductor', 'shunt', { L: 79.6 }]]) },
+  { id: 'ex12', title: 'Caron Ex. 1', subtitle: 'Narrowband 12.0–12.4 MHz: shunt L 1.63 μH + series L 1.255 μH (SWR ≤ 2)', circuit: () => buildCircuit(12.2e6, 50, [['inductor', 'series', { L: 1255 }], ['inductor', 'shunt', { L: 1630 }], ['antenna', 'series', {}, [{ f: 12.0e6, R: 10, X: -60 }, { f: 12.2e6, R: 16.5, X: -55 }, { f: 12.4e6, R: 20, X: -50 }]]]) },
+  { id: 'ex13', title: 'Caron Ex. 2', subtitle: 'Line transformer 83 Ω (0.140 λ) 50–54 MHz (SWR ≤ 1.5)', circuit: () => buildCircuit(52e6, 50, [['tline', 'series', { Z0: 83, len: 0.14, vf: 0.66, lossDb: 0 }], ['antenna', 'series', {}, [{ f: 50e6, R: 52, X: -45 }, { f: 51e6, R: 67.5, X: -32.5 }, { f: 52e6, R: 87, X: -20 }, { f: 53e6, R: 120, X: -26 }, { f: 54e6, R: 110, X: -70 }]]]) },
+  { id: 'ex14', title: 'Caron Ex. 5', subtitle: 'Short vertical 28–30 MHz: series L, shunt L, RG-8 2.8 ft, 25-Ω stub 5.56 ft', circuit: () => buildCircuit(29e6, 50, [['stub_short', 'shunt', { Z0: 25, len: 0.2484 }], ['tline', 'series', { Z0: 50, len: 0.1251, vf: 0.66, lossDb: 0 }], ['inductor', 'shunt', { L: 272 }], ['inductor', 'series', { L: 467 }], ['antenna', 'series', {}, [{ f: 28e6, R: 20, X: -120 }, { f: 29e6, R: 20, X: -110 }, { f: 30e6, R: 20, X: -100 }]]]) },
   { id: 'ex11', title: 'Example 11', subtitle: 'L-match Z_S = 25 Ω → Z_L = 400 Ω @ 1 GHz (Test & Measurement Tips)', circuit: () => buildCircuit(1e9, 25, [['inductor', 'series', { L: 15.41 }], ['capacitor', 'shunt', { C: 1.541 }], ['load', 'series', { R: 400, X: 0 }]]) },
 ];
 
@@ -486,6 +490,78 @@ export const PROBLEMS: Lesson[] = [
     solution: () => buildCircuit(1e9, 25, [['inductor', 'series', { L: 15.41 }], ['capacitor', 'shunt', { C: 1.541 }], ['load', 'series', { R: 400, X: 0 }]]),
   },
 ];
+
+// ================= BOOK (Caron) =================
+const CH2 = [{ f: 175e6, R: 32, X: 42 }, { f: 200e6, R: 50, X: 65 }, { f: 225e6, R: 100, X: 65 }];
+const EX1 = [{ f: 12.0e6, R: 10, X: -60 }, { f: 12.2e6, R: 16.5, X: -55 }, { f: 12.4e6, R: 20, X: -50 }];
+const bandMax = (c: Circuit) => sweepMaxSwr(solveSweep(c));
+PROBLEMS.push(
+  {
+    id: 'pb1', level: 1, phase: 2, kind: 'problem', category: 'book', title: 'B-1 Series capacitor แทน series stub (Caron Ch. II)', learn: 'จาก curve 175–225 MHz หา X ที่ต้องชดเชยที่ 200 MHz แล้วแปลงเป็น C',
+    statement: 'สาย Z₀ = 50 Ω โหลด 175 MHz: 32 + j42, 200 MHz: 50 + j65, 225 MHz: 100 + j65 Ω ต้องการ match ดีที่สุดที่ 200 MHz ด้วยตัวเก็บประจุอนุกรม จงหารีแอกแตนซ์ X ที่ต้องเพิ่มที่ 200 MHz, ค่า C (pF) และ SWR ที่ 175 MHz หลังใส่ C แล้วสร้างวงจร Source — C — ANT (ตาราง Ch.II) ให้จุด 200 MHz อยู่ที่ศูนย์กลาง',
+    concept: ['ที่ 200 MHz z = 1 + j1.3 อยู่บนวงกลม r = 1 → ต้องการ x = −1.3 · C = 1/(2πf|X|)'],
+    start: () => buildCircuit(200e6, 50, [['antenna', 'series', {}, CH2]]),
+    answers: [
+      { key: 'X', label: 'X ที่ต้องเพิ่ม', unit: 'Ω', tol: 0.02, value: (r) => r.stages.find((st) => st.el.type === 'capacitor')!.X ?? 0, tex: 'X = -X_L(200\\,\\text{MHz})' },
+      { key: 'C', label: 'C', unit: 'pF', tol: 0.03, value: (_r, c) => c.elements.find((e) => e.type === 'capacitor')!.params.C, tex: 'C = 1/(2\\pi f|X|)' },
+      { key: 'swr175', label: 'SWR ที่ 175 MHz', unit: '', tol: 0.04, value: (_r, c) => solveSweep(c)[0].result.swrIn },
+    ],
+    steps: [
+      { text: 'ลาก Capacitor ต่ออนุกรมหน้าเสาอากาศ ปรับ C จนจุด 200 MHz (ความถี่ออกแบบ) เข้าศูนย์กลาง ✓ MATCHED', check: (c, r) => has(c, 'capacitor', 'series') && matched(r) },
+      { text: 'กรอกคำตอบ X, C และ SWR ที่ 175 MHz (อ่านจากตารางแบนด์ใต้ Smith Chart) แล้วกด "ตรวจคำตอบ"', check: (_c, _r, ctx) => ansOk(ctx) },
+    ],
+    solution: () => buildCircuit(200e6, 50, [['capacitor', 'series', { C: 12.24 }], ['antenna', 'series', {}, CH2]]),
+  },
+  {
+    id: 'pb2', level: 2, phase: 2, kind: 'problem', category: 'book', title: 'B-2 Quarter-wave transformer 600 Ω → 50 Ω (Caron Ch. II)', learn: 'Z_t = √(Z₀ Z_L)',
+    statement: 'ต้องการเชื่อมสายอากาศ 600 Ω เข้ากับสาย 50 Ω ด้วยสายส่งหนึ่งในสี่คลื่น จงหา Z_t และ SWR ของโหลด 600 Ω ก่อน match แล้วสร้างวงจร Source — λ/4 — R 600 Ω ให้ ✓ MATCHED',
+    concept: ['Z_t = √(600 × 50) ≈ 173 Ω'],
+    start: () => buildCircuit(100e6, 50, [['resistor', 'series', { R: 600 }]]),
+    answers: [
+      { key: 'Zt', label: 'Z_t', unit: 'Ω', tol: 0.02, value: (_r, c) => c.elements.find((e) => e.type === 'qwt')!.params.Zt, tex: 'Z_t = \\sqrt{Z_0 Z_L}' },
+      { key: 'swrL', label: 'SWR ก่อน match', unit: '', tol: 0.03, value: (r) => r.swrL },
+    ],
+    steps: [
+      { text: 'วาง λ/4 Transformer หน้า R = 600 Ω ตั้ง Z_t ให้ ✓ MATCHED', check: (c, r) => has(c, 'qwt') && matched(r) },
+      { text: 'กรอกคำตอบ Z_t และ SWR ก่อน match แล้วกด "ตรวจคำตอบ"', check: (_c, _r, ctx) => ansOk(ctx) },
+    ],
+    solution: () => buildCircuit(100e6, 50, [['qwt', 'series', { Zt: 173.2 }], ['resistor', 'series', { R: 600 }]]),
+  },
+  {
+    id: 'pb3', level: 3, phase: 3, kind: 'problem', category: 'book', title: 'B-3 Z_A = 80 − j40 Ω → 50 Ω ด้วยสาย + shorted stub (Caron Ch. IV)', learn: 'Z → Y → หมุนจน g = 1 → สตับหักล้าง b',
+    statement: 'โหลด Z_A = 80 − j40 Ω บนระบบ 50 Ω จงหา y_A, ระยะ d (น้อยสุด) ของสาย 50 Ω จากโหลดที่ทำให้ g = 1 และความยาวสตับปลายลัดขนาน l แล้วสร้างวงจร Source — Stub(⏚) — TL(d) — Load ให้ ✓ MATCHED',
+    concept: ['z_A = 1.6 − j0.8 อยู่ใน Region 1 (r > 1) ใช้สายสั้น ๆ ย้ายจุดไปที่ g = 1 แล้วใส่ตัวขนาน'],
+    start: () => buildCircuit(100e6, 50, [['load', 'series', { R: 80, X: -40 }]]),
+    answers: [
+      { key: 'g', label: 'g_A', unit: '', tol: 0.03, value: (r) => yOf(r.zL).re },
+      { key: 'b', label: 'b_A', unit: '', tol: 0.03, value: (r) => yOf(r.zL).im },
+      { key: 'd', label: 'd', unit: 'λ', tol: 0.03, tolAbs: 0.004, value: (r) => stageOf(r, 'line').el.params.len },
+      { key: 'l', label: 'l สตับ', unit: 'λ', tol: 0.03, tolAbs: 0.004, value: (r) => stageOf(r, 'stub').el.params.len },
+    ],
+    steps: [
+      { text: 'วาง Short Stub (⏚) และ Transmission Line ระหว่าง Source กับโหลด ปรับ d และ l จน ✓ MATCHED', check: (c, r) => has(c, 'stub_short', 'shunt') && has(c, 'tline') && matched(r) },
+      { text: 'กรอกคำตอบ g_A, b_A, d, l แล้วกด "ตรวจคำตอบ"', check: (_c, _r, ctx) => ansOk(ctx) },
+    ],
+    solution: () => buildCircuit(100e6, 50, [['stub_short', 'shunt', { Z0: 50, len: 0.1435 }], ['tline', 'series', { Z0: 50, len: 0.1049, vf: 0.66, lossDb: 0 }], ['load', 'series', { R: 80, X: -40 }]]),
+  },
+  {
+    id: 'pb4', level: 4, phase: 3, kind: 'problem', category: 'book', title: 'B-4 Narrowband matching 12.0–12.4 MHz, SWR ≤ 2 (Caron Ex. 1)', learn: 'L-network กรณี (g) shunt L → series L กับโหลด 3 ความถี่',
+    statement: 'เสาอากาศ 12.0 MHz: 10 − j60, 12.2 MHz: 16.5 − j55, 12.4 MHz: 20 − j50 Ω ต้องการ SWR ≤ 2:1 ทั้งสามความถี่ ใช้ shunt inductor ที่เสาอากาศและ series inductor ไปทางสาย 50 Ω ออกแบบที่ 12.2 MHz ให้เข้าศูนย์กลาง จงหา y_L ที่ 12.2 MHz, L_shunt และ L_series แล้วสร้างวงจรให้ SWR สูงสุดในแบนด์ ≤ 2 (หนังสือใช้ 1.63 μH และ 1.255 μH ซึ่งผ่านเกณฑ์เช่นกัน)',
+    concept: ['ใช้ตัวแก้ 8 กรณีใน Course Chapter V ตรวจได้ · ตั้ง "เป้า SWR ≤ 2" ที่แผง Smith Chart'],
+    start: () => buildCircuit(12.2e6, 50, [['antenna', 'series', {}, EX1]]),
+    answers: [
+      { key: 'g', label: 'g_L (12.2 MHz)', unit: '', tol: 0.03, value: (r) => yOf(r.zL).re },
+      { key: 'b', label: 'b_L (12.2 MHz)', unit: '', tol: 0.03, value: (r) => yOf(r.zL).im },
+      { key: 'Lsh', label: 'L shunt', unit: 'nH', tol: 0.04, value: (_r, c) => c.elements.find((e) => e.type === 'inductor' && e.orient === 'shunt')!.params.L },
+      { key: 'Lse', label: 'L series', unit: 'nH', tol: 0.04, value: (_r, c) => c.elements.find((e) => e.type === 'inductor' && e.orient === 'series')!.params.L },
+    ],
+    steps: [
+      { text: 'วาง Inductor แบบขนาน (⏚) หน้าเสาอากาศ และ Inductor อนุกรมถัดจาก Source ปรับจนทุกความถี่มี SWR ≤ 2 (ดูตารางแบนด์)', check: (c) => has(c, 'inductor', 'shunt') && has(c, 'inductor', 'series') && bandMax(c) <= 2.0 },
+      { text: 'กรอกคำตอบ g_L, b_L, L shunt, L series แล้วกด "ตรวจคำตอบ"', check: (_c, _r, ctx) => ansOk(ctx) },
+    ],
+    solution: () => buildCircuit(12.2e6, 50, [['inductor', 'series', { L: 1129 }], ['inductor', 'shunt', { L: 1627 }], ['antenna', 'series', {}, EX1]]),
+  },
+);
 
 export const ALL_LESSONS: Lesson[] = [...LESSONS, ...PROBLEMS];
 export const findLesson = (id: string | null | undefined): Lesson | undefined => (id ? ALL_LESSONS.find((l) => l.id === id) : undefined);

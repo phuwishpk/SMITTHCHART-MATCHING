@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import { Circuit, ElementType, Orientation, makeElement, emptyCircuit, ELEMENT_SPECS, cloneCircuit } from '../engine/circuit';
 import { EXAMPLES, findLesson } from '../engine/lessons';
-import { solveCircuit, SolveResult } from '../engine/solver';
+import { solveCircuit, SolveResult, solveSweep, SweepPoint } from '../engine/solver';
 import { explainCircuit, ExplainStep } from '../engine/explain';
 
 export interface Probe {
@@ -26,6 +26,12 @@ export interface State {
   showScale: boolean;
   showFine: boolean;
   showRadial: boolean;
+  showSweep: boolean;
+  /** main view: the lab or the Antenna Impedance Matching course */
+  view: 'lab' | 'course';
+  courseChapter: string;
+  /** design-goal SWR circle (null = off) */
+  swrTarget: number | null;
   probe: Probe | null;
   explainStep: number;
   explainAll: boolean;
@@ -60,7 +66,11 @@ export type Action =
   | { type: 'answer'; key: string; value: string }
   | { type: 'answers_checked'; value: boolean }
   | { type: 'example'; id: string }
-  | { type: 'toggle'; key: 'showZ' | 'showY' | 'showSwr' | 'showPath' | 'showScale' | 'showFine' | 'showRadial'; value?: boolean }
+  | { type: 'toggle'; key: 'showZ' | 'showY' | 'showSwr' | 'showPath' | 'showScale' | 'showFine' | 'showRadial' | 'showSweep'; value?: boolean }
+  | { type: 'swr_target'; value: number | null }
+  | { type: 'view'; view: 'lab' | 'course' }
+  | { type: 'course_chapter'; id: string }
+  | { type: 'antenna_table'; id: string; table: { f: number; R: number; X: number }[] }
   | { type: 'probe'; probe: Probe | null }
   | { type: 'explain_step'; i: number }
   | { type: 'explain_all'; value: boolean }
@@ -85,6 +95,10 @@ const defaultState = (): State => ({
   showScale: true,
   showFine: true,
   showRadial: false,
+  showSweep: true,
+  view: 'lab',
+  courseChapter: 'intro',
+  swrTarget: null,
   probe: null,
   explainStep: 0,
   explainAll: false,
@@ -115,6 +129,11 @@ const applyQuery = (s: State): State => {
     if (q.get('solution') === '1') out = { ...out, showSolution: true };
     if (q.get('solution') === 'modal') out = { ...out, showSolution: true, modal: 'solution' };
     if (q.get('modal') === 'problems' || q.get('modal') === 'lessons' || q.get('modal') === 'examples') out = { ...out, modal: q.get('modal') as State['modal'] };
+    if (q.get('view') === 'course') out = { ...out, view: 'course' };
+    const ch = q.get('ch');
+    if (ch) out = { ...out, courseChapter: ch, view: 'course' };
+    const st = q.get('swr');
+    if (st !== null) out = { ...out, swrTarget: parseFloat(st) || null };
     const ss = q.get('sstep');
     if (ss !== null) out = { ...out, showSolution: true, solutionStep: Math.max(0, parseInt(ss, 10) - 1 || 0) };
     if (q.get('mode') === 'free' || q.get('mode') === 'guided') out = { ...out, mode: q.get('mode') as 'free' | 'guided' };
@@ -156,6 +175,7 @@ const loadStored = (): State => {
       dragging: null,
       probe: null,
       maximized: null,
+      view: 'lab',
       showSolution: false,
       lastSolutionStep: null,
       solutionStep: null,
@@ -275,6 +295,16 @@ export const reducer = (s: State, a: Action): State => {
       return { ...s, dragging: a.value };
     case 'maximize':
       return { ...s, maximized: a.panel };
+    case 'swr_target':
+      return { ...s, swrTarget: a.value };
+    case 'view':
+      return { ...s, view: a.view, modal: 'none' };
+    case 'course_chapter':
+      return { ...s, courseChapter: a.id, view: 'course' };
+    case 'antenna_table': {
+      const elements = s.circuit.elements.map((e) => (e.id === a.id ? { ...e, table: a.table.map((pt) => ({ ...pt })) } : e));
+      return { ...s, circuit: { ...s.circuit, elements } };
+    }
     case 'reset':
       return { ...defaultState(), mode: s.mode, maximized: s.maximized, circuit: cloneCircuit(emptyCircuit()) };
     default:
@@ -285,6 +315,8 @@ export const reducer = (s: State, a: Action): State => {
 interface Derived {
   result: SolveResult;
   steps: ExplainStep[];
+  /** frequency sweep over antenna-table frequencies (empty when the circuit has no antenna table) */
+  sweep: SweepPoint[];
 }
 
 const StateCtx = createContext<State | null>(null);
@@ -296,13 +328,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const derived = useMemo<Derived>(() => {
     const result = solveCircuit(state.circuit);
     const steps = explainCircuit(result);
-    return { result, steps };
+    const sweep = solveSweep(state.circuit);
+    return { result, steps, sweep };
   }, [state.circuit]);
 
   useEffect(() => {
     try {
-      const { circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, selectedId, answers } = state;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, selectedId, answers }));
+      const { circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter } = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter }));
     } catch {
       /* ignore */
     }

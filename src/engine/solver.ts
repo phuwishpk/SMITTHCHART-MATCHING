@@ -4,7 +4,7 @@
 // a trace that the Smith Chart engine and Explanation engine consume.
 // ---------------------------------------------------------------
 import { Complex, C, add, abs, inv, isFiniteC, scale } from './complex';
-import { Circuit, CircuitElement, isLine, isStub } from './circuit';
+import { Circuit, CircuitElement, isLine, isStub, antennaZ, sweepFrequencies, cloneCircuit } from './circuit';
 import {
   XL, XC, gammaFromZ, normalize, swrFromGamma, returnLossDb, mismatchLossDb, lineInput, stubInput, betaL,
 } from './rf';
@@ -79,6 +79,10 @@ const elementSeriesImpedance = (el: CircuitElement, f: number): { Z: Complex; X?
     }
     case 'load':
       return { Z: C(el.params.R, el.params.X) };
+    case 'antenna': {
+      const z = antennaZ(el.table, f);
+      return { Z: C(z.re, z.im) };
+    }
     default:
       return { Z: C(0, 0) };
   }
@@ -99,6 +103,11 @@ const elementShuntAdmittance = (el: CircuitElement, f: number): { Y: Complex; B?
     }
     case 'load': {
       const Z = C(el.params.R, el.params.X);
+      return { Y: abs(Z) < 1e-15 ? C(Infinity, 0) : inv(Z) };
+    }
+    case 'antenna': {
+      const z = antennaZ(el.table, f);
+      const Z = C(z.re, z.im);
       return { Y: abs(Z) < 1e-15 ? C(Infinity, 0) : inv(Z) };
     }
     default:
@@ -124,15 +133,21 @@ export const findLoadStart = (elements: CircuitElement[]): number => {
   const n = elements.length;
   if (n === 0) return 0;
   const last = elements[n - 1];
-  if (last.type === 'load') return n - 1;
+  if (last.type === 'load' || last.type === 'antenna') return n - 1;
   // trailing lumped elements (R/L/C/load) form the load group
   let i = n - 1;
   while (i >= 0 && !isLine(elements[i].type) && !isStub(elements[i].type)) i--;
   return i + 1;
 };
 
-export const solveCircuit = (circuit: Circuit): SolveResult => {
+export interface SolveOptions {
+  /** multiply every line / stub electrical length (fixed physical length at another frequency) */
+  lenScale?: number;
+}
+
+export const solveCircuit = (circuit: Circuit, opts: SolveOptions = {}): SolveResult => {
   const { f, Z0, elements } = circuit;
+  const lenScale = opts.lenScale ?? 1;
   const warnings: string[] = [];
   const n = elements.length;
 
@@ -162,7 +177,7 @@ export const solveCircuit = (circuit: Circuit): SolveResult => {
 
     if (isLine(el.type)) {
       const Z0line = el.type === 'qwt' ? el.params.Zt : el.params.Z0;
-      const lenLambda = el.type === 'qwt' ? 0.25 : el.params.len;
+      const lenLambda = (el.type === 'qwt' ? 0.25 : el.params.len) * lenScale;
       const lossDb = el.type === 'qwt' ? 0 : el.params.lossDb ?? 0;
       stage.kind = 'line';
       stage.line = { Z0: Z0line, lenLambda, betaL: betaL(lenLambda), lossDb, degrees: (lenLambda * 360) };
@@ -171,14 +186,33 @@ export const solveCircuit = (circuit: Circuit): SolveResult => {
         const t = k / PATH_N;
         path.push(gammaFromZ(lineInput(Zbefore, Z0line, lenLambda * t, lossDb * t), Z0));
       }
+    } else if (isStub(el.type) && el.orient === 'series') {
+      // series stub: its input impedance is inserted in series with the line
+      const kind = el.type === 'stub_short' ? 'short' : 'open';
+      const stubLen = el.params.len * lenScale;
+      const Zs = stubInput(kind, el.params.Z0, stubLen);
+      stage.kind = 'series';
+      stage.Zel = Zs;
+      stage.X = isFiniteC(Zs) ? Zs.im : (kind === 'open' ? -Infinity : Infinity);
+      stage.line = { Z0: el.params.Z0, lenLambda: stubLen, betaL: betaL(stubLen), lossDb: 0, degrees: stubLen * 360 };
+      Zafter = addSeries(Zbefore, Zs);
+      if (isFiniteC(Zs) && isFiniteC(Zbefore)) {
+        for (let k = 0; k <= PATH_N; k++) {
+          const t = k / PATH_N;
+          path.push(gammaFromZ(add(Zbefore, scale(Zs, t)), Z0));
+        }
+      } else {
+        path.push(gammaFromZ(Zbefore, Z0), gammaFromZ(Zafter, Z0));
+      }
     } else if (isStub(el.type)) {
       const kind = el.type === 'stub_short' ? 'short' : 'open';
-      const Zs = stubInput(kind, el.params.Z0, el.params.len);
+      const stubLen = el.params.len * lenScale;
+      const Zs = stubInput(kind, el.params.Z0, stubLen);
       const Ys = isFiniteC(Zs) ? (abs(Zs) < 1e-15 ? C(Infinity, 0) : inv(Zs)) : C(0, 0);
       stage.kind = 'stub';
       stage.Yel = Ys;
       stage.B = isFiniteC(Ys) ? Ys.im : (kind === 'short' ? -Infinity : Infinity);
-      stage.line = { Z0: el.params.Z0, lenLambda: el.params.len, betaL: betaL(el.params.len), lossDb: 0, degrees: el.params.len * 360 };
+      stage.line = { Z0: el.params.Z0, lenLambda: stubLen, betaL: betaL(stubLen), lossDb: 0, degrees: stubLen * 360 };
       Zafter = addShunt(Zbefore, Ys);
       if (isFiniteC(Ys)) {
         for (let k = 0; k <= PATH_N; k++) {
@@ -295,3 +329,25 @@ export const standingWave = (stage: Stage, samples = 120): { d: number; v: numbe
   }
   return out;
 };
+
+export interface SweepPoint {
+  f: number;
+  result: SolveResult;
+}
+
+/**
+ * Frequency sweep over the antenna table frequencies. Lumped L/C are re-evaluated at each f;
+ * lines and stubs keep their PHYSICAL length, i.e. electrical length scales with f / f_design.
+ */
+export const solveSweep = (circuit: Circuit): SweepPoint[] => {
+  const fs = sweepFrequencies(circuit);
+  if (fs.length === 0) return [];
+  return fs.map((f) => {
+    const c = cloneCircuit(circuit);
+    c.f = f;
+    return { f, result: solveCircuit(c, { lenScale: f / circuit.f }) };
+  });
+};
+
+/** worst-case SWR over a sweep */
+export const sweepMaxSwr = (sw: SweepPoint[]): number => sw.reduce((m, p) => Math.max(m, p.result.swrIn), 0);

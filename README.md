@@ -53,6 +53,17 @@ npm test           # ทดสอบ engine คำนวณกับตัวอ
 - ปุ่ม **⤢ ขยาย** ที่หัวทุกแผง ขยายแผงนั้นเต็มจอ (กด Esc หรือ ⤡ ย่อกลับ) เหมาะกับการฉายในห้องเรียน · จอเตี้ยกว่า 880px หน้าจะเลื่อนได้แทนการตัดเนื้อหา
 - Deep link: `?example=ex7` `?lesson=l10` `&step=5` `&all=1` `&y=1` `&sel=0&probe=0.1` `&max=chart` (palette / inspector / canvas / chart / explain)
 
+## หัวข้อ Antenna Impedance Matching (ตามหนังสือ Caron, ARRL)
+
+ปุ่ม "📖 Antenna Impedance Matching" ที่หัวเว็บ เปิดคอร์สที่เรียงตามโครงหนังสือ *Antenna Impedance Matching* (W. N. Caron) เฉพาะส่วนที่มีในไฟล์: บทนำ (+Errata), Chapter I–V และ Chapter VI Example 1–6
+
+- เนื้อหาอยู่ใน `src/engine/course.ts` (ข้อความไทย + สูตร KaTeX + figure spec) แสดงผลด้วย `CoursePanel.tsx`
+- ภาพประกอบเป็น **ภาพจำลองแบบโต้ตอบตามแนวคิดของแต่ละ Figure** คำนวณสดด้วย engine (`MiniPlot`, `SmithFigure`, `WaveFigure`, `CircuitSchematic`) ไม่ใช่ภาพจากหนังสือ
+- อุปกรณ์ใหม่ **Antenna (curve)**: ตาราง f, R, X ของเสาอากาศ + **กวาดความถี่** (สายส่ง/สตับคงความยาวจริง ความยาวไฟฟ้าเปลี่ยนตาม f) + วงกลม **เป้า SWR** + ตารางแบนด์ใต้ Smith Chart และ **series stub** (open/short ต่ออนุกรม) ตาม Ch. II
+- ตัวอย่างที่มีข้อมูลครบถูกตรวจซ้ำด้วย engine (`npm test`): Ex.1 SWR 1.62/1.21/1.75, Ex.2 สาย 83 Ω 0.140 λ → SWR สูงสุด 1.52, Ex.5 ครบทุกขั้น → 1.70, series C 12.24 pF, Z_t 173.2 Ω, 55.2+j43.1 → 1.104+j0.862 ส่วน Ex.3/4/6 ที่สรุปไม่มีข้อมูลอิมพีแดนซ์ แสดงเป็นขั้นตอน + โครงวงจร (ตาราง ANT เป็นค่าสมมุติ ระบุไว้ชัดเจน)
+- ตัวแก้ **L-network 8 กรณี** (Fig. 4-1 a–h / Tables 5-5–5-12) ใน Chapter V คำนวณสดสำหรับโหลด 3 ความถี่ พร้อมปุ่มโหลดเข้า Lab
+- โจทย์ชุดหนังสือ B-1…B-4 ในเมนู "โจทย์ Z / Y" · deep link `?view=course&ch=ch6`
+
 ## สถานะตามแผน 3 ระยะ
 
 - **Phase 1** (ครบ): Series R/L/C, ความถี่, Z_L, Normalize, Smith Chart, SWR, step-by-step

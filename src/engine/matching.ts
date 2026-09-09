@@ -184,3 +184,97 @@ export const solveLMatch = (ZL: Complex, Z0: number, f: number): LMatchSolution[
   }
   return sols;
 };
+
+// ---------- the eight L-network configurations (Caron Fig. 4-1 a–h) ----------
+export type LCase = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h';
+export interface LCaseSpec {
+  id: LCase;
+  /** element adjacent to the load first, then the element toward the source */
+  first: { orient: 'shunt' | 'series'; type: 'inductor' | 'capacitor' };
+  second: { orient: 'shunt' | 'series'; type: 'inductor' | 'capacitor' };
+  label: string;
+}
+export const L_CASES: LCaseSpec[] = [
+  { id: 'a', first: { orient: 'shunt', type: 'capacitor' }, second: { orient: 'series', type: 'inductor' }, label: 'shunt C → series L' },
+  { id: 'b', first: { orient: 'series', type: 'inductor' }, second: { orient: 'shunt', type: 'capacitor' }, label: 'series L → shunt C' },
+  { id: 'c', first: { orient: 'shunt', type: 'inductor' }, second: { orient: 'series', type: 'capacitor' }, label: 'shunt L → series C' },
+  { id: 'd', first: { orient: 'series', type: 'capacitor' }, second: { orient: 'shunt', type: 'inductor' }, label: 'series C → shunt L' },
+  { id: 'e', first: { orient: 'shunt', type: 'capacitor' }, second: { orient: 'series', type: 'capacitor' }, label: 'shunt C → series C' },
+  { id: 'f', first: { orient: 'series', type: 'capacitor' }, second: { orient: 'shunt', type: 'capacitor' }, label: 'series C → shunt C' },
+  { id: 'g', first: { orient: 'shunt', type: 'inductor' }, second: { orient: 'series', type: 'inductor' }, label: 'shunt L → series L' },
+  { id: 'h', first: { orient: 'series', type: 'inductor' }, second: { orient: 'shunt', type: 'inductor' }, label: 'series L → shunt L' },
+];
+
+export interface LCaseResult {
+  spec: LCaseSpec;
+  feasible: boolean;
+  /** element values in SI (H or F) — first (at load), second (toward source) */
+  first?: number;
+  second?: number;
+  /** normalized reactance / susceptance added */
+  xb1?: number;
+  xb2?: number;
+  reason?: string;
+}
+
+/**
+ * Solve all eight L-network cases for load ZL at frequency f (system Z0).
+ * "first" is the element adjacent to the load. Each case is feasible only when the
+ * required signs of the two reactive elements agree with its L/C types.
+ */
+export const solveLCases = (ZL: Complex, Z0: number, f: number): LCaseResult[] => {
+  const w = 2 * Math.PI * f;
+  const z = normalize(ZL, Z0);
+  const y = admittance(z);
+  const out: LCaseResult[] = [];
+  for (const spec of L_CASES) {
+    const res: LCaseResult = { spec, feasible: false };
+    const cands: { xb1: number; xb2: number }[] = [];
+    if (spec.first.orient === 'shunt') {
+      // add jb1 so that the re-converted impedance lands on r = 1
+      const g = y.re;
+      const b = y.im;
+      if (g > 0 && g <= 1) {
+        const root = Math.sqrt(g - g * g);
+        for (const sgn of [1, -1]) {
+          const b1 = sgn * root - b;
+          const y1 = { re: g, im: b + b1 };
+          const z1 = admittance(y1); // r = 1 - j x'
+          cands.push({ xb1: b1, xb2: -z1.im });
+        }
+      } else res.reason = 'g > 1: โหลดอยู่ในวงกลม g = 1 ใช้ตัวขนานก่อนไม่ได้';
+    } else {
+      const r = z.re;
+      const x = z.im;
+      if (r > 0 && r <= 1) {
+        const root = Math.sqrt(r - r * r);
+        for (const sgn of [1, -1]) {
+          const x1 = sgn * root - x;
+          const z1 = { re: r, im: x + x1 };
+          const y1 = admittance(z1); // g = 1 - j b'
+          cands.push({ xb1: x1, xb2: -y1.im });
+        }
+      } else res.reason = 'r > 1: โหลดอยู่ในวงกลม r = 1 ใช้ตัวอนุกรมก่อนไม่ได้';
+    }
+    const signOk = (v: number, orient: 'shunt' | 'series', type: 'inductor' | 'capacitor') =>
+      orient === 'series' ? (type === 'inductor' ? v > 0 : v < 0) : type === 'capacitor' ? v > 0 : v < 0;
+    const pick = cands.find((cd) => signOk(cd.xb1, spec.first.orient, spec.first.type) && signOk(cd.xb2, spec.second.orient, spec.second.type));
+    if (pick) {
+      const toVal = (v: number, orient: 'shunt' | 'series', type: 'inductor' | 'capacitor') => {
+        if (orient === 'series') {
+          const X = v * Z0;
+          return type === 'inductor' ? X / w : -1 / (w * X);
+        }
+        const B = v / Z0;
+        return type === 'capacitor' ? B / w : -1 / (w * B);
+      };
+      res.feasible = true;
+      res.xb1 = pick.xb1;
+      res.xb2 = pick.xb2;
+      res.first = toVal(pick.xb1, spec.first.orient, spec.first.type);
+      res.second = toVal(pick.xb2, spec.second.orient, spec.second.type);
+    } else if (!res.reason) res.reason = 'เครื่องหมายของค่าที่ต้องการไม่ตรงกับชนิด L/C ของวงจรนี้';
+    out.push(res);
+  }
+  return out;
+};

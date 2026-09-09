@@ -45,7 +45,7 @@ export const smithMethodSteps = (lesson: Lesson, sol: Circuit): ExplainStep[] =>
   ], { center: true });
 
   // ---------- load construction ----------
-  const singleLoadBlock = loadStages.length === 1 && loadStages[0].el.type === 'load';
+  const singleLoadBlock = loadStages.length === 1 && (loadStages[0].el.type === 'load' || loadStages[0].el.type === 'antenna');
   if (!singleLoadBlock && loadStages.length > 0) {
     const termG = gammaFromz(res.termination === 'open' ? { re: Infinity, im: 0 } : { re: 0, im: 0 });
     push('จุดเริ่ม', `เริ่มจากปลายวงจร (${res.termination === 'open' ? 'OPEN' : 'SHORT'})`, [
@@ -148,7 +148,7 @@ export const smithMethodSteps = (lesson: Lesson, sol: Circuit): ExplainStep[] =>
     const after = { g: ga, label: isNet ? `หลัง ${spec.symbol}` : `z = ${fz(s.zafter)}`, cls: (isNet ? 'mid' : 'mid') as 'mid' };
     if (s.kind === 'series') {
       const x = s.X ?? 0;
-      if (s.el.type === 'resistor' || s.el.type === 'load') {
+      if (s.el.type === 'resistor' || s.el.type === 'load' || s.el.type === 'antenna') {
         push(spec.symbol, `${spec.name} อนุกรม: เพิ่มส่วนจริง`, [
           T(`ตัวต้านทานเพิ่ม r โดย x คงเดิม จุดจึงเลื่อนตามเส้นโค้ง x = ${fmtNum(s.zbefore.im, 2)} จาก r = ${fmtNum(s.zbefore.re, 2)} ไป r = ${fmtNum(s.zafter.re, 2)}`),
           M(`z = ${tc(s.zbefore)} + ${tn(s.Zel!.re / Z0, 2)} = ${tc(s.zafter)}`),

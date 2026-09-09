@@ -16,6 +16,10 @@ export const Header: React.FC = () => {
         </div>
       </div>
       <div className="header-mid">
+        <div className="seg view-seg">
+          <button className={state.view === 'lab' ? 'on' : ''} onClick={() => dispatch({ type: 'view', view: 'lab' })}>🔬 Lab</button>
+          <button className={state.view === 'course' ? 'on' : ''} onClick={() => dispatch({ type: 'view', view: 'course' })}>📖 Antenna Impedance Matching</button>
+        </div>
         <div className="seg">
           <button className={state.mode === 'guided' ? 'on' : ''} onClick={() => dispatch({ type: 'mode', mode: 'guided' })}>
             Guided Lab

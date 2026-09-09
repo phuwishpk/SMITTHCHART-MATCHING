@@ -23,7 +23,7 @@ interface Pt {
 export const SmithChart: React.FC = () => {
   const state = useAppState();
   const dispatch = useDispatch();
-  const { result, steps } = useDerived();
+  const { result, steps, sweep } = useDerived();
   const { showZ, showY, showSwr, showPath, showScale, probe } = state;
   const [hover, setHover] = useState<Complex | null>(null);
   const Z0 = result.circuit.Z0;
@@ -98,7 +98,7 @@ export const SmithChart: React.FC = () => {
 
   const fmtz = (z: Complex, d = 3) => (isFiniteC(z) ? `${fmtNum(z.re, d)} ${z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(z.im), d)}` : '∞');
 
-  const Toggle: React.FC<{ k: 'showZ' | 'showY' | 'showSwr' | 'showPath' | 'showScale' | 'showFine' | 'showRadial'; label: string }> = ({ k, label }) => (
+  const Toggle: React.FC<{ k: 'showZ' | 'showY' | 'showSwr' | 'showPath' | 'showScale' | 'showFine' | 'showRadial' | 'showSweep'; label: string }> = ({ k, label }) => (
     <button className={`chip ${state[k] ? 'on' : ''}`} onClick={() => dispatch({ type: 'toggle', key: k })}>
       {label}
     </button>
@@ -116,6 +116,10 @@ export const SmithChart: React.FC = () => {
           <Toggle k="showScale" label="สเกลรอบนอก" />
           <Toggle k="showFine" label="กริดละเอียด" />
           <Toggle k="showRadial" label="แถบ SWR/RL" />
+          {sweep.length > 0 && <Toggle k="showSweep" label="กวาดความถี่" />}
+          <button className={`chip ${state.swrTarget ? 'on' : ''}`} onClick={() => { const seq = [null, 1.5, 2, 3]; const i = seq.indexOf(state.swrTarget as never); dispatch({ type: 'swr_target', value: seq[(i + 1) % seq.length] }); }} title="วงกลมเป้าหมาย SWR (คลิกวนค่า)">
+            เป้า SWR {state.swrTarget ? `≤ ${state.swrTarget}` : 'ปิด'}
+          </button>
           <MaxButton panel="chart" />
         </div>
       </div>
@@ -227,6 +231,42 @@ export const SmithChart: React.FC = () => {
             </g>
           )}
 
+          {/* design-goal SWR circle */}
+          {state.swrTarget && (
+            <g className="target">
+              <circle cx={CX} cy={CY} r={((state.swrTarget - 1) / (state.swrTarget + 1)) * R} className="target-circle" />
+              <text x={CX + ((state.swrTarget - 1) / (state.swrTarget + 1)) * R + 4} y={CY - 6} className="target-label">SWR {state.swrTarget}</text>
+            </g>
+          )}
+          {/* frequency sweep curves */}
+          {state.showSweep && sweep.length > 0 && (
+            <g className="sweep">
+              {result.hasNetwork && (
+                <polyline points={pathToPoints(sweep.map((p) => p.result.gammaL), CX, CY, R)} className="sweep-line load" />
+              )}
+              <polyline points={pathToPoints(sweep.map((p) => p.result.gammaIn), CX, CY, R)} className="sweep-line in" />
+              {sweep.map((p, i) => {
+                const gi = p.result.gammaIn;
+                const gl = p.result.gammaL;
+                const pi = toSvg(gi, CX, CY, R);
+                const pl = toSvg(gl, CX, CY, R);
+                const fl = `${fmtNum(p.f / 1e6, p.f >= 1e8 ? 0 : 2)}`;
+                return (
+                  <g key={i}>
+                    {result.hasNetwork && isFiniteC(gl) && abs(gl) <= 1 && <circle cx={pl.x} cy={pl.y} r={3.5} className="sweep-pt load" />}
+                    {isFiniteC(gi) && abs(gi) <= 1 && (
+                      <>
+                        <circle cx={pi.x} cy={pi.y} r={4} className="sweep-pt in">
+                          <title>{`f = ${fmtNum(p.f / 1e6, 3)} MHz\nz_in = ${fmtz(p.result.zin)}\nSWR = ${fmtNum(p.result.swrIn, 2)}`}</title>
+                        </circle>
+                        <text x={pi.x + 6} y={pi.y - 5} className="sweep-label">{fl}</text>
+                      </>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          )}
           {/* center marker */}
           <g className={`center ${hl.center ? 'hl' : ''}`}>
             <line x1={CX - 7} y1={CY} x2={CX + 7} y2={CY} />
@@ -299,8 +339,34 @@ export const SmithChart: React.FC = () => {
           <div className="stat"><span className="k">SWR</span><span className="v big">{Number.isFinite(result.swrIn) ? fmtNum(result.swrIn, 2) : '∞'}</span></div>
           <div className="stat"><span className="k">Return loss</span><span className="v">{Number.isFinite(result.returnLossDb) ? `${fmtNum(result.returnLossDb, 1)} dB` : '∞'}</span></div>
         </div>
+        {sweep.length > 0 && (
+          <div className="band-table-wrap">
+            <table className="band-table">
+              <thead><tr><th>f (MHz)</th>{result.hasNetwork && <th>z_L</th>}<th>z_in</th><th>|Γ|</th><th>SWR</th></tr></thead>
+              <tbody>
+                {sweep.map((p) => (
+                  <tr key={p.f} className={state.swrTarget && p.result.swrIn > state.swrTarget ? 'over' : ''}>
+                    <td>{fmtNum(p.f / 1e6, 3)}</td>
+                    {result.hasNetwork && <td>{fmtz(p.result.zL, 2)}</td>}
+                    <td>{fmtz(p.result.zin, 2)}</td>
+                    <td>{fmtNum(abs(p.result.gammaIn), 3)}</td>
+                    <td><b>{Number.isFinite(p.result.swrIn) ? fmtNum(p.result.swrIn, 2) : '∞'}</b></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="band-summary">
+              SWR สูงสุดในแบนด์ = <b>{fmtNum(Math.max(...sweep.map((p) => p.result.swrIn)), 2)}</b>
+              {state.swrTarget && (Math.max(...sweep.map((p) => p.result.swrIn)) <= state.swrTarget ? <span className="ok"> ✓ ทุกความถี่อยู่ใน SWR ≤ {state.swrTarget}</span> : <span className="bad"> ✗ มี {sweep.filter((p) => p.result.swrIn > state.swrTarget!).length} ความถี่เกินเป้า</span>)}
+            </div>
+          </div>
+        )}
         <div className="stats-row">
-          <div className={`badge ${result.matched ? 'ok' : ''}`}>{result.matched ? '✓ MATCHED' : 'NOT MATCHED'}</div>
+          {sweep.length > 0 && state.swrTarget ? (
+            (() => { const mx = Math.max(...sweep.map((p) => p.result.swrIn)); const ok = mx <= state.swrTarget!; return <div className={`badge ${ok ? 'ok' : ''}`}>{ok ? `✓ ทั้งแบนด์ SWR ≤ ${state.swrTarget}` : `✗ แบนด์เกิน SWR ${state.swrTarget}`}</div>; })()
+          ) : (
+            <div className={`badge ${result.matched ? 'ok' : ''}`}>{result.matched ? '✓ MATCHED' : 'NOT MATCHED'}</div>
+          )}
           {result.hasNetwork ? (
             <div className="before-after">
               <span className="ba"><b>BEFORE</b> z_L = {fmtz(result.zL, 2)} · SWR {Number.isFinite(result.swrL) ? fmtNum(result.swrL, 2) : '∞'}</span>

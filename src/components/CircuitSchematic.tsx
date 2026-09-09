@@ -87,10 +87,25 @@ export const CircuitSchematic: React.FC<Props> = ({ circuit, result, status, tit
                     <text x={(s1 + s2) / 2} y={RAIL_Y + 4} textAnchor="middle" className="tl-label">{el.type === 'qwt' ? 'λ/4' : `Z₀=${fmtNum(el.params.Z0, 0)}`}</text>
                   </g>
                 )}
+                {isStub(el.type) && (
+                  <g>
+                    <rect className="tl-box" x={s1 - 8} y={RAIL_Y - 15} width={s2 - s1 + 16} height={30} rx={4} />
+                    <line x1={(s1 + s2) / 2} y1={RAIL_Y - 15} x2={(s1 + s2) / 2} y2={RAIL_Y - 30} strokeWidth={2} />
+                    {el.type === 'stub_short' ? <line x1={(s1 + s2) / 2 - 8} y1={RAIL_Y - 30} x2={(s1 + s2) / 2 + 8} y2={RAIL_Y - 30} strokeWidth={2.5} /> : <circle cx={(s1 + s2) / 2} cy={RAIL_Y - 33} r={3.5} fill="#fff" strokeWidth={2} />}
+                    <text x={(s1 + s2) / 2} y={RAIL_Y + 4} textAnchor="middle" className="tl-label">{el.type === 'stub_short' ? 'S-stub' : 'O-stub'}</text>
+                  </g>
+                )}
                 {el.type === 'load' && (
                   <g>
                     <rect className="load-box" x={s1 + 4} y={RAIL_Y - 16} width={s2 - s1 - 8} height={32} rx={5} />
                     <text x={(s1 + s2) / 2} y={RAIL_Y + 5} textAnchor="middle" className="tl-label">Z_L</text>
+                  </g>
+                )}
+                {el.type === 'antenna' && (
+                  <g>
+                    <rect className="load-box ant" x={s1 + 4} y={RAIL_Y - 16} width={s2 - s1 - 8} height={32} rx={5} />
+                    <path d={`M${(s1 + s2) / 2},${RAIL_Y + 10} v-14 m-9,-8 l9,8 l9,-8`} fill="none" strokeWidth={2} />
+                    <text x={(s1 + s2) / 2 + 16} y={RAIL_Y + 5} textAnchor="middle" className="tl-label">ANT</text>
                   </g>
                 )}
                 <text x={x + w / 2} y={RAIL_Y - 28} textAnchor="middle" className="el-name">{spec.symbol}{badge && <tspan className={`badge-${st}`}> {badge}</tspan>}</text>

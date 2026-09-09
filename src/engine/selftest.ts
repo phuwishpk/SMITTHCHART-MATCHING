@@ -8,6 +8,8 @@ import { admittance } from './rf';
 import { PROBLEMS, ALL_LESSONS } from './lessons';
 import { buildSolution, applySolutionStep } from './solutions';
 import { smithMethodSteps } from './smithMethod';
+import { courseFiguresFinite, COURSE, ex1Book, ex2Book, ex5Full } from './course';
+import { solveSweep, sweepMaxSwr } from './solver';
 
 let fails = 0;
 const check = (name: string, ok: boolean, info = '') => {
@@ -173,6 +175,10 @@ const KNOWN: Record<string, Record<string, number>> = {
   py4: { gL: 0.3, bL: 0.4, d: 0.110, bAt: 1.47, l: 0.095 },
   py5: { gL: 0.4, bL: 0.2, bC: 0.29, xL: 1.22 },
   py6: { Q: 3.873, X: 96.8, L: 15.41, B: 0.00968, C: 1.541 },
+  pb1: { X: -65, C: 12.24 },
+  pb2: { Zt: 173.2, swrL: 12 },
+  pb3: { g: 0.5, b: 0.25, d: 0.105, l: 0.1435 },
+  pb4: { g: 0.25, b: 0.83, Lsh: 1627, Lse: 1129 },
 };
 for (const pr of PROBLEMS) {
   const sc = pr.solution!();
@@ -186,6 +192,14 @@ for (const pr of PROBLEMS) {
   if (kn) for (const [k, v] of vals) if (kn[k] !== undefined && Math.abs(v - kn[k]) > Math.max(0.02 * Math.abs(kn[k]), 0.004)) knownOk = false;
   check(`${pr.id} ${pr.title}`, buildOk && finalOk && finite && knownOk, vals.map(([k, v]) => `${k}=${fmtNum(v, 4)}`).join(' '));
 }
+
+// 16. Course: book examples verified by sweep; every figure finite
+check('Course Ex1 (book values) max SWR <= 2', sweepMaxSwr(solveSweep(ex1Book())) <= 2, solveSweep(ex1Book()).map((p) => fmtNum(p.result.swrIn, 2)).join('/'));
+check('Course Ex2 (83 Ω line) max SWR <= 1.55', sweepMaxSwr(solveSweep(ex2Book())) <= 1.55, solveSweep(ex2Book()).map((p) => fmtNum(p.result.swrIn, 2)).join('/'));
+check('Course Ex5 (full) max SWR <= 2', sweepMaxSwr(solveSweep(ex5Full())) <= 2, solveSweep(ex5Full()).map((p) => fmtNum(p.result.swrIn, 2)).join('/'));
+const cf = courseFiguresFinite();
+check('Course figures finite', cf.ok, cf.bad.join(', '));
+check('Course has 7 chapters with sections', COURSE.length === 7 && COURSE.every((c) => c.sections.length >= 1), COURSE.map((c) => `${c.num}:${c.sections.length}`).join(' '));
 
 console.log(fails === 0 ? '\nALL PASS' : `\n${fails} FAILED`);
 if (fails > 0) throw new Error(`${fails} self-test(s) failed`);

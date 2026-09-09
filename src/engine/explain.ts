@@ -186,13 +186,21 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
       short = 'Z_L';
       lines.push({ kind: 'text', text: 'โหลดนี้กำหนดอิมพีแดนซ์โดยตรง (เช่น สายอากาศที่วัดค่าได้)' });
       lines.push({ kind: 'result', tex: `Z_L = ${tc({ re: e.params.R, im: e.params.X })}${ohm}` });
+    } else if (e.type === 'antenna') {
+      title = 'สายอากาศ: อ่านอิมพีแดนซ์จากตารางที่ความถี่นี้';
+      short = 'ANT';
+      const tb = [...(e.table ?? [])].sort((a, b) => a.f - b.f);
+      lines.push({ kind: 'text', text: `อิมพีแดนซ์ของสายอากาศเปลี่ยนตามความถี่ ตารางมี ${tb.length} จุด (${tb.length ? `${fmtNum(tb[0].f / 1e6, 3)}–${fmtNum(tb[tb.length - 1].f / 1e6, 3)} MHz` : '—'}) ค่าที่ f = ${fmtNum(fMHz, 3)} MHz ได้จากการประมาณเชิงเส้นระหว่างจุดที่ใกล้ที่สุด` });
+      lines.push({ kind: 'code', text: tb.map((pt) => `${fmtNum(pt.f / 1e6, 3)} MHz: ${fmtNum(pt.R, 2)} ${pt.X < 0 ? '−' : '+'} j${fmtNum(Math.abs(pt.X), 2)} Ω`).join('\n') });
+      lines.push({ kind: 'result', tex: `Z_L(f) \\approx ${tc(s.Zel!)}${ohm}` });
+      lines.push({ kind: 'note', text: 'เปิด "กวาดความถี่" ที่แผง Smith Chart เพื่อเห็นจุดทุกความถี่เป็นเส้นโค้ง (impedance curve) แบบหนังสือ' });
     }
     push({ short, title, tag: 'element', lines, highlight: { elementId: e.id } });
   }
 
   // ---------- STEP: combine load ----------
   const ZL = res.ZL;
-  const singleLoadBlock = loadStages.length === 1 && loadStages[0].el.type === 'load';
+  const singleLoadBlock = loadStages.length === 1 && (loadStages[0].el.type === 'load' || loadStages[0].el.type === 'antenna');
   if (loadStages.length > 0 && !singleLoadBlock) {
     const lines: StepLine[] = [];
     if (seriesOnlyLoad) {
@@ -201,11 +209,11 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
         if (e.type === 'resistor') return 'R';
         if (e.type === 'inductor') return 'jX_L';
         if (e.type === 'capacitor') return 'jX_C';
+        if (e.type === 'antenna') return 'Z_{ant}(f)';
         return 'Z_{L}';
       });
-      const Rs = lumpedInLoad.filter((s) => s.el.type === 'resistor').reduce((a, s) => a + s.el.params.R, 0)
-        + lumpedInLoad.filter((s) => s.el.type === 'load').reduce((a, s) => a + s.el.params.R, 0);
-      const Xs = lumpedInLoad.filter((s) => s.el.type !== 'resistor').map((s) => (s.el.type === 'load' ? s.el.params.X : s.X!));
+      const Rs = lumpedInLoad.reduce((a, s) => a + (s.Zel?.re ?? 0), 0);
+      const Xs = lumpedInLoad.filter((s) => s.el.type !== 'resistor').map((s) => s.Zel?.im ?? 0);
       lines.push({ kind: 'text', text: 'อุปกรณ์ต่ออนุกรม อิมพีแดนซ์จึงบวกกันตรง ๆ' });
       lines.push({ kind: 'math', tex: `Z_L = ${terms.join(' + ')}` });
       if (Xs.length > 1 && Xs.every(Number.isFinite)) {
@@ -394,7 +402,11 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
         lines.push({ kind: 'text', text: 'อุปกรณ์อนุกรมเพิ่มรีแอกแตนซ์ จึงเดินตามวงกลม r คงที่' });
         if (s.el.type === 'inductor') lines.push({ kind: 'math', tex: `X_L = 2\\pi f L = ${tn(x)}${ohm} \\Rightarrow x = ${tn(x / Z0, 3)}` });
         else if (s.el.type === 'capacitor') lines.push({ kind: 'math', tex: `X_C = -\\frac{1}{2\\pi f C} = ${tn(x)}${ohm} \\Rightarrow x = ${tn(x / Z0, 3)}` });
-        else lines.push({ kind: 'math', tex: `Z_{el} = ${tc(s.Zel!)}${ohm}` });
+        else if (s.line) {
+          title = `${spec.name} ต่ออนุกรม (series stub)`;
+          lines.push({ kind: 'text', text: `สตับที่ต่ออนุกรมกับสาย ทำหน้าที่เป็นรีแอกแตนซ์อนุกรม: ${s.el.type === 'stub_open' ? 'ปลายเปิด X = −Z₀cot βl' : 'ปลายลัด X = Z₀tan βl'} (βl = ${fmtNum(s.line.degrees, 1)}°)` });
+          lines.push({ kind: 'math', tex: `X_{stub} = ${tn(x)}${ohm} \\Rightarrow x = ${tn(x / Z0, 3)}` });
+        } else lines.push({ kind: 'math', tex: `Z_{el} = ${tc(s.Zel!)}${ohm}` });
         lines.push({ kind: 'math', tex: `z' = z + \\frac{Z_{el}}{Z_0} = ${tc(zb, 3)} + (${tc({ re: s.Zel!.re / Z0, im: s.Zel!.im / Z0 }, 3)})` });
         lines.push({ kind: 'result', tex: `z' = ${tc(za, 3)}` });
         hl.rCircle = zb.re;

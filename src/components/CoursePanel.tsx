@@ -1,0 +1,193 @@
+import React, { useEffect, useMemo, useRef } from 'react';
+import { useAppState, useDispatch } from '../state/store';
+import { COURSE, Figure, findChapter } from '../engine/course';
+import { StepLines } from './StepLines';
+import { MiniPlot } from './MiniPlot';
+import { SmithFigure } from './SmithFigure';
+import { WaveFigure } from './WaveFigure';
+import { CircuitSchematic } from './CircuitSchematic';
+import { solveCircuit, solveSweep, sweepMaxSwr } from '../engine/solver';
+import { solveLCases } from '../engine/matching';
+import { buildCircuit, AntennaPoint } from '../engine/circuit';
+import { fmtNum, fmtEng, C } from '../engine/complex';
+import { antennaZ } from '../engine/circuit';
+
+const LCases: React.FC<{ table: AntennaPoint[]; f0: number; Z0: number }> = ({ table, f0, Z0 }) => {
+  const dispatch = useDispatch();
+  const z0 = antennaZ(table, f0);
+  const cases = useMemo(() => solveLCases(C(z0.re, z0.im), Z0, f0), [z0.re, z0.im, Z0, f0]);
+  const build = (c: (typeof cases)[number]) =>
+    buildCircuit(f0, Z0, [
+      [c.spec.second.type, c.spec.second.orient, c.spec.second.type === 'inductor' ? { L: Number((c.second! * 1e9).toFixed(2)) } : { C: Number((c.second! * 1e12).toFixed(3)) }],
+      [c.spec.first.type, c.spec.first.orient, c.spec.first.type === 'inductor' ? { L: Number((c.first! * 1e9).toFixed(2)) } : { C: Number((c.first! * 1e12).toFixed(3)) }],
+      ['antenna', 'series', {}, table],
+    ]);
+  const val = (v: number | undefined, type: 'inductor' | 'capacitor') => (v === undefined ? '—' : fmtEng(v, type === 'inductor' ? 'H' : 'F', 3));
+  return (
+    <div className="lcases">
+      <div className="lc-head">โหลดที่ f₀ = {fmtNum(f0 / 1e6, 2)} MHz: Z = {fmtNum(z0.re, 1)} {z0.im < 0 ? '−' : '+'} j{fmtNum(Math.abs(z0.im), 1)} Ω · z = {fmtNum(z0.re / Z0, 3)} {z0.im < 0 ? '−' : '+'} j{fmtNum(Math.abs(z0.im) / Z0, 3)}</div>
+      <table className="lc-table">
+        <thead><tr><th>Fig. 4-1</th><th>Table</th><th>วงจร (ตัวแรกชิดโหลด)</th><th>ตัวแรก</th><th>ตัวที่สอง</th><th>SWR ทั้งแบนด์</th><th></th></tr></thead>
+        <tbody>
+          {cases.map((c, i) => {
+            const sw = c.feasible ? solveSweep(build(c)) : [];
+            return (
+              <tr key={c.spec.id} className={c.feasible ? '' : 'infeasible'}>
+                <td>({c.spec.id})</td>
+                <td>5-{5 + i}</td>
+                <td>{c.spec.label}</td>
+                <td className="mono">{c.feasible ? `${val(c.first, c.spec.first.type)} (${c.spec.first.orient === 'shunt' ? 'b' : 'x'} = ${fmtNum(c.xb1!, 3)})` : '—'}</td>
+                <td className="mono">{c.feasible ? `${val(c.second, c.spec.second.type)} (${c.spec.second.orient === 'shunt' ? 'b' : 'x'} = ${fmtNum(c.xb2!, 3)})` : '—'}</td>
+                <td className="mono">{c.feasible ? `${sw.map((p) => fmtNum(p.result.swrIn, 2)).join(' / ')} (max ${fmtNum(sweepMaxSwr(sw), 2)})` : `ทำไม่ได้: ${c.reason}`}</td>
+                <td>{c.feasible && <button className="mini wide" onClick={() => { dispatch({ type: 'set_circuit', circuit: build(c), select: null }); dispatch({ type: 'swr_target', value: 2 }); dispatch({ type: 'toggle', key: 'showY', value: true }); dispatch({ type: 'mode', mode: 'free' }); dispatch({ type: 'view', view: 'lab' }); }}>Lab ▶</button>}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
+  const dispatch = useDispatch();
+  switch (fig.kind) {
+    case 'plot':
+      return (
+        <figure className="cfig">
+          <MiniPlot title={fig.title} xLabel={fig.xLabel} yLabel={fig.yLabel} xMin={fig.xMin} xMax={fig.xMax} yMin={fig.yMin} yMax={fig.yMax} series={fig.series} xTicks={fig.xTicks} yTicks={fig.yTicks} markers={fig.markers} />
+          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+        </figure>
+      );
+    case 'smith':
+      return (
+        <figure className="cfig smith">
+          <SmithFigure title={fig.title} points={fig.points} curves={fig.curves} swr={fig.swr} showY={fig.showY} rCircles={fig.rCircles} xCircles={fig.xCircles} gCircles={fig.gCircles} bCircles={fig.bCircles} regions={fig.regions} labels={fig.labels} />
+          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+        </figure>
+      );
+    case 'circuit':
+      return (
+        <figure className="cfig wide">
+          <CircuitSchematic circuit={fig.circuit} result={solveCircuit(fig.circuit)} title={fig.title} maxHeight={150} />
+          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+        </figure>
+      );
+    case 'wave':
+      return (
+        <figure className="cfig">
+          <WaveFigure title={fig.title} gammaMag={fig.gammaMag} gammaDeg={fig.gammaDeg} len={fig.len} />
+          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+        </figure>
+      );
+    case 'table':
+      return (
+        <figure className="cfig wide">
+          <div className="cfig-title">{fig.title}</div>
+          <div className="ctable-wrap">
+            <table className="ctable">
+              <thead><tr>{fig.head.map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
+              <tbody>{fig.rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c}</td>)}</tr>)}</tbody>
+            </table>
+          </div>
+          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+        </figure>
+      );
+    case 'lcases':
+      return (
+        <figure className="cfig wide">
+          <div className="cfig-title">{fig.title}</div>
+          <LCases table={fig.table} f0={fig.f0} Z0={fig.Z0} />
+          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+        </figure>
+      );
+    case 'lab':
+      return (
+        <div className="clab">
+          <button
+            className="btn primary small"
+            onClick={() => {
+              dispatch({ type: 'set_circuit', circuit: fig.circuit(), select: null });
+              dispatch({ type: 'swr_target', value: fig.swrTarget === undefined ? null : fig.swrTarget });
+              if (fig.showY !== undefined) dispatch({ type: 'toggle', key: 'showY', value: fig.showY });
+              dispatch({ type: 'mode', mode: 'free' });
+              dispatch({ type: 'explain_step', i: 0 });
+              dispatch({ type: 'view', view: 'lab' });
+            }}
+          >
+            🔬 {fig.label}
+          </button>
+          {fig.note && <span className="clab-note">{fig.note}</span>}
+        </div>
+      );
+  }
+};
+
+export const CoursePanel: React.FC = () => {
+  const state = useAppState();
+  const dispatch = useDispatch();
+  const chapter = findChapter(state.courseChapter) ?? COURSE[0];
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [chapter.id]);
+  const idx = COURSE.findIndex((c) => c.id === chapter.id);
+  const jump = (secId: string) => {
+    const el = bodyRef.current?.querySelector(`#sec-${secId}`) as HTMLElement | null;
+    const box = bodyRef.current;
+    if (!el || !box) return;
+    box.scrollTo({ top: el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8, behavior: 'smooth' });
+  };
+  return (
+    <div className="course">
+      <aside className="course-nav">
+        <div className="panel-head"><span className="panel-title">ANTENNA IMPEDANCE MATCHING</span></div>
+        <div className="course-book">W. N. Caron — <em>Antenna Impedance Matching</em> (ARRL) · เนื้อหาตามส่วนที่มีในไฟล์: บทนำ, Ch. I–V, Ch. VI Ex. 1–6</div>
+        <ol className="course-toc">
+          {COURSE.map((c) => (
+            <li key={c.id} className={c.id === chapter.id ? 'active' : ''}>
+              <button onClick={() => dispatch({ type: 'course_chapter', id: c.id })}>
+                <span className="cnum">{c.num}</span>
+                <span className="ctitle"><b>{c.title}</b><small>{c.titleTh}</small></span>
+              </button>
+              {c.id === chapter.id && (
+                <ul className="course-sections">
+                  {c.sections.map((s) => (
+                    <li key={s.id}><button onClick={() => jump(s.id)}>{s.title}</button></li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ol>
+        <div className="course-tip">ปุ่ม 🔬 ในเนื้อหาจะโหลดวงจรของตัวอย่างเข้า Lab (พร้อมเป้า SWR) กด "🔬 Lab" ด้านบนเพื่อกลับ</div>
+      </aside>
+      <div className="course-body" ref={bodyRef}>
+        <header className="course-header">
+          <span className="chip">Chapter {chapter.num}</span>
+          <h2>{chapter.title}</h2>
+          <div className="course-th">{chapter.titleTh}</div>
+          <p className="course-intro">{chapter.intro}</p>
+        </header>
+        {chapter.sections.map((sec) => (
+          <section key={sec.id} id={`sec-${sec.id}`} className="course-section">
+            <h3>{sec.title}</h3>
+            <StepLines lines={sec.lines} />
+            {sec.figures && sec.figures.length > 0 && (
+              <div className="cfigs">
+                {sec.figures.map((fg, i) => (
+                  <FigureView key={i} fig={fg} />
+                ))}
+              </div>
+            )}
+          </section>
+        ))}
+        <div className="course-footer">
+          {idx > 0 && <button className="btn" onClick={() => dispatch({ type: 'course_chapter', id: COURSE[idx - 1].id })}>◀ Chapter {COURSE[idx - 1].num}</button>}
+          <span className="spacer" />
+          {idx < COURSE.length - 1 && <button className="btn primary" onClick={() => dispatch({ type: 'course_chapter', id: COURSE[idx + 1].id })}>Chapter {COURSE[idx + 1].num} ▶</button>}
+        </div>
+      </div>
+    </div>
+  );
+};

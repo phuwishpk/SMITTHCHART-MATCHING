@@ -39,13 +39,13 @@ export const Modals: React.FC = () => {
             <button className="btn ghost" onClick={close}>✕</button>
           </div>
           <div className="modal-body">
-            {(['impedance', 'admittance'] as const).map((cat) => (
+            {(['impedance', 'admittance', 'book'] as const).map((cat) => (
               <div key={cat} className="phase">
-                <h3>{cat === 'impedance' ? 'ชุด Z — Impedance: normalize, r/x, Γ, SWR, สายส่ง, λ/4' : 'ชุด Y — Admittance: y = 1/z, g/b, อุปกรณ์ขนาน, stub, L-section'}</h3>
+                <h3>{cat === 'impedance' ? 'ชุด Z — Impedance: normalize, r/x, Γ, SWR, สายส่ง, λ/4' : cat === 'admittance' ? 'ชุด Y — Admittance: y = 1/z, g/b, อุปกรณ์ขนาน, stub, L-section' : 'ชุดหนังสือ Caron — Antenna Impedance Matching: series stub/C, λ/4 600→50, 80−j40, Example 1'}</h3>
                 <div className="card-grid">
                   {PROBLEMS.filter((p) => p.category === cat).map((p) => (
                     <button key={p.id} className={`card ${state.lessonId === p.id ? 'active' : ''}`} onClick={() => dispatch({ type: 'lesson', id: p.id })}>
-                      <span className="card-lvl">{cat === 'impedance' ? 'IMPEDANCE' : 'ADMITTANCE'} · {p.answers?.length ?? 0} คำตอบ</span>
+                      <span className="card-lvl">{cat === 'impedance' ? 'IMPEDANCE' : cat === 'admittance' ? 'ADMITTANCE' : 'CARON'} · {p.answers?.length ?? 0} คำตอบ</span>
                       <b>{p.title}</b>
                       <small>{p.learn}</small>
                     </button>

@@ -7,6 +7,7 @@ import { SmithChart } from './components/SmithChart';
 import { ExplanationPanel } from './components/ExplanationPanel';
 import { GuidePanel } from './components/GuidePanel';
 import { Modals } from './components/Modals';
+import { CoursePanel } from './components/CoursePanel';
 import { useAppState, useDispatch } from './state/store';
 import { MaxButton } from './components/MaxButton';
 
@@ -48,7 +49,7 @@ export const App: React.FC = () => {
   }, [state.maximized]);
 
   return (
-    <div className={`app ${state.maximized ? `max max-${state.maximized}` : ''}`}>
+    <div className={`app ${state.view === 'course' ? 'view-course' : ''} ${state.maximized && state.view === 'lab' ? `max max-${state.maximized}` : ''}`}>
       <Header />
       {state.maximized && (
         <div className="max-bar">
@@ -56,6 +57,9 @@ export const App: React.FC = () => {
           <button className="btn small" onClick={() => dispatch({ type: 'maximize', panel: null })}>⤡ ย่อกลับ (Esc)</button>
         </div>
       )}
+      {state.view === 'course' ? (
+        <CoursePanel />
+      ) : (
       <main className="main">
         <aside className="col-left">
           <Palette />
@@ -74,9 +78,12 @@ export const App: React.FC = () => {
           <SmithChart />
         </aside>
       </main>
-      <footer className="bottom">
-        <ExplanationPanel />
-      </footer>
+      )}
+      {state.view === 'lab' && (
+        <footer className="bottom">
+          <ExplanationPanel />
+        </footer>
+      )}
       <Modals />
     </div>
   );

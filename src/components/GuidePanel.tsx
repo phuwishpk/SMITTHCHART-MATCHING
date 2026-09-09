@@ -57,7 +57,7 @@ export const GuidePanel: React.FC = () => {
   return (
     <div className={`guide ${complete ? 'complete' : ''}`}>
       <div className="guide-head">
-        <span className={`lvl ${lesson.kind === 'problem' ? 'prob' : ''}`}>{lesson.kind === 'problem' ? (lesson.category === 'impedance' ? 'โจทย์ Z' : 'โจทย์ Y') : `Level ${lesson.level}`}</span>
+        <span className={`lvl ${lesson.kind === 'problem' ? 'prob' : ''}`}>{lesson.kind === 'problem' ? (lesson.category === 'impedance' ? 'โจทย์ Z' : lesson.category === 'admittance' ? 'โจทย์ Y' : 'โจทย์หนังสือ') : `Level ${lesson.level}`}</span>
         <b>{lesson.title}</b>
         <span className="learn">— {lesson.learn}</span>
         <span className="spacer" />

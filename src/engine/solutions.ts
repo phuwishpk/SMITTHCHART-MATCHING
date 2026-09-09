@@ -63,6 +63,7 @@ const KEYS: Record<string, string[]> = {
   stub_short: ['len'],
   stub_open: ['len'],
   load: ['R', 'X'],
+  antenna: [],
 };
 
 const nearVal = (a: number, b: number, key: string): boolean => {
@@ -153,6 +154,7 @@ export const applySolutionStep = (lesson: Lesson, student: Circuit): { circuit: 
       const fresh = makeElement(se.type, se.orient);
       if ('Z0' in fresh.params) fresh.params.Z0 = sol.Z0;
       if (se.type === 'load') fresh.params = { ...se.params };
+      if (se.type === 'antenna') fresh.table = se.table ? se.table.map((pt) => ({ ...pt })) : fresh.table;
       if (se.type === 'tline') fresh.params = { ...fresh.params, Z0: se.params.Z0, vf: se.params.vf, lossDb: se.params.lossDb };
       return fresh;
     });
