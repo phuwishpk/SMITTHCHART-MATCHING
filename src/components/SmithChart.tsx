@@ -1,0 +1,316 @@
+import React, { useMemo, useState } from 'react';
+import { useAppState, useDispatch, useDerived } from '../state/store';
+import { Complex, abs, arg, deg, fmtNum, isFiniteC } from '../engine/complex';
+import { ELEMENT_SPECS } from '../engine/circuit';
+import { rCircle, xCircle, gCircle, bCircle, toSvg, fromSvg, pathToPoints, angleForWtg } from '../engine/smith';
+import { VB, CX, CY, R, RING, circleSvg, DetailedGrid, OuterScales, RadialScales } from './SmithGrid';
+import { zFromGamma, admittance, swrFromGamma, wtgFromGamma, gammaFromz, returnLossDb } from '../engine/rf';
+import { probeOnLine } from '../engine/solver';
+import { Highlight } from '../engine/explain';
+import { MaxButton } from './MaxButton';
+import { findLesson } from '../engine/lessons';
+import { smithMethodSteps } from '../engine/smithMethod';
+
+interface Pt {
+  g: Complex;
+  label: string;
+  cls: string;
+  r: number;
+  key: string;
+  z: Complex;
+}
+
+export const SmithChart: React.FC = () => {
+  const state = useAppState();
+  const dispatch = useDispatch();
+  const { result, steps } = useDerived();
+  const { showZ, showY, showSwr, showPath, showScale, probe } = state;
+  const [hover, setHover] = useState<Complex | null>(null);
+  const Z0 = result.circuit.Z0;
+
+  const step = !state.explainAll ? steps[Math.min(state.explainStep, steps.length - 1)] : undefined;
+  const lesson = findLesson(state.lessonId);
+  const walk = useMemo(() => (lesson && lesson.solution ? smithMethodSteps(lesson, lesson.solution()) : []), [lesson]);
+  const walkStep = state.solutionStep !== null && walk.length > 0 ? walk[Math.min(state.solutionStep, walk.length - 1)] : undefined;
+  const hl: Highlight = walkStep ? walkStep.highlight ?? {} : step?.highlight ?? {};
+  const effShowY = showY || !!hl.showY;
+
+  // points
+  const pts: Pt[] = useMemo(() => {
+    const out: Pt[] = [];
+    const n = result.circuit.elements.length;
+    if (n === 0) {
+      out.push({ g: result.gammaIn, label: 'z = 0 (short)', cls: 'in', r: 7, key: 'in', z: result.zin });
+      return out;
+    }
+    // termination
+    out.push({ g: gammaFromz(result.termination === 'open' ? { re: Infinity, im: 0 } : { re: 0, im: 0 }), label: result.termination === 'open' ? 'ปลายเปิด' : 'ปลายลัดวงจร', cls: 'term', r: 3.5, key: 'term', z: result.Zterm });
+    let netCount = 0;
+    for (const s of result.stages) {
+      const isLoadPt = s.index === result.loadStart;
+      const isIn = s.index === 0;
+      if (isLoadPt && isIn) {
+        out.push({ g: gammaFromz(s.zafter), label: result.hasNetwork ? 'z_in' : 'z_L (= z_in)', cls: 'in', r: 8, key: 'in', z: s.zafter });
+      } else if (isLoadPt) {
+        out.push({ g: gammaFromz(s.zafter), label: 'z_L (Load)', cls: 'load', r: 8, key: 'load', z: s.zafter });
+      } else if (isIn) {
+        out.push({ g: gammaFromz(s.zafter), label: 'z_in', cls: 'in', r: 8, key: 'in', z: s.zafter });
+      } else if (s.inLoad) {
+        out.push({ g: gammaFromz(s.zafter), label: `หลัง ${ELEMENT_SPECS[s.el.type].symbol}`, cls: 'mid-load', r: 3.5, key: `s${s.index}`, z: s.zafter });
+      } else {
+        netCount += 1;
+        out.push({ g: gammaFromz(s.zafter), label: `${netCount}: หลัง ${ELEMENT_SPECS[s.el.type].symbol}`, cls: 'mid-net', r: 5.5, key: `s${s.index}`, z: s.zafter });
+      }
+    }
+    return out;
+  }, [result]);
+
+  const probeInfo = useMemo(() => {
+    if (!probe) return null;
+    const st = result.stages.find((s) => s.el.id === probe.elementId && s.kind === 'line');
+    if (!st) return null;
+    return probeOnLine(st, probe.d, Z0);
+  }, [probe, result, Z0]);
+
+  const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const svg = e.currentTarget;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return;
+    const p = pt.matrixTransform(ctm.inverse());
+    const g = fromSvg(p.x, p.y, CX, CY, R);
+    setHover(abs(g) <= 1 ? g : null);
+  };
+
+  const hoverZ = hover ? zFromGamma(hover) : null;
+  const hoverY = hoverZ ? admittance(hoverZ) : null;
+
+  const wtgArc = (w1: number, len: number, radius: number) => {
+    const a1 = angleForWtg(w1);
+    const a2 = angleForWtg(w1 + len);
+    const p1 = { x: CX + radius * Math.cos(a1), y: CY - radius * Math.sin(a1) };
+    const p2 = { x: CX + radius * Math.cos(a2), y: CY - radius * Math.sin(a2) };
+    const large = len > 0.25 ? 1 : 0;
+    return `M${p1.x},${p1.y} A${radius},${radius} 0 ${large} 1 ${p2.x},${p2.y}`;
+  };
+
+  const fmtz = (z: Complex, d = 3) => (isFiniteC(z) ? `${fmtNum(z.re, d)} ${z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(z.im), d)}` : '∞');
+
+  const Toggle: React.FC<{ k: 'showZ' | 'showY' | 'showSwr' | 'showPath' | 'showScale' | 'showFine' | 'showRadial'; label: string }> = ({ k, label }) => (
+    <button className={`chip ${state[k] ? 'on' : ''}`} onClick={() => dispatch({ type: 'toggle', key: k })}>
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="smith-wrap">
+      <div className="panel-head">
+        <span className="panel-title">SMITH CHART{walkStep && <span className="walk-badge"> · เฉลยขั้น {Math.min(state.solutionStep!, walk.length - 1) + 1}: {walkStep.short}</span>}</span>
+        <div className="chip-row">
+          <Toggle k="showZ" label="Z grid" />
+          <Toggle k="showY" label="Y grid" />
+          <Toggle k="showSwr" label="SWR" />
+          <Toggle k="showPath" label="Path" />
+          <Toggle k="showScale" label="สเกลรอบนอก" />
+          <Toggle k="showFine" label="กริดละเอียด" />
+          <Toggle k="showRadial" label="แถบ SWR/RL" />
+          <MaxButton panel="chart" />
+        </div>
+      </div>
+      <div className="smith-svg-wrap">
+        <svg viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${state.showFine ? 'fine' : 'coarse'}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+          <defs>
+            <clipPath id="clipUnit">
+              <circle cx={CX} cy={CY} r={R} />
+            </clipPath>
+            <marker id="arrowPath" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="context-stroke" />
+            </marker>
+            <marker id="arrowWtg" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#7c3aed" />
+            </marker>
+            <marker id="arrowOv" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#be185d" />
+            </marker>
+          </defs>
+          <circle cx={CX} cy={CY} r={R} className="chart-bg" />
+          {showScale && <OuterScales />}
+          <DetailedGrid showZ={showZ} showY={effShowY} />
+
+          {/* highlights */}
+          <g className="highlights" clipPath="url(#clipUnit)">
+            {hl.rCircle !== undefined && Number.isFinite(hl.rCircle) && hl.rCircle >= 0 && <circle {...circleSvg(rCircle(hl.rCircle))} className="hl r" />}
+            {hl.xCircle !== undefined && Number.isFinite(hl.xCircle) && (Math.abs(hl.xCircle) > 1e-6 ? <circle {...circleSvg(xCircle(hl.xCircle))} className="hl x" /> : <line x1={CX - R} y1={CY} x2={CX + R} y2={CY} className="hl x" />)}
+            {hl.gCircle !== undefined && Number.isFinite(hl.gCircle) && hl.gCircle >= 0 && <circle {...circleSvg(gCircle(hl.gCircle))} className="hl g" />}
+            {hl.bCircle !== undefined && Number.isFinite(hl.bCircle) && Math.abs(hl.bCircle) > 1e-6 && <circle {...circleSvg(bCircle(hl.bCircle))} className="hl b" />}
+          </g>
+          {hl.wtg && (
+            <path d={wtgArc(hl.wtg[0], hl.wtg[1], R * RING.wtg[1])} className="hl wtg" markerEnd="url(#arrowWtg)" />
+          )}
+          {/* free-form overlays (solution walkthrough) */}
+          <g className="overlay">
+            {hl.swrRadius !== undefined && Number.isFinite(hl.swrRadius) && hl.swrRadius > 0.005 && hl.swrRadius <= 1 && (
+              <circle cx={CX} cy={CY} r={hl.swrRadius * R} className="ov-swr" />
+            )}
+            {hl.circles?.map((c, i) => {
+              const p = toSvg({ re: c.cx, im: c.cy }, CX, CY, R);
+              const lp = toSvg({ re: c.cx, im: c.cy + c.r }, CX, CY, R);
+              return (
+                <g key={`oc${i}`}>
+                  <circle cx={p.x} cy={p.y} r={c.r * R} className={`ov-circle ${c.cls ?? ''}`} />
+                  {c.label && <text x={lp.x} y={lp.y - 6} textAnchor="middle" className="ov-label">{c.label}</text>}
+                </g>
+              );
+            })}
+            {hl.arcs?.map((a, i) => {
+              const rad = (a.radius ?? abs(a.g)) * R;
+              if (!(rad > 0.5)) return null;
+              const a1 = arg(a.g);
+              const sweep = 4 * Math.PI * a.lenLambda;
+              if (sweep >= 2 * Math.PI - 1e-6) return <circle key={`oa${i}`} cx={CX} cy={CY} r={rad} className="ov-arc" />;
+              const a2 = a1 - sweep;
+              const p1 = { x: CX + rad * Math.cos(a1), y: CY - rad * Math.sin(a1) };
+              const p2 = { x: CX + rad * Math.cos(a2), y: CY - rad * Math.sin(a2) };
+              const large = sweep > Math.PI ? 1 : 0;
+              return <path key={`oa${i}`} d={`M${p1.x},${p1.y} A${rad},${rad} 0 ${large} 1 ${p2.x},${p2.y}`} className="ov-arc" markerEnd="url(#arrowOv)" />;
+            })}
+            {hl.paths?.map((pth, i) => (
+              <polyline key={`op${i}`} points={pathToPoints(pth, CX, CY, R)} className="ov-path" markerEnd="url(#arrowOv)" />
+            ))}
+            {hl.wtgMarks?.map((m, i) => {
+              const a = angleForWtg(m.w);
+              const r1 = R * (RING.wtg[0] - 0.012);
+              const r2 = R * (RING.wtg[1] + 0.012);
+              const rl = R * (RING.wtgLabel + 0.026);
+              return (
+                <g key={`ow${i}`} className="ov-wtg">
+                  <line x1={CX + r1 * Math.cos(a)} y1={CY - r1 * Math.sin(a)} x2={CX + r2 * Math.cos(a)} y2={CY - r2 * Math.sin(a)} />
+                  <text x={CX + rl * Math.cos(a)} y={CY - rl * Math.sin(a) + 4} textAnchor="middle">{m.label}</text>
+                </g>
+              );
+            })}
+            {hl.points?.map((pt, i) => {
+              if (!isFiniteC(pt.g) || abs(pt.g) > 1.0001) return null;
+              const p = toSvg(pt.g, CX, CY, R);
+              return (
+                <g key={`opt${i}`} className={`ov-pt ${pt.cls ?? 'mid'}`}>
+                  <circle cx={p.x} cy={p.y} r={11} className="ov-ring" />
+                  <circle cx={p.x} cy={p.y} r={5.5} className="ov-dot" />
+                  <text x={p.x + 10} y={p.y + (pt.g.im >= 0 ? -8 : 16)} className="ov-ptlabel">{pt.label}</text>
+                </g>
+              );
+            })}
+          </g>
+
+          {/* SWR circles */}
+          {showSwr && result.circuit.elements.length > 0 && (
+            <g className="swr">
+              {result.hasNetwork && abs(result.gammaL) < 1 && <circle cx={CX} cy={CY} r={abs(result.gammaL) * R} className={`swr-circle load ${hl.swrCircle === 'load' ? 'hl' : ''}`} />}
+              {abs(result.gammaIn) < 1 && abs(result.gammaIn) > 0.01 && <circle cx={CX} cy={CY} r={abs(result.gammaIn) * R} className={`swr-circle in ${hl.swrCircle === 'in' || (!result.hasNetwork && hl.swrCircle === 'load') ? 'hl' : ''}`} />}
+            </g>
+          )}
+
+          {/* paths */}
+          {showPath && (
+            <g className="paths">
+              {result.stages.map((s) => (
+                <polyline
+                  key={s.el.id}
+                  points={pathToPoints(s.path, CX, CY, R)}
+                  className={`path ${s.inLoad ? 'load' : 'net'} ${hl.stageIndex === s.index ? 'hl' : ''}`}
+                  style={{ stroke: s.inLoad ? undefined : ELEMENT_SPECS[s.el.type].color }}
+                  markerEnd={s.inLoad ? undefined : 'url(#arrowPath)'}
+                />
+              ))}
+            </g>
+          )}
+
+          {/* center marker */}
+          <g className={`center ${hl.center ? 'hl' : ''}`}>
+            <line x1={CX - 7} y1={CY} x2={CX + 7} y2={CY} />
+            <line x1={CX} y1={CY - 7} x2={CX} y2={CY + 7} />
+          </g>
+
+          {/* probe */}
+          {probeInfo && abs(probeInfo.gamma) <= 1.0001 && (
+            <g className="probe">
+              {(() => {
+                const p = toSvg(probeInfo.gamma, CX, CY, R);
+                return (
+                  <>
+                    <line x1={CX} y1={CY} x2={p.x} y2={p.y} className="probe-line" />
+                    <circle cx={p.x} cy={p.y} r={6} className="pt probe" />
+                    <text x={p.x + 9} y={p.y - 8} className="ptlabel probe">probe z = {fmtz(probeInfo.z, 2)}</text>
+                  </>
+                );
+              })()}
+            </g>
+          )}
+
+          {/* points */}
+          <g className="points">
+            {pts.map((pt) => {
+              if (!isFiniteC(pt.g) || abs(pt.g) > 1.0001) return null;
+              const p = toSvg(pt.g, CX, CY, R);
+              const isHl = (hl.point === 'load' && pt.key === 'load') || (hl.point === 'in' && pt.key === 'in') || (hl.point === 'load' && !result.hasNetwork && pt.key === 'in') || (typeof hl.point === 'number' && pt.key === `s${hl.point}`) || (typeof hl.point === 'number' && hl.point === 0 && pt.key === 'in') || (typeof hl.point === 'number' && hl.point === result.loadStart && pt.key === 'load');
+              const show = pt.cls === 'load' || pt.cls === 'in' || pt.cls === 'mid-net';
+              return (
+                <g key={pt.key} className={`ptg ${pt.cls} ${isHl ? 'hl' : ''}`}>
+                  {isHl && <circle cx={p.x} cy={p.y} r={pt.r + 8} className="pulse" />}
+                  <circle cx={p.x} cy={p.y} r={pt.r} className={`pt ${pt.cls}`}>
+                    <title>{`${pt.label}\nz = ${fmtz(pt.z)}\n|Γ| = ${fmtNum(abs(pt.g), 3)}  SWR = ${fmtNum(swrFromGamma(pt.g), 2)}`}</title>
+                  </circle>
+                  {show && (
+                    <text x={p.x + pt.r + 4} y={p.y - pt.r - 2} className={`ptlabel ${pt.cls}`}>
+                      {pt.label}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+        {hover && hoverZ && hoverY && (
+          <div className="hover-box">
+            <div>z = {fmtz(hoverZ, 4)}</div>
+            <div>Z = {isFiniteC(hoverZ) ? `${fmtNum(hoverZ.re * Z0, 2)} ${hoverZ.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(hoverZ.im) * Z0, 2)} Ω` : '∞'}</div>
+            <div>y = {fmtz(hoverY, 4)}</div>
+            <div>Y = {isFiniteC(hoverY) ? `${fmtNum((hoverY.re / Z0) * 1e3, 3)} ${hoverY.im < 0 ? '−' : '+'} j${fmtNum((Math.abs(hoverY.im) / Z0) * 1e3, 3)} mS` : '∞'}</div>
+            <div>Γ = {fmtNum(abs(hover), 4)} ∠{fmtNum(deg(arg(hover)), 2)}°</div>
+            <div>SWR = {fmtNum(swrFromGamma(hover), 3)} · RL = {Number.isFinite(returnLossDb(hover)) ? `${fmtNum(returnLossDb(hover), 2)} dB` : '∞'}</div>
+            <div>→gen {fmtNum(wtgFromGamma(hover), 4)} λ · →load {fmtNum(((0.5 - wtgFromGamma(hover)) % 0.5 + 0.5) % 0.5, 4)} λ</div>
+          </div>
+        )}
+        <div className="legend">
+          <span><i className="dot load" /> Load z_L</span>
+          <span><i className="dot mid-net" /> ระหว่างทาง</span>
+          <span><i className="dot in" /> z_in</span>
+          <span><i className="dot probe" /> Probe</span>
+        </div>
+        {(state.showRadial || state.maximized === 'chart') && <RadialScales gammaIn={result.gammaIn} gammaL={result.gammaL} hasNetwork={result.hasNetwork} />}
+      </div>
+      <div className={`stats ${result.matched ? 'matched' : ''}`}>
+        <div className="stats-row">
+          <div className="stat"><span className="k">Z_in</span><span className="v">{isFiniteC(result.Zin) ? `${fmtNum(result.Zin.re, 2)} ${result.Zin.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(result.Zin.im), 2)} Ω` : '∞'}</span></div>
+          <div className="stat"><span className="k">z_in</span><span className="v">{fmtz(result.zin)}</span></div>
+          <div className="stat"><span className="k">Γ</span><span className="v">{fmtNum(abs(result.gammaIn), 3)} ∠{fmtNum(deg(arg(result.gammaIn)), 1)}°</span></div>
+          <div className="stat"><span className="k">SWR</span><span className="v big">{Number.isFinite(result.swrIn) ? fmtNum(result.swrIn, 2) : '∞'}</span></div>
+          <div className="stat"><span className="k">Return loss</span><span className="v">{Number.isFinite(result.returnLossDb) ? `${fmtNum(result.returnLossDb, 1)} dB` : '∞'}</span></div>
+        </div>
+        <div className="stats-row">
+          <div className={`badge ${result.matched ? 'ok' : ''}`}>{result.matched ? '✓ MATCHED' : 'NOT MATCHED'}</div>
+          {result.hasNetwork ? (
+            <div className="before-after">
+              <span className="ba"><b>BEFORE</b> z_L = {fmtz(result.zL, 2)} · SWR {Number.isFinite(result.swrL) ? fmtNum(result.swrL, 2) : '∞'}</span>
+              <span className="ba"><b>AFTER</b> z_in = {fmtz(result.zin, 2)} · SWR {Number.isFinite(result.swrIn) ? fmtNum(result.swrIn, 2) : '∞'}</span>
+            </div>
+          ) : (
+            <div className="before-after"><span className="ba">กำลังสะท้อน |Γ|² = {fmtNum(abs(result.gammaIn) ** 2 * 100, 1)} % · mismatch loss {Number.isFinite(result.mismatchLossDb) ? fmtNum(result.mismatchLossDb, 2) : '∞'} dB</span></div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
