@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { Palette } from './components/Palette';
 import { Inspector } from './components/Inspector';
@@ -6,10 +6,11 @@ import { CircuitCanvas } from './components/CircuitCanvas';
 import { SmithChart } from './components/SmithChart';
 import { ExplanationPanel } from './components/ExplanationPanel';
 import { GuidePanel } from './components/GuidePanel';
-import { Modals } from './components/Modals';
-import { CoursePanel } from './components/CoursePanel';
 import { useAppState, useDispatch } from './state/store';
 import { MaxButton } from './components/MaxButton';
+
+const Modals = lazy(() => import('./components/Modals').then((module) => ({ default: module.Modals })));
+const CoursePanel = lazy(() => import('./components/CoursePanel').then((module) => ({ default: module.CoursePanel })));
 
 export const App: React.FC = () => {
   const state = useAppState();
@@ -58,7 +59,9 @@ export const App: React.FC = () => {
         </div>
       )}
       {state.view === 'course' ? (
-        <CoursePanel />
+        <Suspense fallback={<div className="loading" role="status">Loading course…</div>}>
+          <CoursePanel />
+        </Suspense>
       ) : (
       <main className="main">
         <aside className="col-left">
@@ -84,7 +87,9 @@ export const App: React.FC = () => {
           <ExplanationPanel />
         </footer>
       )}
-      <Modals />
+      <Suspense fallback={null}>
+        <Modals />
+      </Suspense>
     </div>
   );
 };

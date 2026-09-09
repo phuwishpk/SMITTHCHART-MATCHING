@@ -4,7 +4,7 @@ import katex from 'katex';
 export const Tex: React.FC<{ tex: string; block?: boolean; className?: string }> = ({ tex, block = false, className }) => {
   const html = useMemo(() => {
     try {
-      return katex.renderToString(tex, { displayMode: block, throwOnError: false, strict: 'ignore', trust: true });
+      return katex.renderToString(tex, { displayMode: block, throwOnError: false, strict: 'ignore', trust: false });
     } catch {
       return tex;
     }

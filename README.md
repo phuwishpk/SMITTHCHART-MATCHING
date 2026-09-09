@@ -17,6 +17,11 @@ npm run build      # สร้างไฟล์ static ใน dist/ (deploy ไ
 npm test           # ทดสอบ engine คำนวณกับตัวอย่างในหนังสือ (Pozar)
 ```
 
+## Production / VPS
+
+มี Docker + Nginx + Caddy สำหรับ production, HTTPS อัตโนมัติ, health check,
+security headers และ cache policy ดูขั้นตอนที่ [`DEPLOYMENT.md`](DEPLOYMENT.md)
+
 ## โครงสร้าง 4 Engine (`src/engine/`)
 
 | ไฟล์ | Engine | หน้าที่ |

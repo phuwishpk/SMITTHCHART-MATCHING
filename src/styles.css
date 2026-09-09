@@ -17,8 +17,8 @@
   --note-fg: #1e40af;
   --ok-bg: #dcfce7;
   --ok-fg: #166534;
-  --font: 'Sarabun', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans Thai', sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
@@ -26,6 +26,7 @@ body { font-family: var(--font); color: var(--text); background: var(--bg); font
 button { font-family: inherit; cursor: pointer; }
 input { font-family: inherit; }
 h1, h2, h3 { margin: 0; }
+.loading { display: grid; min-height: 40vh; place-items: center; color: var(--muted); }
 
 .app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; min-height: 0; }
 
