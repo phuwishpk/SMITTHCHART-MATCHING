@@ -115,6 +115,33 @@ const gMirrorWalk = rotateTowardGenerator(gMirror, dApp);
 const zMirrorWalk = zFromGamma(gMirrorWalk);
 const ZMirrorWalk = C(zMirrorWalk.re * APP_Z0, zMirrorWalk.im * APP_Z0);
 const ZQuarter = C(yApp.re * APP_Z0, yApp.im * APP_Z0);
+/** chapter 6.5: which way one added element moves the point.
+ *  a series element adds jx in the impedance domain (r is untouched), a shunt element
+ *  adds jb in the admittance domain (g is untouched) — so each rides one printed circle. */
+const zAfterX = (x: number): Complex => C(zApp.re, zApp.im + x);
+const zAfterB = (b: number): Complex => admittance(C(yApp.re, yApp.im + b));
+/** the element values shown in the movement table (illustrative); every result is computed */
+const MOVE_XS = [-1, -0.5, -0.25, 0.25, 0.5, 1];
+const MOVE_BS = [-1, -0.5, -0.25, 0.25, 0.5, 1, 1.5];
+/** the running example already sits on g = 1, so ONE shunt susceptance lands it on the centre */
+const MOVE_B1 = -yApp.im;
+const MOVE_ZB1 = zAfterB(MOVE_B1);
+/** the best a series reactance alone can do: it can only slide along r = 0.5 */
+const MOVE_XBEST = -zApp.im;
+const MOVE_SWR_XBEST = swrFromGamma(gammaFromz(zAfterX(MOVE_XBEST)));
+/** first distance toward the generator at which the line shows r = 1.
+ *  |Γ| alone fixes the two crossings z = 1 ± jx with x = 2|Γ|/√(1 − |Γ|²). */
+const MOVE_XR1 = (2 * abs(gApp)) / Math.sqrt(1 - abs(gApp) ** 2);
+const MOVE_DR1 = Math.min(
+  (((wtgFromGamma(gammaFromz(C(1, MOVE_XR1))) - wtgZApp) % 0.5) + 0.5) % 0.5,
+  (((wtgFromGamma(gammaFromz(C(1, -MOVE_XR1))) - wtgZApp) % 0.5) + 0.5) % 0.5,
+);
+const MOVE_ZR1 = zFromGamma(rotateTowardGenerator(gApp, MOVE_DR1));
+/** the same load done by rule 2 instead: the stub solver puts the stub at the load itself */
+const MOVE_SS = solveSingleStub(APP_ZL, APP_Z0, 'short')[0];
+/** turning b = +1 into a real capacitor needs a frequency; 100 MHz is the assumed one */
+const MOVE_F = 100e6;
+const MOVE_CPF = ((MOVE_B1 / APP_Z0) / (2 * Math.PI * MOVE_F)) * 1e12;
 /** chapter 11.4: what a VNA actually reads — reference plane, cable rotation, cable loss.
  *  Only f, vf, the cable length and the dB/m figure are assumed; everything else is computed. */
 const VNA_F = 100e6;
@@ -175,6 +202,31 @@ export const BASICS: Chapter[] = [
           T('เส้นตรงแนวนอนที่ลากผ่านจุดกลางแบ่งกราฟเป็นสองครึ่ง ครึ่งบนคือโหลดที่มีค่า +jX หรือมีลักษณะเป็นตัวเหนี่ยวนำ (inductive) ครึ่งล่างคือ −jX หรือมีลักษณะเป็นตัวเก็บประจุ (capacitive) ส่วนบนเส้นแนวนอนพอดีคือโหลดที่เป็นความต้านทานล้วน ไม่มีส่วนเชิงซ้อน'),
           T('กฎข้อสุดท้ายเป็นเรื่องระยะ ยิ่งจุดอยู่ใกล้จุดกลางเท่าไร แปลว่าแมตช์ดี สะท้อนน้อย ยิ่งจุดถูกผลักออกไปใกล้ขอบเท่าไร แปลว่าแมตช์แย่ สะท้อนมาก'),
           N('มองกราฟให้เหมือนเป้ายิงธนู: กลางเป้าคือแมตช์สมบูรณ์ ขอบนอกคือสะท้อนกลับทั้งหมด · ตัวเลขที่วัดความ “ไกลจากกลาง” นี้คือ SWR ซึ่งจะได้เรียนในบทต่อ ๆ ไป'),
+          T('รูปแรกคือจุดสำคัญเดียวกันนี้พร้อมค่าจริงของสาย 50 Ω ส่วนรูปที่สองคือกฎเรื่องระยะ ลองเทียบดูว่าโหลดตัวไหนอยู่ใกล้จุดกลางกว่ากัน'),
+        ],
+        figures: [
+          { kind: 'smith', title: `จุดสำคัญบนกราฟ พร้อมค่าจริงของสาย ${APP_Z0} Ω`, xCircles: [0],
+            points: [
+              { z: normalize(C(APP_Z0, 0), APP_Z0), label: 'MATCH z = 1', cls: 'in' },
+              { z: C(0, 0), label: 'SHORT z = 0', cls: 'stub' },
+              { z: C(1e6, 0), label: 'OPEN z = ∞', cls: 'stub' },
+              { z: zApp, label: `z = ${fz(zApp, 1)}`, cls: 'load' },
+              { z: normalize(C(APP_ZL.re, -APP_ZL.im), APP_Z0), label: `z = ${fz(normalize(C(APP_ZL.re, -APP_ZL.im), APP_Z0), 1)}`, cls: 'y' },
+              { z: normalize(C(2 * APP_Z0, 0), APP_Z0), label: `z = ${fz(normalize(C(2 * APP_Z0, 0), APP_Z0), 0)} (ต้านทานล้วน)`, cls: 'mid' },
+            ],
+            labels: [
+              { z: zFromGamma(C(0.10, 0.70)), text: 'ครึ่งบน = +jX เหนี่ยวนำ' },
+              { z: zFromGamma(C(0.10, -0.70)), text: 'ครึ่งล่าง = −jX เก็บประจุ' },
+            ],
+            caption: `โหลด ${fz(APP_ZL, 0)} Ω อยู่ครึ่งบน · ${fz(C(APP_ZL.re, -APP_ZL.im), 0)} Ω อยู่ครึ่งล่าง · ${n(2 * APP_Z0, 0)} Ω (ค่าสมมุติ) ไม่มีส่วน j จึงตกบนเส้นแนวนอนพอดี · ${APP_Z0} Ω คือจุดกลาง · ค่า z ทุกตัวคำนวณโดยแอป` },
+          { kind: 'smith', title: 'กฎเรื่องระยะ: ยิ่งไกลจากจุดกลาง ยิ่งสะท้อนมาก',
+            points: [
+              { z: normalize(C(60, 10), APP_Z0), label: `${fz(C(60, 10), 0)} Ω`, cls: 'in' },
+              { z: zApp, label: `${fz(APP_ZL, 0)} Ω`, cls: 'load' },
+              { z: normalize(C(10, 30), APP_Z0), label: `${fz(C(10, 30), 0)} Ω`, cls: 'stub' },
+            ],
+            swr: [swrFromGamma(gammaFromZ(C(60, 10), APP_Z0)), swrApp, swrFromGamma(gammaFromZ(C(10, 30), APP_Z0))],
+            caption: `โหลดสามตัวบนสาย ${APP_Z0} Ω (สองตัวนอกเหนือจากตัวอย่างประจำคอร์สเป็นค่าสมมุติ) · ระยะจากจุดกลางคิดเป็น ${n(abs(gammaFromZ(C(60, 10), APP_Z0)) * 100, 0)}%, ${n(abs(gApp) * 100, 0)}% และ ${n(abs(gammaFromZ(C(10, 30), APP_Z0)) * 100, 0)}% ของรัศมี คำนวณโดยแอป · ตัวเลข SWR ที่ติดอยู่ข้างวงยังไม่ต้องสนใจตอนนี้ ดูแค่ว่าวงไหนใหญ่กว่ากัน` },
         ],
       },
       {
@@ -325,6 +377,27 @@ export const BASICS: Chapter[] = [
           T('เราทำเพียงสามขั้น'),
           K('Z_L  →  พล็อตจุดบนกราฟ  →  หมุนไปตามระยะที่ต้องการ  →  อ่าน Z_in ออกมา'),
           N('กราฟไม่ได้แทนที่ทฤษฎี แต่แทนที่ "การคำนวณซ้ำ" — สมการด้านบนยังเป็นที่มาของทุกเส้นบนกราฟ'),
+          T('รูปข้างล่างเดินสามขั้นนี้ให้ดูด้วยตัวอย่างประจำคอร์ส แล้วตารางถัดไปเอาคำตอบของสองวิธีมาวางเทียบกันทีละแถว'),
+        ],
+        figures: [
+          { kind: 'chart', title: `สามขั้นบนกราฟ: พล็อต → หมุน → อ่าน (โหลด ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω เดิน ${n(dApp, 2)} λ)`,
+            scale: true, fine: false,
+            points: [
+              { z: zApp, label: `① พล็อต z_L = ${fz(zApp, 1)}`, cls: 'load' },
+              { z: zApp2, label: `③ อ่าน z = ${fz(zApp2, 2)}`, cls: 'in' },
+            ],
+            curves: [{ zs: swrPath(zApp, dApp), cls: 'net', arrow: true }],
+            swr: [swrApp],
+            caption: `② คือการหมุนตามลูกศร ${n(dApp, 2)} λ บนวงกลม SWR · ปลายลูกศรอ่านได้ z = ${fz(zApp2, 3)} คูณ ${APP_Z0} กลับได้ Z = ${fz(ZApp2, 1)} Ω ซึ่งตรงกับการแทนค่าในสมการด้านบนทุกหลัก (คำนวณโดยแอป)` },
+          { kind: 'table', title: `สองทางให้คำตอบเดียวกัน (โหลด ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω — คำนวณโดยแอป)`,
+            head: ['ระยะ d (λ)', 'แทนค่าในสมการทีละครั้ง (Ω)', 'หมุนบนกราฟแล้วคูณ Z₀ กลับ (Ω)', 'ค่าบนสเกลรอบกราฟ (λ)'],
+            rows: [0, 0.05, 0.1, dApp, 0.25].map((d) => [
+              n(d, 2),
+              fz(lineInput(APP_ZL, APP_Z0, d, 0), 2),
+              fz(denormalize(zFromGamma(rotateTowardGenerator(gApp, d)), APP_Z0), 2),
+              n(wtgFromGamma(rotateTowardGenerator(gApp, d)), 4),
+            ]),
+            caption: 'คอลัมน์ที่สองมาจากการแทนค่าในสมการใหม่ทุกแถว คอลัมน์ที่สามมาจากการหมุนจุดเดิมบนกราฟใบเดียว ได้ตรงกันทุกแถว — สิ่งที่กราฟลดให้คือการแทนค่าซ้ำ ไม่ใช่ความถูกต้อง' },
         ],
       },
       {
@@ -556,6 +629,31 @@ export const BASICS: Chapter[] = [
           M('SWR = \\frac{1 + |\\Gamma|}{1 - |\\Gamma|} = \\text{คงที่ตลอดสาย เฉพาะบนสายไร้การสูญเสีย}'),
           R('\\text{บนสายไร้การสูญเสียเท่านั้น: } Z \\text{ เปลี่ยนทุกตำแหน่ง แต่ } SWR \\text{ ไม่เปลี่ยน}'),
           W('SWR คงที่เป็นสมบัติของสายไร้การสูญเสีย (lossless) เท่านั้น ถ้าสายมีการสูญเสีย |Γ| จะเล็กลงเมื่อเดินเข้าหาแหล่งจ่าย SWR ที่วัดได้จึงต่ำลงเรื่อย ๆ (ดูหัวข้อ 4.4)'),
+          T('รูปแรกเดินครบหนึ่งรอบให้ดูว่าจุดไม่เคยหลุดออกจากวงกลมเดิม ส่วนรูปที่สองพล็อต r, x และ |Γ| เทียบกับระยะทาง — สังเกตว่ามีเส้นเดียวเท่านั้นที่แบนราบ'),
+        ],
+        figures: [
+          { kind: 'chart', title: `เดินครบ 0.5 λ ก็วนกลับที่เดิม — สี่จุดบนวงกลมเดียวกัน (z_L = ${fz(zApp, 1)})`,
+            scale: true, fine: false,
+            points: [
+              { z: zApp, label: '0 λ (โหลด)', cls: 'load' },
+              { z: zFromGamma(rotateTowardGenerator(gApp, 0.125)), label: '0.125 λ', cls: 'in' },
+              { z: zFromGamma(rotateTowardGenerator(gApp, 0.25)), label: '0.25 λ', cls: 'y' },
+              { z: zFromGamma(rotateTowardGenerator(gApp, 0.375)), label: '0.375 λ', cls: 'mid' },
+            ],
+            curves: [{ zs: swrPath(zApp, 0.5), cls: 'net', arrow: true }],
+            swr: [swrApp],
+            caption: `ดูตารางใต้รูป: ค่า z ของสี่จุดต่างกันหมด แต่คอลัมน์ |Γ| และ SWR เท่ากันทุกแถว (${n(abs(gApp), 4)} และ ${n(swrApp, 3)}) — นั่นคือความหมายของ "อยู่บนวงกลมเดียวกัน" (คำนวณโดยแอป)` },
+          { kind: 'plot', title: `r และ x แกว่งตลอดทาง แต่ |Γ| ไม่ขยับเลย (z_L = ${fz(zApp, 1)})`,
+            xLabel: 'ระยะจากโหลดไปทางแหล่งจ่าย (λ)', yLabel: 'ค่าปกติ (ไม่มีหน่วย)',
+            xMin: 0, xMax: 0.5, yMin: -1.5, yMax: 3,
+            series: [
+              { name: 'r', points: linspace(0, 0.5, 101).map((d) => [d, zFromGamma(rotateTowardGenerator(gApp, d)).re] as [number, number]) },
+              { name: 'x', color: '#dc2626', points: linspace(0, 0.5, 101).map((d) => [d, zFromGamma(rotateTowardGenerator(gApp, d)).im] as [number, number]) },
+              { name: '|Γ|', color: '#059669', points: linspace(0, 0.5, 101).map((d) => [d, abs(rotateTowardGenerator(gApp, d))] as [number, number]) },
+            ],
+            xTicks: [0, 0.125, 0.25, 0.375, 0.5],
+            markers: [{ x: 0.25, y: abs(rotateTowardGenerator(gApp, 0.25)), text: `|Γ| = ${n(abs(gApp), 4)} ทุกตำแหน่ง`, color: '#059669' }],
+            caption: `เส้นเขียวคือรัศมีของจุดบนกราฟ แบนราบตลอดสาย ดังนั้น SWR = ${n(swrApp, 3)} ก็คงที่ตลอดสายด้วย · สังเกตว่ายอดสูงสุดของเส้น r แตะ ${n(swrApp, 3)} ซึ่งเท่ากับ SWR พอดี — เป็นวิธีอ่าน SWR ที่จะใช้ในหัวข้อถัดไป` },
         ],
       },
       {
@@ -817,6 +915,29 @@ export const BASICS: Chapter[] = [
           T('และจากบทที่ 5 ระยะ λ/4 คือครึ่งรอบของกราฟ (180°) ดังนั้นการหา y จึงเท่ากับการหมุนจุด z ไป 180° ซึ่งก็คือการลากเส้นผ่านศูนย์กลางไปอีกด้านหนึ่งนั่นเอง'),
           M('\\Gamma_y = \\Gamma_z\\,e^{-j\\pi} = -\\Gamma_z'),
           N('ตรวจได้ง่าย: ถ้า z = 0 (SHORT, Γ = −1) แล้ว y = ∞ (OPEN, Γ = +1) ซึ่งอยู่ตรงข้ามกันพอดี'),
+          T('รูปแรกเดินจริงบนสาย 0.25 λ แล้วดูว่าจุดไปหยุดตรงไหน ส่วนรูปที่สองคือการตรวจกฎเดียวกันด้วยคู่ SHORT–OPEN ตามที่จะเขียนไว้ข้างล่าง'),
+        ],
+        figures: [
+          { kind: 'chart', title: `เดินบนสายจริง 0.25 λ = หมุนครึ่งรอบพอดี (โหลด ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω)`,
+            scale: true, fine: false,
+            points: [
+              { z: zApp, label: `z_L = ${fz(zApp, 1)} (สเกล ${n(wtgZApp, 4)} λ)`, cls: 'load' },
+              { z: yApp, label: `ปลายทาง = y_L = ${fz(yApp, 0)} (สเกล ${n(wtgYApp, 4)} λ)`, cls: 'y' },
+            ],
+            curves: [
+              { zs: swrPath(zApp, 0.25), cls: 'net', arrow: true },
+              { zs: [zApp, C(1, 0), yApp], cls: 'mid', dashed: true },
+            ],
+            swr: [swrApp],
+            caption: `เส้นทึบคือการเดินจริงบนสาย 0.25 λ เส้นประคือการลากตรงผ่านศูนย์กลาง ปลายทางจุดเดียวกัน · ค่าบนสเกลรอบนอกต่างกัน ${n(((wtgYApp - wtgZApp) % 0.5 + 0.5) % 0.5, 4)} λ พอดี · แอปคำนวณ: สาย 0.25 λ ให้ Z = ${fz(lineInput(APP_ZL, APP_Z0, 0.25, 0), 1)} Ω ซึ่งเท่ากับ Z₀²/Z_L` },
+          { kind: 'smith', title: 'ตรวจกฎด้วยคู่ที่สุดขั้ว: SHORT อยู่ตรงข้าม OPEN',
+            points: [
+              { z: C(0, 0), label: 'z = 0 (SHORT)', cls: 'stub' },
+              { z: C(1, 0), label: 'แกนหมุน z = 1', cls: 'in' },
+              { z: C(1e6, 0), label: 'z = ∞ (OPEN)', cls: 'stub' },
+            ],
+            curves: [{ zs: [C(0, 0), C(1, 0), C(1e6, 0)], cls: 'mid', dashed: true }],
+            caption: `หมุน 180° จาก z = 0 แล้วไปโผล่ที่ z = ∞ พอดี · ตรวจกับของจริงด้วยเอนจินของแอป: สายปลายลัด ${APP_Z0} Ω ยาว 0.25 λ มองจากต้นสายเห็นเป็น Z = ${fz(stubInput('short', APP_Z0, 0.25), 0)} คือปลายเปิด` },
         ],
       },
       {
@@ -878,12 +999,159 @@ export const BASICS: Chapter[] = [
         ],
       },
       {
+        id: 'move', title: 'ใส่อุปกรณ์แล้วจุดเดินไปทางไหน — อนุกรมไถลบนวง r · ขนานไถลบนวง g',
+        lines: [
+          T('สองหัวข้อก่อนหน้าอธิบายว่า z กับ y คือจุดเดียวกันคนละสเกล หัวข้อนี้เก็บผลที่ใช้งานได้จริงที่สุดของเรื่องนั้น: เมื่อ "ใส่อุปกรณ์ไร้การสูญเสียเพิ่มหนึ่งตัว" จุดบนกราฟจะเดินไปตามเส้นไหน'),
+          T('กฎมีสองข้อ และแต่ละข้อพิสูจน์จบในบรรทัดเดียว เพราะอุปกรณ์บวกเข้าไปเฉพาะในโดเมนที่มันต่ออยู่เท่านั้น'),
+          T('กฎข้อ 1 — ต่ออนุกรม อิมพีแดนซ์บวกกัน จึงต้องคิดในโดเมน Z'),
+          M(`z' = z + jx_s = r + j(x + x_s) \\;\\Rightarrow\\; r' = r`),
+          T('ส่วนจริงไม่ถูกแตะเลย จุดจึงไถลไปตาม "วงกลม r คงที่" ซึ่งเป็นเส้นดำที่พิมพ์อยู่บนกราฟ Z อยู่แล้ว'),
+          T('กฎข้อ 2 — ต่อขนาน แอดมิตแตนซ์บวกกัน จึงต้องคิดในโดเมน Y'),
+          M(`y' = y + jb_p = g + j(b + b_p) \\;\\Rightarrow\\; g' = g`),
+          T('คราวนี้ส่วนจริงฝั่งแอดมิตแตนซ์ไม่ถูกแตะ จุดจึงไถลไปตาม "วงกลม g คงที่" ซึ่งเป็นเส้นสีเขียวของกริด Y'),
+          W('นี่คือเหตุผลเดียวที่ต้องมีกริด Y ให้ยุ่งยาก — ไม่ใช่เพราะ y สวยกว่า z แต่เพราะอุปกรณ์ขนานเดินตามเส้นที่มีแต่กริด Y เท่านั้นที่วาดไว้ให้ ถ้ามีแต่กริด Z จะมองไม่เห็นเส้นทางของมันเลย'),
+          T('ทิศทางจำได้ข้อเดียว: ค่าบวกหมุนตามเข็ม ค่าลบหมุนทวนเข็ม โดยหมุนอยู่บนเส้นของตัวเองเสมอ ไม่ใช่บนวงกลม SWR'),
+          K('อนุกรม L → x_s > 0 → ไถลตามเข็ม บนวง r เดิม   (r ไม่เปลี่ยน)\nอนุกรม C → x_s < 0 → ไถลทวนเข็ม บนวง r เดิม   (r ไม่เปลี่ยน)\nขนาน  C → b_p > 0 → ไถลตามเข็ม บนวง g เดิม   (g ไม่เปลี่ยน)\nขนาน  L → b_p < 0 → ไถลทวนเข็ม บนวง g เดิม   (g ไม่เปลี่ยน)'),
+          T('ผลที่ตามมาทันทีคือ "ทางลงจอด" สองเส้น — วงกลม r = 1 กับวงกลม g = 1 เป็นสองวงเดียวบนกราฟที่ลากผ่านจุดศูนย์กลาง'),
+          M(`r = 1 \\;\\Rightarrow\\; z = 1 + jx, \\quad x_s = -x \\;\\Rightarrow\\; z' = 1`),
+          M(`g = 1 \\;\\Rightarrow\\; y = 1 + jb, \\quad b_p = -b \\;\\Rightarrow\\; y' = 1`),
+          T('ทั้งสองบรรทัดจบที่ศูนย์กลางกราฟ ซึ่งเป็นจุดเดียวที่ SWR = 1 — การแมตช์ทุกวิธีจึงเล็งไปที่สองวงนี้ก่อน แล้วค่อยใส่อุปกรณ์ตัวสุดท้ายหักล้างส่วนจินตภาพที่เหลือ'),
+          T(`ลองกับตัวอย่างประจำคอร์ส z = ${fz(zApp, 1)} ซึ่งมี y = ${fz(yApp, 0)}`),
+          R(`r = ${n(zApp.re, 1)} \\neq 1 \\qquad \\text{แต่} \\qquad g = ${n(yApp.re, 0)}`),
+          T('อ่านสองค่านี้ออกก็รู้คำตอบทันที: โหลดตัวนี้แมตช์ได้ด้วยอุปกรณ์ขนานตัวเดียว แต่แมตช์ด้วยอุปกรณ์อนุกรมตัวเดียวไม่ได้'),
+          T(`ฝั่งขนาน — จุดนั่งอยู่บนวง g = 1 พอดีอยู่แล้ว ใส่ susceptance ขนาน b_p = ${n(MOVE_B1, 0)} เพื่อหักล้าง b = ${n(yApp.im, 0)} ก็จบงาน`),
+          R(`y' = (${tc(yApp, 0)}) + j${n(MOVE_B1, 0)} = 1 \\;\\Rightarrow\\; z' = ${tc(MOVE_ZB1, 0)} \\;\\Rightarrow\\; SWR = ${n(swrFromGamma(gammaFromz(MOVE_ZB1)), 3)}`),
+          T(`ฝั่งอนุกรม — จุดนั่งอยู่บนวง r = ${n(zApp.re, 1)} ใส่ x_s เท่าไรส่วนจริงก็ยังเป็น ${n(zApp.re, 1)} จึงไม่มีทางถึงศูนย์กลาง ค่าที่ดีที่สุดคือ x_s = ${n(MOVE_XBEST, 2)} ซึ่งพาไปได้แค่ z = ${fz(zAfterX(MOVE_XBEST), 1)}`),
+          R(`SWR_{\\min} = ${n(MOVE_SWR_XBEST, 3)} \\qquad \\text{(ดีที่สุดของอุปกรณ์อนุกรมตัวเดียว — ยังไม่แมตช์)}`),
+          T('วิธีแก้ของฝั่งอนุกรมคือ "เดินก่อน แล้วค่อยใส่" — ต่อสายอีกนิดให้จุดวิ่งบนวงกลม SWR จนไปนั่งบนวง r = 1 แล้วจึงใส่ reactance อนุกรม (แอปคำนวณระยะให้)'),
+          M(`d = ${n(MOVE_DR1, 4)}\\lambda \\;\\Rightarrow\\; z = ${tc(MOVE_ZR1, 3)} \\;\\Rightarrow\\; x_s = ${n(-MOVE_ZR1.im, 3)} \\;\\Rightarrow\\; z' = 1`),
+          N(`สมมาตรกันพอดี: ฝั่งขนานต้องเดินหาวง g = 1 (โหลดตัวนี้อยู่บนวงนั้นแล้ว เอนจินจึงให้ d = ${n(MOVE_SS.dLambda, 3)} λ คือติดสตับที่ขั้วโหลดได้เลย โดยใช้สตับปลายลัดยาว ${n(MOVE_SS.lLambda, 3)} λ) ส่วนฝั่งอนุกรมต้องเดินหาวง r = 1 (ได้ d = ${n(MOVE_DR1, 4)} λ) · ขั้นตอนหกข้อของ single stub ในบทที่ 9 ก็คือกฎข้อ 2 ที่ทำเต็มรูปแบบ`),
+          W('กฎสองข้อนี้ใช้ได้เฉพาะอุปกรณ์ก้อนเดียวที่ต่ออยู่ ณ ระนาบเดียวกัน (L, C หรือสตับ) · ถ้าสิ่งที่เพิ่มเข้ามาคือ "สายส่ง" จุดจะเดินบนวงกลม SWR แทน ไม่ใช่วง r และไม่ใช่วง g'),
+          K('เส้นทางที่เป็นไปได้บนกราฟมีสามแบบเท่านั้น\n  ต่อสายเพิ่ม     → วิ่งบนวงกลม SWR คงที่  (|Γ| เท่าเดิม เปลี่ยนแต่มุม)\n  ใส่อุปกรณ์อนุกรม → ไถลบนวงกลม r คงที่    (r เท่าเดิม)\n  ใส่อุปกรณ์ขนาน   → ไถลบนวงกลม g คงที่    (g เท่าเดิม)'),
+          N('รูปทุกรูปในหัวข้อนี้ใช้สีชุดเดียวกัน: ชมพู = เดินไปตามสาย · แดง = อุปกรณ์อนุกรม (โดเมน Z) · เขียวน้ำเงิน = อุปกรณ์ขนาน (โดเมน Y) · เขียว = จุดที่แมตช์แล้ว'),
+          N('ข้อควรระวังที่ต่อจากหัวข้อก่อนโดยตรง: เวลาไถลบนวง g ต้องใช้ "วิธี ข ซ้อนกริด Y" คือจุดไม่ขยับแล้วอ่านเส้นเขียว · ถ้าเผลอหมุนจุดไปฝั่งกระจกก่อนแล้วไถลบนวง r ที่นั่น ตัวเลขจะดูสมเหตุสมผลทุกอย่าง แต่เป็นคำตอบของอุปกรณ์คนละชนิด'),
+        ],
+        figures: [
+          { kind: 'chart', title: `สองเส้นทางจากจุดเดียวกัน: อนุกรมไถลบนวง r = ${n(zApp.re, 1)} · ขนานไถลบนวง g = ${n(yApp.re, 0)}`,
+            showY: true, scale: false, fine: false,
+            points: [
+              { z: zApp, label: `เริ่มที่ z = ${fz(zApp, 1)} (y = ${fz(yApp, 0)})`, cls: 'load' },
+              { z: zAfterX(1), label: `อนุกรม x_s = +1 ได้ z = ${fz(zAfterX(1), 1)}`, cls: 'mid' },
+              { z: MOVE_ZB1, label: `ขนาน b_p = +${n(MOVE_B1, 0)} ได้ z = ${fz(MOVE_ZB1, 0)} แมตช์`, cls: 'in' },
+              { z: zAfterB(-1), label: `ขนาน b_p = −1 ได้ z = ${fz(zAfterB(-1), 2)}`, cls: 'y' },
+            ],
+            curves: [
+              { zs: seriesPath(zApp, 1), cls: 'load', arrow: true, label: 'อนุกรม +jx' },
+              { zs: seriesPath(zApp, -1), cls: 'load', dashed: true, label: 'อนุกรม −jx' },
+              { zs: shuntPath(zApp, MOVE_B1), cls: 'y', arrow: true, label: 'ขนาน +jb' },
+              { zs: shuntPath(zApp, -1), cls: 'y', dashed: true, label: 'ขนาน −jb' },
+            ],
+            swr: [swrApp], rCircles: [zApp.re], gCircles: [yApp.re],
+            caption: `เส้นแดงทั้งสองเส้นอยู่บนวง r = ${n(zApp.re, 1)} ตลอด ไม่ว่าจะใส่ x_s เท่าไร · เส้นเขียวน้ำเงินทั้งสองเส้นอยู่บนวง g = ${n(yApp.re, 0)} ตลอด · เส้นทึบคือค่าบวก (ตามเข็ม) เส้นประคือค่าลบ (ทวนเข็ม) · วงกลม SWR เดิม (${n(swrApp, 3)}) วาดไว้ให้เทียบ — อุปกรณ์พาจุดออกจากวงนั้นเสมอ ต่างจากการต่อสายที่วิ่งอยู่บนวงนั้น` },
+          { kind: 'smith', title: 'ทางลงจอดสองเส้น: วง r = 1 สำหรับอุปกรณ์อนุกรม และวง g = 1 สำหรับอุปกรณ์ขนาน',
+            showY: true, rCircles: [1], gCircles: [1],
+            points: [
+              { z: C(1, 1), label: 'z = 1 + j1 อยู่บนวง r = 1', cls: 'mid' },
+              { z: zApp, label: `z = ${fz(zApp, 1)} อยู่บนวง g = 1`, cls: 'load' },
+              { z: C(1, 0), label: 'ศูนย์กลาง z = 1', cls: 'in' },
+            ],
+            curves: [
+              { zs: seriesPath(C(1, 1), -1), cls: 'load', arrow: true, label: 'อนุกรม x_s = −1' },
+              { zs: shuntPath(zApp, MOVE_B1), cls: 'y', arrow: true, label: `ขนาน b_p = +${n(MOVE_B1, 0)}` },
+            ],
+            caption: `สองวงนี้ตัดกันที่ศูนย์กลางพอดี จึงเป็นทางเดียวที่อุปกรณ์ตัวเดียวจะพาจุดเข้าเส้นชัยได้ · อยู่บนวง r = 1 เมื่อไร อุปกรณ์อนุกรมตัวเดียวจบงาน · อยู่บนวง g = 1 เมื่อไร อุปกรณ์ขนานตัวเดียวจบงาน · จุดที่ไม่ได้อยู่บนวงไหนเลย ต้องใช้อย่างน้อยสองขั้นเสมอ` },
+          { kind: 'chart', title: 'ถ้าจะใช้อุปกรณ์อนุกรมกับโหลดตัวนี้ ต้องเดินไปหาวง r = 1 ก่อน',
+            scale: true, fine: false,
+            points: [
+              { z: zApp, label: `z_L ที่สเกล ${n(wtgZApp, 3)} λ`, cls: 'load' },
+              { z: MOVE_ZR1, label: `เดิน ${n(MOVE_DR1, 4)} λ ได้ z = ${fz(MOVE_ZR1, 2)}`, cls: 'mid' },
+              { z: C(1, 0), label: `ใส่ x_s = ${n(-MOVE_ZR1.im, 2)} แล้วแมตช์`, cls: 'in' },
+            ],
+            curves: [
+              { zs: swrPath(zApp, MOVE_DR1), arrow: true, label: 'ขั้นที่ 1 เดินไปตามสาย' },
+              { zs: seriesPath(MOVE_ZR1, -MOVE_ZR1.im), cls: 'load', arrow: true, label: 'ขั้นที่ 2 ไถลบนวง r = 1' },
+            ],
+            swr: [swrApp], rCircles: [1],
+            caption: `ขั้นที่ 1 (ชมพู) อยู่บนวงกลม SWR — |Γ| เท่าเดิม แค่หมุน · ขั้นที่ 2 (แดง) อยู่บนวง r = 1 — r เท่าเดิม แต่ |Γ| ลดลงจนเป็นศูนย์ · เทียบกับฝั่งขนานที่ไม่ต้องเดินเลย เพราะโหลดตัวนี้อยู่บนวง g = 1 อยู่แล้ว (เอนจินให้ d = ${n(MOVE_SS.dLambda, 3)} λ)` },
+          { kind: 'plot', title: 'ใส่ค่าเท่ากันแต่คนละโดเมน ได้ SWR ต่างกันคนละเรื่อง (คำนวณโดยแอป)',
+            xLabel: 'ค่าที่ใส่ — x_s สำหรับอนุกรม / b_p สำหรับขนาน', yLabel: 'SWR หลังใส่อุปกรณ์',
+            xMin: -2, xMax: 2, yMin: 1, yMax: 6, xTicks: [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2], yTicks: [1, 2, 3, 4, 5, 6],
+            series: [
+              { name: 'อนุกรม x_s (ไถลบนวง r)', color: '#dc2626', points: linspace(-2, 2, 161).map((x) => [x, swrFromGamma(gammaFromz(zAfterX(x)))] as [number, number]) },
+              { name: 'ขนาน b_p (ไถลบนวง g)', color: '#0f766e', points: linspace(-2, 2, 161).map((b) => [b, swrFromGamma(gammaFromz(zAfterB(b)))] as [number, number]) },
+            ],
+            markers: [
+              { x: MOVE_B1, y: 1, text: `b_p = +${n(MOVE_B1, 0)} ให้ SWR = 1`, color: '#0f766e' },
+              { x: MOVE_XBEST, y: MOVE_SWR_XBEST, text: `x_s = ${n(MOVE_XBEST, 2)} ดีที่สุดได้แค่ ${n(MOVE_SWR_XBEST, 2)}`, color: '#dc2626' },
+            ],
+            caption: `เส้นเขียวน้ำเงินแตะ SWR = 1 ได้ เพราะวง g = ${n(yApp.re, 0)} ลากผ่านศูนย์กลาง · เส้นแดงมีก้นบ่ออยู่ที่ ${n(MOVE_SWR_XBEST, 2)} เพราะวง r = ${n(zApp.re, 1)} ไม่ผ่านศูนย์กลาง เข้าใกล้ที่สุดได้แค่ตอนที่รีแอกแตนซ์รวมเป็นศูนย์ · เส้นที่หลุดออกนอกกรอบด้านบนคือค่าที่ SWR เกิน 6` },
+          { kind: 'table', title: `ใส่อุปกรณ์หนึ่งตัวเข้ากับ z = ${fz(zApp, 1)} แล้วได้อะไร (คำนวณโดยแอป)`,
+            head: ['อุปกรณ์ที่ใส่', 'z ใหม่', 'y ใหม่', 'r', 'g', 'SWR'],
+            rows: [
+              ...MOVE_XS.map((x) => {
+                const z = zAfterX(x);
+                const y = admittance(z);
+                return [`อนุกรม x_s = ${n(x, 2)}`, fz(z, 3), fz(y, 3), n(z.re, 3), n(y.re, 3), n(swrFromGamma(gammaFromz(z)), 3)];
+              }),
+              ...MOVE_BS.map((b) => {
+                const z = zAfterB(b);
+                const y = admittance(z);
+                return [`ขนาน b_p = ${n(b, 2)}`, fz(z, 3), fz(y, 3), n(z.re, 3), n(y.re, 3), n(swrFromGamma(gammaFromz(z)), 3)];
+              }),
+            ],
+            caption: `อ่านคอลัมน์ r กับ g เทียบกัน: แถวอนุกรมทุกแถวมี r = ${n(zApp.re, 3)} เท่ากันหมด ส่วนแถวขนานทุกแถวมี g = ${n(yApp.re, 3)} เท่ากันหมด — นั่นคือกฎสองข้อในรูปตัวเลข · แถวเดียวที่ SWR = 1 คือ b_p = ${n(MOVE_B1, 2)} ซึ่งหักล้าง b = ${n(yApp.im, 0)} พอดี · ค่า x_s และ b_p ที่ยกมาเป็นค่าสมมุติ ส่วนตัวเลขทุกช่องคำนวณโดยแอป` },
+          { kind: 'lab', label: `ทดลอง: โหลด ${fz(APP_ZL, 0)} Ω กับตัวเก็บประจุขนาน ${n(MOVE_CPF, 2)} pF — แมตช์ด้วยอุปกรณ์ตัวเดียว`,
+            circuit: () => buildCircuit(MOVE_F, APP_Z0, [['capacitor', 'shunt', { C: Number(MOVE_CPF.toFixed(2)) }], ['load', 'series', { R: APP_ZL.re, X: APP_ZL.im }]]),
+            showY: true,
+            note: `b_p = ${n(MOVE_B1, 0)} คือ B = b_p/Z₀ = ${n(MOVE_B1 / APP_Z0, 3)} S ที่ความถี่สมมุติ ${n(MOVE_F / 1e6, 0)} MHz จึงได้ C = B/(2πf) = ${n(MOVE_CPF, 2)} pF · เปิดปุ่ม Y grid แล้วลากสไลเดอร์ C ดู จุดจะไถลอยู่บนวง g = ${n(yApp.re, 0)} ตลอด และแตะศูนย์กลางที่ค่านี้ค่าเดียว` },
+          { kind: 'quiz',
+            question: `จุดหนึ่งบนสาย ${APP_Z0} Ω อ่านได้ z = ${fz(zApp, 1)} ถ้าต่อตัวเก็บประจุ "ขนาน" ที่จุดนั้นให้ b_p = +${n(MOVE_B1, 0)} จุดจะไปอยู่ที่ใด`,
+            choices: [
+              `ไถลไปตามวงกลม g = ${n(yApp.re, 0)} จนถึงศูนย์กลาง z = ${fz(MOVE_ZB1, 0)} คือแมตช์พอดี`,
+              `ไถลไปตามวงกลม r = ${n(zApp.re, 1)} ขึ้นไปที่ z = ${fz(zAfterX(MOVE_B1), 1)}`,
+              `ไถลไปตามวงกลม g = ${n(yApp.re, 0)} แต่ไปอีกทาง จบที่ y = ${fz(C(yApp.re, yApp.im - MOVE_B1), 0)}`,
+              `หมุนไปตามวงกลม SWR เหมือนต่อสายเพิ่ม ค่า SWR จึงยังเป็น ${n(swrApp, 3)} เท่าเดิม`,
+            ],
+            answer: 0,
+            explain: `อุปกรณ์ขนานบวกกันในโดเมนแอดมิตแตนซ์ y' = y + jb_p ส่วนจริงจึงคงที่ที่ g = ${n(yApp.re, 0)} · ที่จุดนี้ y = ${fz(yApp, 0)} บวก j${n(MOVE_B1, 0)} ได้ y' = 1 พอดี ซึ่งคือ z = ${fz(MOVE_ZB1, 0)} และ SWR = ${n(swrFromGamma(gammaFromz(MOVE_ZB1)), 3)} · ตัวเลือกที่ 2 คือคำตอบของ reactance อนุกรม (ใช้กฎผิดโดเมน) ตัวเลือกที่ 3 คือใส่เครื่องหมายกลับด้าน และตัวเลือกที่ 4 คือเส้นทางของสายส่ง ไม่ใช่ของอุปกรณ์`,
+            hint: 'ดูก่อนว่าจุดนี้มี g เท่าไร ถ้า g = 1 อยู่แล้ว อุปกรณ์ขนานตัวเดียวก็พาถึงศูนย์กลางได้',
+            chart: { showY: true, scale: false, fine: false, swr: [swrApp], rCircles: [zApp.re], gCircles: [yApp.re],
+              points: [{ z: zApp, label: `z = ${fz(zApp, 1)}`, cls: 'load' }, { z: C(1, 0), label: 'ศูนย์กลาง', cls: 'in' }],
+              curves: [{ zs: shuntPath(zApp, MOVE_B1), cls: 'y', arrow: true }, { zs: seriesPath(zApp, MOVE_B1), cls: 'load', dashed: true }] } },
+        ],
+      },
+      {
         id: 'apps', title: 'สรุปการใช้งานสามกลุ่ม',
         lines: [
           T('หนังสือระบุการใช้งาน Smith Chart ที่สำคัญไว้สามกลุ่ม'),
           K('1. คำนวณ admittance จาก impedance (และกลับกัน)\n2. หา impedance หรือ admittance ที่ตำแหน่งใด ๆ บนสาย พร้อมอ่าน SWR\n3. หาความยาวของสายปลายลัดวงจร เพื่อสร้าง reactance หรือ susceptance ตามที่ต้องการ'),
-          T('สามหัวข้อถัดไป (6.6, 6.7, 6.8) ทำทีละกลุ่มพร้อมตัวอย่างที่คำนวณครบ'),
+          T('สามหัวข้อถัดไป (6.7, 6.8, 6.9) ทำทีละกลุ่มพร้อมตัวอย่างที่คำนวณครบ'),
           N('ทั้งสามกลุ่มจะถูกใช้ซ้ำในบทที่ 8 (หม้อแปลง λ/4 ใช้กลุ่มที่ 2) และบทที่ 9 (stub matching ใช้ทั้งสามกลุ่มพร้อมกัน) — ขั้นตอนหกข้อของ stub matching ก็คือการเรียงกลุ่ม 1 → 2 → 3 ต่อกัน'),
+          T('รูปข้างล่างเอาทั้งสามกลุ่มมาวางบนกราฟใบเดียวด้วยตัวอย่างประจำคอร์ส จะเห็นว่าแต่ละกลุ่มคือการขยับจุดคนละแบบ ไม่ใช่กราฟคนละใบ'),
+        ],
+        figures: [
+          { kind: 'chart', title: 'สามกลุ่มการใช้งาน วางบนกราฟใบเดียว', scale: false, fine: false,
+            points: [
+              { z: zApp, label: `z_L = ${fz(zApp, 1)}`, cls: 'load' },
+              { z: yApp, label: `① y = ${fz(yApp, 0)}`, cls: 'y' },
+              { z: zApp2, label: `② ที่ ${n(dApp, 2)} λ บนสาย`, cls: 'in' },
+              { z: normalize(stubInput('short', APP3_Z0, APP3_lw), APP3_Z0), label: `③ ปลายสตับ x = ${n(APP3_XWANT / APP3_Z0, 1)}`, cls: 'stub' },
+            ],
+            curves: [
+              { zs: [zApp, C(1, 0), yApp], cls: 'mid', dashed: true },
+              { zs: swrPath(zApp, dApp), cls: 'net', arrow: true },
+              { zs: linspace(0, APP3_lw, 40).map((l) => normalize(stubInput('short', APP3_Z0, l), APP3_Z0)), cls: 'stub', arrow: true },
+            ],
+            swr: [swrApp],
+            caption: `① เส้นประผ่านศูนย์กลาง = หา y จาก z · ② ลูกศรบนวงกลม SWR = เดินไปตามสาย · ③ ลูกศรบนขอบกราฟ = ไล่ความยาวสายปลายลัดจาก SHORT ขึ้นมาจนได้ x ที่ต้องการ · ทั้งสามอย่างคือการขยับจุดคนละแบบบนกราฟใบเดียวกัน` },
+          { kind: 'table', title: 'สามกลุ่มใช้ทำอะไร และขยับจุดอย่างไร',
+            head: ['กลุ่ม', 'คำถามของโจทย์', 'การขยับจุดบนกราฟ', `ตัวอย่างประจำคอร์ส (สาย ${APP_Z0} Ω — คำนวณโดยแอป)`],
+            rows: [
+              ['1', 'ให้ z มา หา y (หรือกลับกัน)', 'ข้ามไปจุดตรงข้ามผ่านศูนย์กลาง 180°', `z = ${fz(zApp, 1)} → y = ${fz(yApp, 0)}`],
+              ['2', `ที่ระยะ ${n(dApp, 2)} λ จากโหลด มองเห็นอะไร`, 'เดินตามเข็มบนวงกลม SWR คงที่', `Z = ${fz(ZApp2, 1)} Ω, SWR = ${n(swrFromGamma(gApp2), 3)} เท่าที่โหลด`],
+              ['3', `อยากได้ X = +${n(APP3_XWANT, 0)} Ω ต้องตัดสายยาวเท่าไร`, 'ไล่ไปตามขอบกราฟ เริ่มจากจุด SHORT', `สายปลายลัดยาว ${n(APP3_lw, 4)} λ ให้ X = ${n(stubInput('short', APP3_Z0, APP3_lw).im, 1)} Ω`],
+            ],
+            caption: 'สามแถวนี้คือสามหัวข้อถัดไปตามลำดับ · ขั้นตอนของ stub matching ก็คือแถว 1 → 2 → 3 ต่อกัน' },
         ],
       },
       {
@@ -1083,6 +1351,28 @@ export const BASICS: Chapter[] = [
           T('stub คือสายส่งสั้น ๆ ที่ต่อเข้ากับสายหลักเพื่อสร้าง reactance หรือ susceptance ตามต้องการ'),
           T('ส่วนใหญ่ใช้แบบปลายลัดวงจร (short-circuited stub) มากกว่าปลายเปิด เพราะปลายเปิดมีแนวโน้มจะแผ่คลื่นออกไป (radiate) ทำให้เกิดการสูญเสียและรบกวนระบบ'),
           N('ปลายลัดยังปรับความยาวได้ง่ายกว่าในทางปฏิบัติ เพราะเลื่อนตัวลัดวงจรได้'),
+          T(`ภาพด้านล่างคือ stub ที่ต่อจริงกับสายหลัก และตารางเทียบปลายลัดกับปลายเปิดด้วยโหลดประจำคอร์ส ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω — ทั้งสองแบบให้ SWR = 1 เท่ากัน ต่างกันแค่ความยาวสตับ λ/4 (คำนวณโดยแอป)`),
+        ],
+        figures: [
+          { kind: 'circuit',
+            title: `รูปร่างของ stub: สายกิ่งสั้น ๆ ปลายลัดลงกราวด์ ต่อขนานกับสายหลัก (โหลด ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω)`,
+            circuit: buildCircuit(100e6, APP_Z0, [
+              ['stub_short', 'shunt', { Z0: APP_Z0, len: Number(solveSingleStub(APP_ZL, APP_Z0, 'short')[1].lLambda.toFixed(4)) }],
+              ['tline', 'series', { Z0: APP_Z0, len: Number(solveSingleStub(APP_ZL, APP_Z0, 'short')[1].dLambda.toFixed(4)), vf: 0.66, lossDb: 0 }],
+              ['load', 'series', { R: APP_ZL.re, X: APP_ZL.im }],
+            ]),
+            caption: `สตับไม่ได้ส่งกำลังไปไหน ปลายมันลัดลงกราวด์ · ที่นี่ยาว ${n(solveSingleStub(APP_ZL, APP_Z0, 'short')[1].lLambda, 3)} λ ต่อห่างจากโหลด ${n(solveSingleStub(APP_ZL, APP_Z0, 'short')[1].dLambda, 3)} λ (คำนวณโดยแอป) หน้าที่เดียวของมันคือสร้าง susceptance b = ${n(solveSingleStub(APP_ZL, APP_Z0, 'short')[1].bStub, 2)}` },
+          { kind: 'table',
+            title: `ปลายลัดกับปลายเปิดทำงานแทนกันได้ ต่างกันแค่ความยาว — โหลด ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω (คำนวณโดยแอป)`,
+            head: ['คำตอบ', 'ชนิดปลายสตับ', 'ตำแหน่ง d (λ)', 'b ที่สตับต้องสร้าง', 'ความยาวสตับ l_s (λ)', 'SWR หลังใส่สตับ'],
+            rows: [0, 1].flatMap((i) => (['short', 'open'] as const).map((kind) => {
+              const s = solveSingleStub(APP_ZL, APP_Z0, kind)[i];
+              const yl = admittance(normalize(lineInput(APP_ZL, APP_Z0, s.dLambda, 0), APP_Z0));
+              const ys = admittance(normalize(stubInput(kind, APP_Z0, s.lLambda), APP_Z0));
+              const yt = C(yl.re + ys.re, yl.im + ys.im);
+              return [`ที่ ${i + 1}`, kind === 'short' ? 'ปลายลัด (short)' : 'ปลายเปิด (open)', n(s.dLambda, 4), n(s.bStub, 3), n(s.lLambda, 4), n(swrFromGamma(gammaFromz(admittance(yt))), 3)];
+            })),
+            caption: 'ทั้งสองแบบแมตช์ได้เท่ากัน จึงเลือกด้วยเหตุผลทางกายภาพ: ปลายเปิดแผ่คลื่นออกไปและไวต่อสิ่งรอบข้าง ส่วนปลายลัดปิดสนามไว้ในสายและเลื่อนตัวลัดวงจรเพื่อจูนได้' },
         ],
       },
       {
@@ -1137,7 +1427,7 @@ export const BASICS: Chapter[] = [
           T('ถ้า Z_L = R + jX เราต่อหม้อแปลงที่โหลดโดยตรงไม่ได้ เพราะสูตรต้องการความต้านทานล้วน'),
           T('ทางแก้คือใช้สายส่งธรรมดา (Z₀ เดิม) เดินจากโหลดไปทางแหล่งจ่ายก่อน จนถึงตำแหน่งที่อิมพีแดนซ์เป็นความต้านทานล้วน (x = 0) แล้วค่อยต่อหม้อแปลงที่จุดนั้น'),
           K('โหลด Z_L ──[ สาย Z₀ ยาว d ]──┤ x = 0 ที่นี่ ├──[ λ/4, Z_T ]── ไปยังแหล่งจ่าย'),
-          T('การหาตำแหน่ง x = 0 ก็คือการใช้งานกลุ่มที่ 2 (หัวข้อ 6.7): เดินตามวงกลม SWR จนตัดแกนนอน · วงกลม SWR ตัดแกนนอนสองจุดเสมอ จึงมีคำตอบสองชุด'),
+          T('การหาตำแหน่ง x = 0 ก็คือการใช้งานกลุ่มที่ 2 (หัวข้อ 6.8): เดินตามวงกลม SWR จนตัดแกนนอน · วงกลม SWR ตัดแกนนอนสองจุดเสมอ จึงมีคำตอบสองชุด'),
           M('\\text{จุดขวา}: r = SWR \\;\\Rightarrow\\; R\' = SWR \\times Z_0, \\qquad \\text{จุดซ้าย}: r = \\frac{1}{SWR} \\;\\Rightarrow\\; R\' = \\frac{Z_0}{SWR}'),
           N('ตำแหน่ง x = 0 หาได้ง่ายมากบน Smith Chart — นี่คือเหตุผลที่บทที่ 1 บอกว่าการหาจุดนี้ด้วยการคำนวณอย่างเดียวทำได้ยาก · หัวข้อ 8.3 ทำให้ดูทั้งสองจุด'),
         ],
@@ -1189,6 +1479,34 @@ export const BASICS: Chapter[] = [
         lines: [
           K('Z_L, Z₀\n   ↓ normalize\nz_L\n   ↓ plot + วงกลม SWR\n   ↓ เดิน toward generator จนถึง x = 0\nอ่าน r แล้วคูณ Z₀ → R′\n   ↓\nZ_T = √(Z₀ · R′)'),
           N('ถ้าโหลดเป็นความต้านทานล้วนอยู่แล้ว ข้ามขั้นเดินสายได้เลย ใช้ Z_T = √(Z₀ R_L) ทันที'),
+          T(`ตารางด้านล่างเดินแผนผังนี้กับสองโจทย์พร้อมกัน: Example 7-7 ของหนังสือ และโหลดประจำคอร์ส ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω — ทุกช่องคำนวณโดยแอป`),
+        ],
+        figures: [
+          { kind: 'table', title: 'แผนผังเดียวกัน ใช้ได้กับทุกโจทย์ — เทียบสองโจทย์ทีละขั้น (คำนวณโดยแอป)',
+            head: ['ขั้นตอน', 'Example 7-7 (Z₀ = 75 Ω)', `โหลดประจำคอร์ส (Z₀ = ${APP_Z0} Ω)`],
+            rows: (() => {
+              const q = solveQwt(APP_ZL, APP_Z0).slice().sort((a, b) => a.dLambda - b.dLambda)[0];
+              return [
+                ['1. โจทย์ให้ Z_L', `${fz(EX77.ZL, 0)} Ω`, `${fz(APP_ZL, 0)} Ω`],
+                ['2. normalize → z_L', fz(z77, 3), fz(zApp, 1)],
+                ['3. ลากวงกลม SWR', n(swr77, 3), n(swrApp, 3)],
+                ['4. เดินไป generator จนถึง x = 0', `d = ${n(ex77.dLambda, 4)} λ`, `d = ${n(q.dLambda, 4)} λ`],
+                ['5. อ่าน r ที่จุดนั้น', n(ex77.Rreal / EX77.Z0, 3), n(q.Rreal / APP_Z0, 3)],
+                ['6. R′ = r × Z₀', `${n(ex77.Rreal, 1)} Ω`, `${n(q.Rreal, 1)} Ω`],
+                ['7. Z_T = √(Z₀ R′)', `${n(ex77.Zt, 1)} Ω`, `${n(q.Zt, 1)} Ω`],
+              ];
+            })(),
+            caption: `ขั้นที่ 5 ได้ r เป็น SWR หรือ 1/SWR เสมอ ไม่มีค่าอื่น · โหลดครึ่งล่าง (capacitive) อย่าง Example 7-7 เจอจุดซ้าย r = ${n(1 / swr77, 3)} ก่อน ส่วนโหลดครึ่งบน (inductive) อย่างโหลดประจำคอร์ส เจอจุดขวา r = ${n(swrApp, 3)} ก่อน` },
+          { kind: 'chart', title: `แผนผังเดียวกันบนกราฟ: โหลดประจำคอร์ส z = ${fz(zApp, 1)} เดินไปหาจุด x = 0`,
+            scale: true, fine: false,
+            points: [
+              { z: zApp, label: `z_L = ${fz(zApp, 1)}`, cls: 'load' },
+              { z: C(swrApp, 0), label: `r = SWR = ${n(swrApp, 3)} ที่ ${n(solveQwt(APP_ZL, APP_Z0).slice().sort((a, b) => a.dLambda - b.dLambda)[0].dLambda, 3)} λ`, cls: 'in' },
+              { z: C(1 / swrApp, 0), label: `r = 1/SWR = ${n(1 / swrApp, 3)}`, cls: 'mid' },
+            ],
+            curves: [{ zs: swrPath(zApp, solveQwt(APP_ZL, APP_Z0).slice().sort((a, b) => a.dLambda - b.dLambda)[0].dLambda), cls: 'net', arrow: true }],
+            swr: [swrApp], xCircles: [0],
+            caption: `จุด z_L อยู่ที่สเกล ${n(wtgZApp, 4)} λ · เดินตามเข็มจนวงกลม SWR ตัดแกนนอน จะพบจุดขวา r = ${n(swrApp, 3)} ก่อน แล้วจึงถึงจุดซ้าย r = ${n(1 / swrApp, 3)} — ต่อหม้อแปลง λ/4 ได้ทั้งสองจุด` },
         ],
       },
     ],
@@ -1207,6 +1525,33 @@ export const BASICS: Chapter[] = [
           M('y_{total} = (1 + jb) + (-jb) = 1'),
           R('y = 1 \\;\\Rightarrow\\; Y = Y_0 \\;\\Rightarrow\\; Z = Z_0 \\;\\Rightarrow\\; SWR = 1'),
           T('นี่คือแก่นทั้งหมดของ single-stub matching'),
+          T(`ภาพด้านล่างใช้โหลดประจำคอร์ส ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω ซึ่งมี y = ${fz(yApp, 0)} จึงต้องการสตับที่ให้ b = +${n(-yApp.im, 0)} มาหักล้างให้เหลือ y = 1 พอดี`),
+        ],
+        figures: [
+          { kind: 'smith', title: 'เป้าหมายเดียว: บวก susceptance ของสตับให้ y รวมเป็น 1 พอดี', showY: true,
+            gCircles: [1], bCircles: [yApp.im], swr: [swrApp],
+            points: [
+              { z: zApp, label: `y_line = ${fz(yApp, 0)}`, cls: 'y' },
+              { z: C(1, 0), label: 'y_total = 1 → แมตช์', cls: 'in' },
+            ],
+            curves: [{ zs: shuntPath(zApp, -yApp.im), cls: 'y', arrow: true }],
+            caption: `สตับพาจุดเดินไปตามวงกลม g = 1 เท่านั้น (g ไม่เปลี่ยน) จนถึงศูนย์กลาง · โหลดนี้มี y = ${fz(yApp, 0)} อยู่บนวงกลม g = 1 พอดีอยู่แล้ว จึงติดสตับได้ที่ขั้วโหลดเลย (d = 0)` },
+          { kind: 'table', title: 'y_line + y_stub = y_total ในสองโจทย์ (คำนวณโดยแอป)',
+            head: ['วงจร', 'd (λ)', 'y_line', 'y_stub', 'y_total', 'SWR'],
+            rows: (() => {
+              const f0 = (z: Complex) => fz(C(z.re, Math.abs(z.im) < 1e-9 ? 0 : z.im), 2);
+              const row = (name: string, ZL: Complex, Z0: number, s: { dLambda: number; lLambda: number }) => {
+                const yl = admittance(normalize(lineInput(ZL, Z0, s.dLambda, 0), Z0));
+                const ys = admittance(normalize(stubInput('short', Z0, s.lLambda), Z0));
+                const yt = C(yl.re + ys.re, yl.im + ys.im);
+                return [name, n(s.dLambda, 4), f0(yl), f0(ys), f0(yt), n(swrFromGamma(gammaFromz(admittance(yt))), 3)];
+              };
+              return [
+                row(`โหลดประจำคอร์ส ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω`, APP_ZL, APP_Z0, solveSingleStub(APP_ZL, APP_Z0, 'short')[0]),
+                row(`Example 7-8: ${fz(EX78.ZL, 0)} Ω บนสาย ${EX78.Z0} Ω`, EX78.ZL, EX78.Z0, ex78),
+              ];
+            })(),
+            caption: 'คนละโหลด คนละระยะ คนละความยาวสตับ แต่คอลัมน์ y_total เป็น 1 เหมือนกัน — นั่นคือเป้าหมายเดียวของทั้งบท' },
         ],
       },
       {
@@ -1312,6 +1657,30 @@ export const BASICS: Chapter[] = [
           T('ความยาวไฟฟ้าคืออัตราส่วน l/λ จึงเพิ่มขึ้นเมื่อความถี่เพิ่ม'),
           M('\\frac{l}{\\lambda\'} = \\frac{l}{\\lambda}\\cdot\\frac{f\'}{f}'),
           R('f\' = k f \\;\\Rightarrow\\; \\text{ความยาวไฟฟ้าใหม่} = k \\times \\text{ความยาวไฟฟ้าเดิม}'),
+          T('สองภาพด้านล่างแยกเหตุกับผลออกจากกัน: ความยาวคลื่นหดลงเมื่อความถี่สูงขึ้น (ภาพแรก) สายเส้นเดิมจึงยาวขึ้นเมื่อวัดเป็น λ (ภาพที่สอง) — ใช้สายจริงของ Example 7-8 คือ d = 3.9 m และ l_s = 2.55 m'),
+        ],
+        figures: [
+          { kind: 'plot', title: 'เหตุ: ความยาวคลื่นหดลงเมื่อความถี่สูงขึ้น (λ = v/f, สายอากาศ)',
+            xLabel: 'ความถี่ (MHz)', yLabel: 'λ (m)', xMin: 8, xMax: 14, yMin: 0, yMax: 40,
+            series: [{ name: 'λ', points: linspace(8, 14, 121).map((fm) => [fm, 3.9 / ex78AtFreq(fm).d] as [number, number]) }],
+            xTicks: [8, 10, 12, 14], yTicks: [0, 10, 20, 30, 40],
+            markers: [
+              { x: 10, y: 3.9 / ex78AtFreq(10).d, text: `${n(3.9 / ex78AtFreq(10).d, 1)} m ที่ 10 MHz` },
+              { x: 12, y: 3.9 / ex78AtFreq(12).d, text: `${n(3.9 / ex78AtFreq(12).d, 1)} m ที่ 12 MHz` },
+            ],
+            caption: 'คำนวณจากสายจริง 3.9 m หารด้วยความยาวไฟฟ้าที่แอปคำนวณ (λ = l ÷ (l/λ)) · ตัวสายไม่ได้เปลี่ยน สิ่งที่เปลี่ยนคือไม้บรรทัดที่ใช้วัดมัน' },
+          { kind: 'plot', title: 'ผล: สายจริงสองเส้นของ Example 7-8 ยาวขึ้นเรื่อย ๆ เมื่อวัดเป็น λ',
+            xLabel: 'ความถี่ (MHz)', yLabel: 'ความยาวไฟฟ้า (λ)', xMin: 8, xMax: 14, yMin: 0, yMax: 0.2,
+            series: [
+              { name: 'ตำแหน่งสตับ d (สาย 3.9 m)', points: linspace(8, 14, 121).map((fm) => [fm, ex78AtFreq(fm).d] as [number, number]) },
+              { name: 'ความยาวสตับ l_s (สาย 2.55 m)', color: '#059669', points: linspace(8, 14, 121).map((fm) => [fm, ex78AtFreq(fm).ls] as [number, number]) },
+            ],
+            xTicks: [8, 10, 12, 14], yTicks: [0, 0.05, 0.1, 0.15, 0.2],
+            markers: [
+              { x: 10, y: ex78AtFreq(10).d, text: `d = ${n(ex78AtFreq(10).d, 3)} λ` },
+              { x: 10, y: ex78AtFreq(10).ls, text: `l_s = ${n(ex78AtFreq(10).ls, 3)} λ`, color: '#059669' },
+            ],
+            caption: `เส้นตรงผ่านจุดกำเนิดทั้งคู่ เพราะความยาวไฟฟ้าแปรตรงกับ f · ที่ 12 MHz สายเดิมกลายเป็น d = ${n(ex78AtFreq(12).d, 3)} λ และ l_s = ${n(ex78AtFreq(12).ls, 3)} λ ซึ่งไม่ใช่ค่าที่ออกแบบไว้อีกต่อไป` },
         ],
       },
       {
@@ -1378,6 +1747,37 @@ export const BASICS: Chapter[] = [
           N(`จากกราฟหัวข้อ 10.2 วงจร Example 7-8 มี SWR ≤ 2 ประมาณช่วง ${(() => { const lo = linspace(6, 10, 200).find((fm) => ex78AtFreq(fm).swr <= 2); const hi = [...linspace(10, 16, 300)].reverse().find((fm) => ex78AtFreq(fm).swr <= 2); return `${n(lo ?? 0, 1)}–${n(hi ?? 0, 1)} MHz`; })()} (คำนวณโดยแอป)`),
           W('Bandwidth ขึ้นกับ Q ของโหลด, topology, ตำแหน่งสตับ, ค่า Z₀, การสูญเสีย และการเปลี่ยนของ Z_L(f) · ตำแหน่งสตับที่ใกล้โหลดกว่าไม่ได้รับประกันว่า bandwidth จะกว้างกว่าเสมอ จึงควรตรวจด้วย frequency sweep ทุกครั้ง'),
           N('แนวทางที่มักช่วยได้คือลด Q ของเครือข่าย หรือใช้ matching หลายขั้น (multi-section) แต่ทุกครั้งต้องยืนยันด้วยกราฟ SWR–ความถี่ของวงจรจริง'),
+          T('กราฟด้านล่างวางเส้นเกณฑ์ SWR = 2 ทับกราฟ SWR–ความถี่ ช่วงความถี่ที่กราฟยังอยู่ใต้เส้นคือ bandwidth ตามเกณฑ์นี้'),
+        ],
+        figures: [
+          { kind: 'plot', title: 'อ่าน bandwidth จากกราฟ: ช่วงที่ SWR ยังอยู่ใต้เส้นเกณฑ์ (วงจร Example 7-8 คำนวณโดยแอป)',
+            xLabel: 'ความถี่ (MHz)', yLabel: 'SWR', xMin: 8, xMax: 13, yMin: 1, yMax: 4,
+            series: [
+              { name: 'SWR ของวงจร', points: linspace(8, 13, 201).map((fm) => [fm, ex78AtFreq(fm).swr] as [number, number]) },
+              { name: 'เกณฑ์ SWR = 2', color: '#dc2626', dashed: true, points: [[8, 2], [13, 2]] },
+            ],
+            xTicks: [8, 9, 10, 11, 12, 13], yTicks: [1, 2, 3, 4],
+            markers: (() => {
+              const lo = linspace(8, 10, 401).find((fm) => ex78AtFreq(fm).swr <= 2) ?? 10;
+              const hi = [...linspace(10, 13, 601)].reverse().find((fm) => ex78AtFreq(fm).swr <= 2) ?? 10;
+              return [{ x: lo, y: 2, text: `${n(lo, 2)} MHz` }, { x: hi, y: 2, text: `${n(hi, 2)} MHz` }];
+            })(),
+            caption: 'จุดแดงสองจุดคือขอบแบนด์ · ช่วงระหว่างจุดทั้งสองคือย่านที่ยังใช้งานได้ตามเกณฑ์ SWR ≤ 2 ส่วนนอกช่วงนั้นถือว่าหลุดแมตช์แล้ว' },
+          { kind: 'table', title: 'bandwidth ของวงจร Example 7-8 ที่เกณฑ์ SWR ≤ 2 (คำนวณโดยแอป)',
+            head: ['รายการ', 'ค่า'],
+            rows: (() => {
+              const lo = linspace(8, 10, 401).find((fm) => ex78AtFreq(fm).swr <= 2) ?? 10;
+              const hi = [...linspace(10, 13, 601)].reverse().find((fm) => ex78AtFreq(fm).swr <= 2) ?? 10;
+              return [
+                ['ความถี่ออกแบบ f₀', '10 MHz'],
+                ['SWR ที่ f₀', n(ex78AtFreq(10).swr, 3)],
+                ['ขอบล่าง f₁ (SWR = 2)', `${n(lo, 2)} MHz`],
+                ['ขอบบน f₂ (SWR = 2)', `${n(hi, 2)} MHz`],
+                ['bandwidth = f₂ − f₁', `${n(hi - lo, 2)} MHz`],
+                ['bandwidth เชิงสัดส่วน', `${n(((hi - lo) / 10) * 100, 1)} %`],
+              ];
+            })(),
+            caption: `เกณฑ์ที่ต่างกันให้แบนด์วิดท์ต่างกัน ถ้าเปลี่ยนเป็น SWR ≤ 1.5 ช่วงจะแคบลงทันที · SWR ที่ f₀ ไม่ใช่ 1.000 พอดีเพราะใช้ความยาวที่ปัดเศษของหนังสือ (ดูหัวข้อ 10.2)` },
         ],
       },
     ],
@@ -1416,6 +1816,36 @@ export const BASICS: Chapter[] = [
         id: 'flow', title: 'แผนผังเดียวสำหรับทำโจทย์',
         lines: [
           K('Z_L, Z₀\n   ↓\nz_L = Z_L / Z₀        ← normalize เสมอ\n   ↓\nพล็อตจุด + ลากวงกลม SWR คงที่\n   ↓\nอ่าน SWR ที่จุดตัดแกนนอนด้านขวา\n   ↓\nโจทย์ถามอะไร?\n ├─ อิมพีแดนซ์ที่ตำแหน่งอื่น → เดินบนวงกลม SWR ตามระยะ λ (ตามเข็ม = ไปทาง generator)\n ├─ แอดมิตแตนซ์            → หมุน 180° ผ่านศูนย์กลาง\n ├─ หม้อแปลง λ/4          → เดินจนถึง x = 0 อ่าน R′ แล้ว Z_T = √(Z₀R′)\n └─ สตับ                   → แปลงเป็น y, เดินจนถึง g = 1 ได้ 1 ± jb แล้วสร้างสตับ ∓jb'),
+          T(`ตารางด้านล่างเดินแผนผังนี้ให้ดูทีละกิ่ง ด้วยโหลดประจำคอร์ส ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω และภาพถัดไปคือกราฟใบเดียวที่ตอบได้ทุกกิ่ง`),
+        ],
+        figures: [
+          { kind: 'table', title: `แผนผังเดินจริงทีละกิ่ง — โหลด ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω (คำนวณโดยแอป)`,
+            head: ['โจทย์ถามอะไร', 'ทำอะไรบนกราฟ', 'คำตอบของโหลดนี้'],
+            rows: (() => {
+              const q = solveQwt(APP_ZL, APP_Z0).slice().sort((a, b) => a.dLambda - b.dLambda)[0];
+              const s = solveSingleStub(APP_ZL, APP_Z0, 'short')[0];
+              const zw = zFromGamma(rotateTowardGenerator(gApp, 0.15));
+              return [
+                ['SWR บนสาย', 'อ่าน r ที่จุดตัดแกนนอนด้านขวาของวงกลม SWR', `SWR = ${n(swrApp, 3)}`],
+                ['อิมพีแดนซ์ห่างโหลด 0.15 λ', 'เดินตามวงกลม SWR ตามเข็ม 0.15 λ', `z = ${fz(zw, 3)} → Z = ${fz(denormalize(zw, APP_Z0), 1)} Ω`],
+                ['แอดมิตแตนซ์ของโหลด', 'หมุน 180° ผ่านศูนย์กลาง', `y = ${fz(yApp, 0)} → Y = ${fz(denormalize(yApp, 1 / APP_Z0), 4)} S`],
+                ['หม้อแปลง λ/4', 'เดินจนถึง x = 0 อ่าน R′ แล้ว Z_T = √(Z₀R′)', `d = ${n(q.dLambda, 3)} λ, R′ = ${n(q.Rreal, 1)} Ω, Z_T = ${n(q.Zt, 1)} Ω`],
+                ['สตับขนานปลายลัด', 'แปลงเป็น y เดินจนถึง g = 1 แล้วสร้างสตับ ∓jb', `d = ${n(s.dLambda, 3)} λ, b = ${n(s.bStub, 2)}, l_s = ${n(s.lLambda, 3)} λ`],
+              ];
+            })(),
+            caption: 'ทุกกิ่งเริ่มจากสองอย่างเดียวกันเสมอ: จุด z_L และวงกลม SWR ของมัน · ที่ต่างกันคือ "เดินไปหยุดที่เส้นไหน"' },
+          { kind: 'chart', title: 'กราฟใบเดียว ตอบได้ทุกกิ่งของแผนผัง', scale: true, fine: false,
+            points: [
+              { z: zApp, label: `z_L = ${fz(zApp, 1)} ที่ ${n(wtgZApp, 4)} λ`, cls: 'load' },
+              { z: yApp, label: `y_L = ${fz(yApp, 0)} (หมุน 180°)`, cls: 'y' },
+              { z: C(swrApp, 0), label: `x = 0 → R′ = ${n(swrApp * APP_Z0, 1)} Ω`, cls: 'in' },
+            ],
+            curves: [
+              { zs: [zApp, C(1, 0), yApp], cls: 'mid', dashed: true },
+              { zs: swrPath(zApp, solveQwt(APP_ZL, APP_Z0).slice().sort((a, b) => a.dLambda - b.dLambda)[0].dLambda), cls: 'net', arrow: true },
+            ],
+            swr: [swrApp], xCircles: [0], rCircles: [1],
+            caption: 'เส้นประ = กิ่ง "แอดมิตแตนซ์" (หมุน 180°) · ลูกศร = กิ่ง "หม้อแปลง λ/4" (เดินจนตัดเส้น x = 0) · วงกลม r = 1 ที่เน้นไว้คือวงกลม g = 1 เมื่ออ่านจุด y — สังเกตว่า y_L ตกลงบนวงนี้พอดี จึงติดสตับได้ที่ d = 0' },
         ],
       },
       {
