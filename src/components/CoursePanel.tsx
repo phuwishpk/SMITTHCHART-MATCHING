@@ -27,7 +27,7 @@ const LCases: React.FC<{ table: AntennaPoint[]; f0: number; Z0: number }> = ({ t
     <div className="lcases">
       <div className="lc-head">โหลดที่ f₀ = {fmtNum(f0 / 1e6, 2)} MHz: Z = {fmtNum(z0.re, 1)} {z0.im < 0 ? '−' : '+'} j{fmtNum(Math.abs(z0.im), 1)} Ω · z = {fmtNum(z0.re / Z0, 3)} {z0.im < 0 ? '−' : '+'} j{fmtNum(Math.abs(z0.im) / Z0, 3)}</div>
       <table className="lc-table">
-        <thead><tr><th>Fig. 4-1</th><th>Table</th><th>วงจร (ตัวแรกชิดโหลด)</th><th>ตัวแรก</th><th>ตัวที่สอง</th><th>SWR ทั้งแบนด์</th><th></th></tr></thead>
+        <thead><tr><th>Fig. 4-1</th><th>Table ในหนังสือ (โครงเดียวกัน)</th><th>วงจร (ตัวแรกชิดโหลด)</th><th>ตัวแรก</th><th>ตัวที่สอง</th><th>SWR ที่ {[...table].sort((a, b) => a.f - b.f).map((pt) => fmtNum(pt.f / 1e6, 2)).join(' / ')} MHz</th><th></th></tr></thead>
         <tbody>
           {cases.map((c, i) => {
             const sw = c.feasible ? solveSweep(build(c)) : [];
@@ -68,7 +68,7 @@ const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
       );
     case 'circuit':
       return (
-        <figure className="cfig wide">
+        <figure className="cfig circuit">
           <CircuitSchematic circuit={fig.circuit} result={solveCircuit(fig.circuit)} title={fig.title} maxHeight={150} />
           {fig.caption && <figcaption>{fig.caption}</figcaption>}
         </figure>
@@ -109,6 +109,7 @@ const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
             onClick={() => {
               dispatch({ type: 'set_circuit', circuit: fig.circuit(), select: null });
               dispatch({ type: 'swr_target', value: fig.swrTarget === undefined ? null : fig.swrTarget });
+              dispatch({ type: 'toggle', key: 'showSweep', value: true });
               if (fig.showY !== undefined) dispatch({ type: 'toggle', key: 'showY', value: fig.showY });
               dispatch({ type: 'mode', mode: 'free' });
               dispatch({ type: 'explain_step', i: 0 });

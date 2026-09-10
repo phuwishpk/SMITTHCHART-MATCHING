@@ -30,8 +30,9 @@ export const MiniPlot: React.FC<Props> = ({ title, xLabel, yLabel, xMin, xMax, y
   const H = height;
   const padL = 46;
   const padR = 12;
-  const padT = title ? 22 : 10;
-  const padB = 34;
+  const padT = 10;
+  const hasLegend = series.length > 1;
+  const padB = hasLegend ? 50 : 34;
   const ys = series.flatMap((s) => s.points.map((p) => p[1])).filter(Number.isFinite);
   const y0 = yMin ?? Math.min(...ys, 0);
   const y1 = yMax ?? Math.max(...ys) * 1.05;
@@ -41,8 +42,8 @@ export const MiniPlot: React.FC<Props> = ({ title, xLabel, yLabel, xMin, xMax, y
   const yt = yTicks ?? Array.from({ length: 5 }, (_, i) => y0 + ((y1 - y0) * i) / 4);
   return (
     <div className="miniplot">
+      {title && <div className="mp-title-html">{title}</div>}
       <svg viewBox={`0 0 ${W} ${H}`} width="100%">
-        {title && <text x={W / 2} y={14} textAnchor="middle" className="mp-title">{title}</text>}
         <rect x={padL} y={padT} width={W - padL - padR} height={H - padT - padB} className="mp-bg" />
         {xt.map((x) => (
           <g key={`x${x}`}>
@@ -57,19 +58,20 @@ export const MiniPlot: React.FC<Props> = ({ title, xLabel, yLabel, xMin, xMax, y
           </g>
         ))}
         {series.map((s, i) => {
-          const pts = s.points.filter((p) => Number.isFinite(p[1]) && p[1] >= y0 - (y1 - y0) && p[1] <= y1 + (y1 - y0));
-          // split at large jumps (asymptotes)
+          // drop out-of-range samples (break the polyline) instead of clamping, so asymptotes stay honest
           const segs: string[] = [];
           let cur: string[] = [];
-          for (let k = 0; k < pts.length; k++) {
-            const p = pts[k];
-            const prev = pts[k - 1];
-            if (prev && Math.abs(p[1] - prev[1]) > (y1 - y0) * 0.8) {
+          let prev: [number, number] | undefined;
+          for (const p of s.points) {
+            const inside = Number.isFinite(p[1]) && p[1] >= y0 && p[1] <= y1;
+            if (!inside || (prev && Math.abs(p[1] - prev[1]) > (y1 - y0) * 0.8)) {
               if (cur.length > 1) segs.push(cur.join(' '));
               cur = [];
+              prev = inside ? p : undefined;
+              if (!inside) continue;
             }
-            const yy = Math.max(padT, Math.min(H - padB, yOf(p[1])));
-            cur.push(`${xOf(p[0]).toFixed(1)},${yy.toFixed(1)}`);
+            cur.push(`${xOf(p[0]).toFixed(1)},${yOf(p[1]).toFixed(1)}`);
+            prev = p;
           }
           if (cur.length > 1) segs.push(cur.join(' '));
           return segs.map((d, j) => <polyline key={`${i}-${j}`} points={d} className="mp-line" style={{ stroke: s.color ?? COLORS[i % COLORS.length], strokeDasharray: s.dashed ? '5 4' : undefined }} />);
@@ -77,15 +79,15 @@ export const MiniPlot: React.FC<Props> = ({ title, xLabel, yLabel, xMin, xMax, y
         {markers?.map((m, i) => (
           <g key={`m${i}`}>
             <circle cx={xOf(m.x)} cy={yOf(m.y)} r={4} style={{ fill: m.color ?? '#dc2626' }} />
-            <text x={xOf(m.x) + 6} y={yOf(m.y) - 5} className="mp-marker">{m.text}</text>
+            <text x={xOf(m.x) + 7} y={yOf(m.y) + 13} className="mp-marker">{m.text}</text>
           </g>
         ))}
-        {xLabel && <text x={(padL + W - padR) / 2} y={H - 4} textAnchor="middle" className="mp-axis">{xLabel}</text>}
+        {xLabel && <text x={(padL + W - padR) / 2} y={H - padB + 26} textAnchor="middle" className="mp-axis">{xLabel}</text>}
         {yLabel && <text x={10} y={(padT + H - padB) / 2} textAnchor="middle" transform={`rotate(-90 10 ${(padT + H - padB) / 2})`} className="mp-axis">{yLabel}</text>}
-        {series.length > 1 && (
+        {hasLegend && (
           <g className="mp-legend">
             {series.map((s, i) => (
-              <g key={i} transform={`translate(${padL + 8 + i * 95}, ${padT + 12})`}>
+              <g key={i} transform={`translate(${padL + i * ((W - padL - padR) / series.length)}, ${H - 6})`}>
                 <line x1={0} y1={0} x2={16} y2={0} style={{ stroke: s.color ?? COLORS[i % COLORS.length], strokeDasharray: s.dashed ? '5 4' : undefined }} className="mp-line" />
                 <text x={20} y={3} className="mp-tick">{s.name}</text>
               </g>

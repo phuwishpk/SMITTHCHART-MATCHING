@@ -39,15 +39,13 @@ export const CircuitSchematic: React.FC<Props> = ({ circuit, result, status, tit
         <g className="el source">
           <circle cx={40} cy={RAIL_Y} r={22} fill="#fff" strokeWidth={2.2} />
           <path d={`M29,${RAIL_Y} q5.5,-11 11,0 t11,0`} fill="none" strokeWidth={2} />
-          <line x1={40} y1={RAIL_Y + 22} x2={40} y2={RAIL_Y + 36} strokeWidth={2} />
-          <line x1={40} y1={RAIL_Y + 36} x2={90} y2={RAIL_Y + 36} strokeWidth={2} />
-          <line x1={90} y1={RAIL_Y + 36} x2={90} y2={GND_Y} strokeWidth={2} />
-          <Ground x={90} y={GND_Y} />
+          <line x1={40} y1={RAIL_Y + 22} x2={40} y2={GND_Y} strokeWidth={2} />
+          <Ground x={40} y={GND_Y} />
           <line x1={62} y1={RAIL_Y} x2={74} y2={RAIL_Y} strokeWidth={2} />
           <rect x={74} y={RAIL_Y - 8} width={40} height={16} rx={3} fill="#fff" strokeWidth={2} />
           <text x={94} y={RAIL_Y + 4} textAnchor="middle" className="tl-label">Z_S</text>
-          <text x={12} y={RAIL_Y - 32} textAnchor="start" className="el-name">Source</text>
-          <text x={12} y={RAIL_Y + 52} textAnchor="start" className="el-value">{fmtNum(circuit.f / 1e6, 3)} MHz · Z_S = Z₀ = {fmtNum(circuit.Z0, 1)} Ω</text>
+          <text x={12} y={RAIL_Y - 48} textAnchor="start" className="el-name">Source</text>
+          <text x={12} y={RAIL_Y - 33} textAnchor="start" className="el-value">{fmtNum(circuit.f / 1e6, 3)} MHz · Z_S = Z₀ = {fmtNum(circuit.Z0, 1)} Ω</text>
         </g>
         {circuit.elements.length === 0 && (
           <text x={X0 + 40} y={RAIL_Y + 5} className="el-value">(ยังไม่มีอุปกรณ์)</text>

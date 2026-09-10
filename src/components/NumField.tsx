@@ -15,10 +15,10 @@ interface Props {
 }
 
 const toSlider = (v: number, min: number, max: number, log: boolean) => {
-  if (!log) return v;
+  if (!log) return Math.max(min, Math.min(max, v));
   const lo = Math.log10(Math.max(min, 1e-12));
   const hi = Math.log10(max);
-  return ((Math.log10(Math.max(v, min)) - lo) / (hi - lo)) * 1000;
+  return Math.max(0, Math.min(1000, ((Math.log10(Math.max(v, min)) - lo) / (hi - lo)) * 1000));
 };
 const fromSlider = (s: number, min: number, max: number, log: boolean) => {
   if (!log) return s;

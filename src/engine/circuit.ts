@@ -95,7 +95,7 @@ export const ELEMENT_SPECS: Record<ElementType, ElementSpec> = {
     allowed: ['series', 'shunt'],
     defaultOrient: 'series',
     params: [
-      { key: 'L', label: 'Inductance', labelTh: 'ความเหนี่ยวนำ', unit: 'nH', scale: 1e-9, min: 0.1, max: 1000, step: 0.1, log: true },
+      { key: 'L', label: 'Inductance', labelTh: 'ความเหนี่ยวนำ', unit: 'nH', scale: 1e-9, min: 0.1, max: 100000, step: 0.1, log: true },
     ],
     defaults: { L: 39.8 },
     description: 'ให้รีแอกแตนซ์บวก X_L = 2πfL (inductive) จุดจะอยู่ครึ่งบนของ Smith Chart',
@@ -109,7 +109,7 @@ export const ELEMENT_SPECS: Record<ElementType, ElementSpec> = {
     allowed: ['series', 'shunt'],
     defaultOrient: 'series',
     params: [
-      { key: 'C', label: 'Capacitance', labelTh: 'ความจุ', unit: 'pF', scale: 1e-12, min: 0.1, max: 1000, step: 0.1, log: true },
+      { key: 'C', label: 'Capacitance', labelTh: 'ความจุ', unit: 'pF', scale: 1e-12, min: 0.1, max: 10000, step: 0.1, log: true },
     ],
     defaults: { C: 31.8 },
     description: 'ให้รีแอกแตนซ์ลบ X_C = −1/(2πfC) (capacitive) จุดจะอยู่ครึ่งล่างของ Smith Chart',

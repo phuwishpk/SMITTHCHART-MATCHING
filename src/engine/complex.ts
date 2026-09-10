@@ -63,10 +63,10 @@ export const fmtC = (z: Complex, digits = 2, unit = ''): string => {
 /** Format number, trimming trailing zeros. */
 export const fmtNum = (x: number, digits = 2): string => {
   if (!Number.isFinite(x)) return x > 0 ? '∞' : x < 0 ? '−∞' : 'NaN';
-  if (Math.abs(x) < 1e-4) return '0'; // numerically-zero residues (e.g. 5e-5 after matching) read as 0
   const a = Math.abs(x);
+  if (a < 0.5 * 10 ** -digits) return '0'; // rounds to zero at the requested precision
   let s: string;
-  if (a >= 1e5 || a < 1e-3) s = x.toExponential(digits);
+  if (a >= 1e6 || a < 1e-6) s = x.toExponential(digits);
   else s = x.toFixed(digits);
   if (s.includes('.') && !s.includes('e')) s = s.replace(/\.?0+$/, '');
   return s.replace('-', '−');

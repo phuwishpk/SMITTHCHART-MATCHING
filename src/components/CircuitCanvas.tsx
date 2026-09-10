@@ -61,7 +61,7 @@ export const valueLabel = (el: CircuitElement, f: number): string => {
     case 'antenna': {
       const z = antennaZ(el.table, f);
       const n = el.table?.length ?? 0;
-      return `${n} จุด · ${fmtNum(z.re, 1)} ${z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(z.im), 1)} Ω @f`;
+      return `${n} จุด · ${fmtNum(z.re, 1)} ${z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(z.im), 1)} Ω @ ${fmtNum(f / 1e6, 2)} MHz`;
     }
     default:
       return '';
@@ -286,17 +286,14 @@ export const CircuitCanvas: React.FC = () => {
           >
             <circle cx={40} cy={RAIL_Y} r={24} fill="#fff" strokeWidth={2.4} />
             <path d={`M28,${RAIL_Y} q6,-12 12,0 t12,0`} fill="none" strokeWidth={2} />
-            <line x1={40} y1={RAIL_Y + 24} x2={40} y2={RAIL_Y + 36} strokeWidth={2} />
-            <line x1={40} y1={RAIL_Y + 36} x2={90} y2={RAIL_Y + 36} strokeWidth={2} />
-            <line x1={90} y1={RAIL_Y + 36} x2={90} y2={GND_Y} strokeWidth={2} />
-            <Ground x={90} y={GND_Y} />
+            <line x1={40} y1={RAIL_Y + 24} x2={40} y2={GND_Y} strokeWidth={2} />
+            <Ground x={40} y={GND_Y} />
             <line x1={64} y1={RAIL_Y} x2={74} y2={RAIL_Y} strokeWidth={2} />
             <rect x={74} y={RAIL_Y - 8} width={40} height={16} rx={3} fill="#fff" strokeWidth={2} />
             <text x={94} y={RAIL_Y + 4} textAnchor="middle" className="tl-label">Z_S</text>
             <line x1={114} y1={RAIL_Y} x2={X0 - GAP} y2={RAIL_Y} strokeWidth={2} />
-            <text x={12} y={RAIL_Y - 34} textAnchor="start" className="el-name">RF Source</text>
-            <text x={12} y={RAIL_Y + 44} textAnchor="start" className="el-value">{fmtNum(circuit.f / 1e6, 3)} MHz</text>
-            <text x={12} y={RAIL_Y + 60} textAnchor="start" className="el-value">Z_S = Z₀ = {fmtNum(circuit.Z0, 1)} Ω</text>
+            <text x={12} y={RAIL_Y - 50} textAnchor="start" className="el-name">RF Source</text>
+            <text x={12} y={RAIL_Y - 34} textAnchor="start" className="el-value">{fmtNum(circuit.f / 1e6, 3)} MHz · Z_S = Z₀ = {fmtNum(circuit.Z0, 1)} Ω</text>
           </g>
 
           {/* empty hint */}

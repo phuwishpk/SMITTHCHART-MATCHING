@@ -1,5 +1,5 @@
 import React from 'react';
-import { Complex, abs, isFiniteC } from '../engine/complex';
+import { Complex, abs, isFiniteC, fmtNum } from '../engine/complex';
 import { rCircle, xCircle, gCircle, bCircle, toSvg, pathToPoints } from '../engine/smith';
 import { gammaFromz } from '../engine/rf';
 
@@ -83,22 +83,31 @@ export const SmithFigure: React.FC<Props> = ({ title, points, curves, swr, showY
           return (
             <g key={`s${s}`}>
               <circle cx={CX} cy={CY} r={m * R} className="sf-swr" />
-              <text x={CX + m * R * 0.72} y={CY - m * R * 0.72 - 3 - i * 2} className="sf-small swr">SWR {s}</text>
+              <text x={CX - m * R * 0.72 - 2} y={CY - m * R * 0.72 - 4 - i * 3} textAnchor="end" className="sf-small swr">SWR {fmtNum(s, 2)}</text>
             </g>
           );
         })}
         {curves?.map((cv, i) => {
           const gs = cv.zs.map((z) => gammaFromz(z));
-          return <polyline key={i} points={pathToPoints(gs, CX, CY, R)} className={`sf-curve ${cv.cls ?? ''}`} style={{ strokeDasharray: cv.dashed ? '4 3' : undefined }} markerEnd={cv.arrow ? `url(#arr${uid})` : undefined} />;
+          const last = gs[gs.length - 1];
+          const lp = last && isFiniteC(last) ? toSvg(last, CX, CY, R) : null;
+          return (
+            <g key={i}>
+              <polyline points={pathToPoints(gs, CX, CY, R)} className={`sf-curve ${cv.cls ?? ''}`} style={{ strokeDasharray: cv.dashed ? '4 3' : undefined }} markerEnd={cv.arrow ? `url(#arr${uid})` : undefined} />
+              {cv.label && lp && <text x={lp.x + (lp.x > CX ? -6 : 6)} y={lp.y + (lp.y < CY ? -6 : 12)} textAnchor={lp.x > CX ? 'end' : 'start'} className={`sf-curve-label ${cv.cls ?? ''}`}>{cv.label}</text>}
+            </g>
+          );
         })}
         {points?.map((pt, i) => {
           const g = gammaFromz(pt.z);
           if (!isFiniteC(g) || abs(g) > 1.0001) return null;
           const p = toSvg(g, CX, CY, R);
+          const right = p.x > CX + 0.1 * R;
+          const dy = i % 2 === 0 ? -6 : 13;
           return (
             <g key={i} className={`sf-pt ${pt.cls ?? 'mid'}`}>
               <circle cx={p.x} cy={p.y} r={4.5} />
-              {pt.label && <text x={p.x + 6} y={p.y - 5}>{pt.label}</text>}
+              {pt.label && <text x={p.x + (right ? -7 : 7)} y={p.y + dy} textAnchor={right ? 'end' : 'start'}>{pt.label}</text>}
             </g>
           );
         })}
