@@ -375,9 +375,11 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
           for (const v of fg.chart?.swr ?? []) if (!Number.isFinite(v) || v < 1) badFig.push(`${ch.id}/${sec.id}/quiz-swr`);
         }
         if (fg.kind === 'chart') {
-          // the full printed chart: every plotted z, every curve point and every SWR value
-          // must be finite, or an SVG coordinate becomes NaN
-          for (const p of fg.points ?? []) if (!Number.isFinite(p.z.re) || !Number.isFinite(p.z.im)) badFig.push(`${ch.id}/${sec.id}/chart-pt`);
+          // the full printed chart: every plotted point, curve point and SWR value must land
+          // at a finite SVG coordinate. z itself may be infinite (OPEN, z = ∞): what has to be
+          // finite is the Γ it maps to, which is what the renderer turns into x/y.
+          for (const p of fg.points ?? []) { const g = gZ(p.z, 1); if (!Number.isFinite(g.re) || !Number.isFinite(g.im)) badFig.push(`${ch.id}/${sec.id}/chart-pt`); }
+          for (const l of fg.labels ?? []) { const g = gZ(l.z, 1); if (!Number.isFinite(g.re) || !Number.isFinite(g.im)) badFig.push(`${ch.id}/${sec.id}/chart-label`); }
           for (const cv of fg.curves ?? []) for (const z of cv.zs) if (!Number.isFinite(z.re) || !Number.isFinite(z.im)) badFig.push(`${ch.id}/${sec.id}/chart-curve`);
           for (const v of fg.swr ?? []) if (!Number.isFinite(v) || v < 1) badFig.push(`${ch.id}/${sec.id}/chart-swr`);
           for (const v of [...(fg.rCircles ?? []), ...(fg.xCircles ?? []), ...(fg.gCircles ?? []), ...(fg.bCircles ?? [])]) if (!Number.isFinite(v)) badFig.push(`${ch.id}/${sec.id}/chart-circle`);

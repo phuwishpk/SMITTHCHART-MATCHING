@@ -679,6 +679,16 @@ h1, h2, h3 { margin: 0; }
 .smith-full { display: flex; flex-direction: column; gap: 6px; }
 .smith-full-scroll { overflow-x: auto; min-width: 0; max-width: 100%; }
 .smith-full .smith-svg { display: block; width: 100%; height: auto; }
+/* the stripped-back chart used for the very first figure */
+.smith-svg .mgrid-guides circle { fill: none; stroke: #dbe3ec; stroke-width: 1.1; }
+.smith-svg .mgrid-guides circle.y { stroke: #cfe9e5; }
+.smith-svg .mgrid .axis { stroke: #64748b; stroke-width: 1.4; }
+.smith-svg .mgrid .rim { fill: none; stroke: #0f172a; stroke-width: 2.2; }
+/* a plain chart is drawn small on a phone, so its few labels are set much larger */
+.smith-full .smith-svg.plain .cf-label { font-size: 25px; stroke-width: 6px; }
+.smith-full .smith-svg.plain .cf-pt text { font-size: 24px; stroke-width: 7px; }
+.smith-full .smith-svg.plain .cf-pt circle { r: 13px; stroke-width: 3.5; }
+.smith-full .smith-svg.plain .cf-curve { stroke-width: 5; }
 .smith-full .cf-curve { fill: none; stroke: #be185d; stroke-width: 3.4; opacity: 0.92; }
 .smith-full .cf-curve.load { stroke: var(--load); }
 .smith-full .cf-curve.in { stroke: var(--in); }
@@ -1039,6 +1049,9 @@ img, svg, table { max-width: 100%; }
   .cfig { padding: 6px; }
   .cfig.smith, .cfig.circuit { max-width: 100%; }
   .smith-full .smith-svg { min-width: 560px; }
+  /* a chart with no printed grid has nothing to keep legible — let it shrink instead of scroll */
+  .smith-full .smith-svg.plain { min-width: 0; }
+
 
   /* modals */
   .modal-backdrop { padding: 8px; }

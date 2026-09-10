@@ -181,17 +181,23 @@ export const BASICS: Chapter[] = [
           N('หน้านี้ยังไม่ต้องจำสูตรอะไรเลย ขอแค่จำแผนที่ใบนี้ให้ติดตา'),
         ],
         figures: [
-          { kind: 'chart', title: 'แผนที่ Smith Chart — จำแค่นี้ก่อน', scale: false, fine: false, xCircles: [0],
-            labels: [
-              { z: zFromGamma(C(0, -0.07)), text: 'MATCH  z = 1' },
-              { z: zFromGamma(C(-0.85, 0.14)), text: 'SHORT  z = 0' },
-              { z: zFromGamma(C(0.85, 0.14)), text: 'OPEN  z = ∞' },
-              { z: zFromGamma(C(0, 0.60)), text: 'ครึ่งบน = +jX เป็นแบบเหนี่ยวนำ' },
-              { z: zFromGamma(C(0, -0.60)), text: 'ครึ่งล่าง = −jX เป็นแบบเก็บประจุ' },
-              { z: zFromGamma(C(-0.30, -0.22)), text: 'ใกล้กลาง = สะท้อนน้อย' },
-              { z: zFromGamma(C(-0.62, 0.55)), text: 'ใกล้ขอบ = สะท้อนมาก' },
+          { kind: 'chart', title: 'แผนที่ Smith Chart — จำแค่นี้ก่อน', scale: false, fine: false, grid: 'none', table: false,
+            points: [
+              { z: C(1, 0), label: 'MATCH · z = 1', cls: 'in' },
+              { z: C(Infinity, 0), label: 'OPEN · z = ∞', cls: 'stub' },
+              { z: C(0, 0), label: 'SHORT · z = 0', cls: 'stub' },
             ],
-            caption: 'สามจุดหลัก สองครึ่ง และหนึ่งกฎเรื่องระยะจากจุดกลาง — เท่านี้ก็พอสำหรับหน้าแรก' },
+            curves: [
+              // a bare radius: the further a point sits from the middle, the more it reflects
+              { zs: [0, 0.2, 0.4, 0.58].map((t) => zFromGamma(C(-0.940 * t, -0.342 * t))), arrow: true, dashed: true },
+            ],
+            labels: [
+              { z: zFromGamma(C(0.02, 0.52)), text: 'ครึ่งบน · x เป็นบวก · เหนี่ยวนำ' },
+              { z: zFromGamma(C(0.02, -0.52)), text: 'ครึ่งล่าง · x เป็นลบ · เก็บประจุ' },
+              { z: zFromGamma(C(-0.02, 0.16)), text: 'ใกล้กลาง = สะท้อนน้อย' },
+              { z: zFromGamma(C(-0.68, -0.32)), text: 'ใกล้ขอบ = สะท้อนมาก' },
+            ],
+            caption: 'ตั้งใจไม่วาดเส้นตารางไว้ เพราะหน้าแรกยังไม่ต้องอ่านตัวเลข · จำแค่สามจุดนี้ เส้นแบ่งครึ่งกลาง และกฎว่ายิ่งไกลจากจุดกลางยิ่งสะท้อนมาก · เส้นตารางเต็ม ๆ จะเริ่มใช้ในบทที่ 3' },
         ],
       },
       {

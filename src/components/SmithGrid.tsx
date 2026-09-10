@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Complex, abs, arg, fmtNum, isFiniteC } from '../engine/complex';
-import { rCircle, xCircle } from '../engine/smith';
+import { rCircle, xCircle, gCircle } from '../engine/smith';
 import { readOff, magFromSwr, magFromRlDb, magFromReflPct } from '../engine/rf';
 
 // ---------------------------------------------------------------
@@ -159,6 +159,25 @@ const Labels: React.FC<{ mirror: boolean }> = ({ mirror }) => {
     </g>
   );
 };
+
+/**
+ * The chart with almost nothing on it: the rim, the real axis and — optionally — a
+ * handful of unlabelled guide circles. For the first figure a beginner sees, where the
+ * printed grid is exactly the thing the text is asking them to ignore.
+ */
+export const MinimalGrid: React.FC<{ guides?: boolean; showY?: boolean; clipId?: string }> = React.memo(({ guides = false, showY = false, clipId = 'clipUnit' }) => (
+  <g className="mgrid">
+    {guides && (
+      <g className="mgrid-guides" clipPath={`url(#${clipId})`}>
+        {[0.2, 0.5, 1, 2, 5].map((r) => <circle key={`gr${r}`} {...circleSvg(rCircle(r))} />)}
+        {[0.5, 1, 2, -0.5, -1, -2].map((x) => <circle key={`gx${x}`} {...circleSvg(xCircle(x))} />)}
+        {showY && [0.2, 0.5, 1, 2, 5].map((g) => <circle key={`gg${g}`} className="y" {...circleSvg(gCircle(g))} />)}
+      </g>
+    )}
+    <line x1={CX - R} y1={CY} x2={CX + R} y2={CY} className="axis" />
+    <circle cx={CX} cy={CY} r={R} className="rim" />
+  </g>
+));
 
 export const DetailedGrid: React.FC<{ showZ: boolean; showY: boolean; clipId?: string }> = React.memo(({ showZ, showY, clipId = 'clipUnit' }) => (
   <g>

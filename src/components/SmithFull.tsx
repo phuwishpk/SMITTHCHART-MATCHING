@@ -2,7 +2,7 @@ import React from 'react';
 import { Complex, abs, isFiniteC, fmtNum } from '../engine/complex';
 import { rCircle, xCircle, gCircle, bCircle, toSvg, pathToPoints } from '../engine/smith';
 import { gammaFromz, swrFromGamma, magFromSwr } from '../engine/rf';
-import { VB, CX, CY, R, circleSvg, DetailedGrid, OuterScales, ReadOff } from './SmithGrid';
+import { VB, CX, CY, R, circleSvg, DetailedGrid, MinimalGrid, OuterScales, ReadOff } from './SmithGrid';
 import { SmithPoint, SmithCurve } from './SmithFigure';
 
 export interface SmithFullProps {
@@ -16,6 +16,10 @@ export interface SmithFullProps {
   scale?: boolean;
   /** the dense tiers of the printed grid */
   fine?: boolean;
+  /** 'full' prints the real chart; 'light' a few unlabelled guides; 'none' only the rim and axis */
+  grid?: 'full' | 'light' | 'none';
+  /** the z / |Γ| / SWR table under the chart (off for figures drawn before SWR is taught) */
+  table?: boolean;
   /** draw the compass read-off for this z */
   readout?: Complex;
   rCircles?: number[];
@@ -32,14 +36,14 @@ export interface SmithFullProps {
  * is literally the chart they will use. Static — no store, no hover, no markers.
  */
 export const SmithFull: React.FC<SmithFullProps> = React.memo(
-  ({ title, points, curves, swr, showY = false, scale = true, fine = true, readout, rCircles, xCircles, gCircles, bCircles, labels, note }) => {
+  ({ title, points, curves, swr, showY = false, scale = true, fine = true, grid = 'full', table = true, readout, rCircles, xCircles, gCircles, bCircles, labels, note }) => {
     const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
     const clip = `cf${uid}`;
     return (
       <div className="smith-full">
         {title && <div className="sf-title">{title}</div>}
         <div className="smith-full-scroll">
-          <svg viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${fine ? 'fine' : 'coarse'}`} width="100%">
+          <svg viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${fine ? 'fine' : 'coarse'}${grid === 'full' ? '' : ' plain'}`} width="100%">
             <defs>
               <clipPath id={clip}>
                 <circle cx={CX} cy={CY} r={R} />
@@ -56,7 +60,9 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
             </defs>
             <circle cx={CX} cy={CY} r={R} className="chart-bg" />
             {scale && <OuterScales />}
-            <DetailedGrid showZ showY={showY} clipId={clip} />
+            {grid === 'full'
+              ? <DetailedGrid showZ showY={showY} clipId={clip} />
+              : <MinimalGrid guides={grid === 'light'} showY={showY} />}
 
             {/* highlighted coordinate lines */}
             <g className="highlights" clipPath={`url(#${clip})`}>
@@ -129,7 +135,7 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
           </svg>
         </div>
         {note && <div className="sf-note">{note}</div>}
-        {points && points.length > 0 && (
+        {table && points && points.length > 0 && (
           <table className="cf-table">
             <thead><tr><th>จุด</th><th>z</th><th>|Γ|</th><th>SWR</th></tr></thead>
             <tbody>
