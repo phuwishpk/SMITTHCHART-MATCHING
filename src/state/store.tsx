@@ -30,6 +30,10 @@ export interface State {
   /** main view: the lab or the Antenna Impedance Matching course */
   view: 'lab' | 'course';
   courseChapter: string;
+  /** section to scroll to when the course opens (cleared after scrolling) */
+  courseSection: string | null;
+  /** id of the ready-made example currently loaded (null once the circuit is built by hand) */
+  exampleId: string | null;
   /** design-goal SWR circle (null = off) */
   swrTarget: number | null;
   probe: Probe | null;
@@ -70,6 +74,8 @@ export type Action =
   | { type: 'swr_target'; value: number | null }
   | { type: 'view'; view: 'lab' | 'course' }
   | { type: 'course_chapter'; id: string }
+  | { type: 'course_section'; chapter: string; section: string }
+  | { type: 'course_section_seen' }
   | { type: 'antenna_table'; id: string; table: { f: number; R: number; X: number }[] }
   | { type: 'probe'; probe: Probe | null }
   | { type: 'explain_step'; i: number }
@@ -98,6 +104,8 @@ const defaultState = (): State => ({
   showSweep: true,
   view: 'lab',
   courseChapter: 'intro',
+  courseSection: null,
+  exampleId: null,
   swrTarget: null,
   probe: null,
   explainStep: 0,
@@ -118,6 +126,8 @@ const applyQuery = (s: State): State => {
     let out = s;
     const ex = q.get('example');
     const ls = q.get('lesson');
+    const exq = q.get('example');
+    if (exq) out = { ...out, exampleId: exq };
     const pr = q.get('problem');
     if (ex && EXAMPLES.some((e) => e.id === ex)) out = reducer(out, { type: 'example', id: ex });
     else if (ls && findLesson(ls)) out = reducer(out, { type: 'lesson', id: ls });
@@ -132,6 +142,8 @@ const applyQuery = (s: State): State => {
     if (q.get('view') === 'course') out = { ...out, view: 'course' };
     const ch = q.get('ch');
     if (ch) out = { ...out, courseChapter: ch, view: 'course' };
+    const sec = q.get('sec');
+    if (sec) out = { ...out, courseSection: sec, view: 'course' };
     const st = q.get('swr');
     if (st !== null) out = { ...out, swrTarget: parseFloat(st) || null };
     const ss = q.get('sstep');
@@ -190,7 +202,7 @@ const clampIndex = (i: number, n: number) => Math.max(0, Math.min(n, i));
 export const reducer = (s: State, a: Action): State => {
   switch (a.type) {
     case 'set_circuit':
-      return { ...s, circuit: a.circuit, selectedId: a.select === undefined ? s.selectedId : a.select, probe: null };
+      return { ...s, exampleId: null, circuit: a.circuit, selectedId: a.select === undefined ? s.selectedId : a.select, probe: null };
     case 'add': {
       const spec = ELEMENT_SPECS[a.elType];
       const el = makeElement(a.elType, a.orient ?? spec.defaultOrient);
@@ -244,6 +256,7 @@ export const reducer = (s: State, a: Action): State => {
       return {
         ...s,
         view: 'lab',
+        exampleId: null,
         mode: 'guided',
         lessonId: lesson.id,
         lessonDone: 0,
@@ -280,7 +293,7 @@ export const reducer = (s: State, a: Action): State => {
     case 'example': {
       const ex = EXAMPLES.find((e) => e.id === a.id);
       if (!ex) return s;
-      return { ...s, circuit: ex.circuit(), selectedId: null, probe: null, modal: 'none', explainStep: 0, lessonId: null, mode: 'free', view: 'lab' };
+      return { ...s, circuit: ex.circuit(), selectedId: null, probe: null, modal: 'none', explainStep: 0, lessonId: null, exampleId: ex.id, mode: 'free', view: 'lab' };
     }
     case 'toggle':
       return { ...s, [a.key]: a.value === undefined ? !s[a.key] : a.value };
@@ -301,7 +314,11 @@ export const reducer = (s: State, a: Action): State => {
     case 'view':
       return { ...s, view: a.view, modal: 'none' };
     case 'course_chapter':
-      return { ...s, courseChapter: a.id, view: 'course' };
+      return { ...s, courseChapter: a.id, courseSection: null, view: 'course' };
+    case 'course_section':
+      return { ...s, courseChapter: a.chapter, courseSection: a.section, view: 'course', modal: 'none', maximized: null };
+    case 'course_section_seen':
+      return s.courseSection === null ? s : { ...s, courseSection: null };
     case 'antenna_table': {
       const elements = s.circuit.elements.map((e) => (e.id === a.id ? { ...e, table: a.table.map((pt) => ({ ...pt })) } : e));
       return { ...s, circuit: { ...s.circuit, elements } };

@@ -203,3 +203,19 @@ check('Course has 7 chapters with sections', COURSE.length === 7 && COURSE.every
 
 console.log(fails === 0 ? '\nALL PASS' : `\n${fails} FAILED`);
 if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
+
+// 17. Every SECTION_LINKS target must resolve to a real chapter+section, and every
+//     example / lesson / problem should have a link (so the Lab can open the course).
+{
+  const { SECTION_LINKS, findChapter, sectionLabel } = await import('./course');
+  const { EXAMPLES: EXS } = await import('./lessons');
+  const badTargets = Object.entries(SECTION_LINKS).filter(([, l]) => !findChapter(l.chapter)?.sections.some((s) => s.id === l.section));
+  check('SECTION_LINKS targets exist', badTargets.length === 0, badTargets.map(([k, l]) => `${k}->${l.chapter}/${l.section}`).join(' '));
+  const emptyLabels = Object.entries(SECTION_LINKS).filter(([, l]) => !sectionLabel(l));
+  check('SECTION_LINKS labels render', emptyLabels.length === 0, emptyLabels.map(([k]) => k).join(' '));
+  const missing = [...EXS.map((e) => e.id), ...ALL_LESSONS.map((l) => l.id)].filter((id) => !SECTION_LINKS[id]);
+  check('every example/lesson/problem links to the course', missing.length === 0, missing.join(' '));
+}
+
+console.log(fails === 0 ? '\nALL PASS (section links)' : `\n${fails} FAILED`);
+if (fails > 0) throw new Error(`${fails} self-test(s) failed`);

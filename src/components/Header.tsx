@@ -1,11 +1,16 @@
 import React from 'react';
 import { useAppState, useDispatch } from '../state/store';
-import { findLesson } from '../engine/lessons';
+import { findLesson, EXAMPLES } from '../engine/lessons';
+import { SECTION_LINKS, sectionLabel } from '../engine/course';
 
 export const Header: React.FC = () => {
   const state = useAppState();
   const dispatch = useDispatch();
   const lesson = findLesson(state.lessonId);
+  const example = state.exampleId ? EXAMPLES.find((e) => e.id === state.exampleId) : undefined;
+  const linkId = lesson?.id ?? state.exampleId ?? '';
+  const exLink = SECTION_LINKS[linkId];
+  const exLabel = sectionLabel(exLink);
   return (
     <header className="header">
       <div className="brand">
@@ -32,6 +37,16 @@ export const Header: React.FC = () => {
           <span className="lesson-pill">
             {lesson.kind === 'problem' ? `โจทย์ ${lesson.title}` : `Level ${lesson.level}: ${lesson.title}`}
           </span>
+        )}
+        {!lesson && example && (
+          <span className="lesson-pill example">
+            🧪 {example.title}: {example.subtitle.split('(')[0].trim()}
+          </span>
+        )}
+        {state.view === 'lab' && exLink && (
+          <button className="chip course-link header-link" title={`เปิดเนื้อหาในคอร์ส: ${exLabel}`} onClick={() => dispatch({ type: 'course_section', chapter: exLink.chapter, section: exLink.section })}>
+            📖 อ่านเนื้อหา · {exLabel.split(' · ')[0]}
+          </button>
         )}
       </div>
       <div className="header-actions">

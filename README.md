@@ -56,7 +56,8 @@ security headers และ cache policy ดูขั้นตอนที่ [`D
 - **โจทย์ฝึกหัด Z / Y** (`PROBLEMS` ใน `src/engine/lessons.ts`): ชุด Impedance 5 ข้อ (normalize, ออกแบบ RC, denormalize ที่ Z₀ = 75 Ω, z_in ที่ต้นสาย, λ/4) และชุด Admittance 5 ข้อ (y = 1/z แล้ว match ด้วย C ขนาน, Y ของสายอากาศ, RL ขนาน, single stub, L-section) แต่ละข้อมีช่องกรอกคำตอบตัวเลขที่ตรวจอัตโนมัติ (ค่าเฉลยคำนวณจากวงจรเฉลยด้วย engine) และให้สร้างวงจรตามโจทย์ พร้อมเฉลย/วิธีทำ/วิธีทำบน Smith Chart (deep link `?problem=py4`, `?modal=problems`)
 - **วิธีทำบน Smith Chart** (`src/engine/smithMethod.ts`): ขั้นตอนเชิงกราฟตามหนังสือของวงจรเฉลย (พล็อต z_L → วงกลม SWR → y_L → หมุนตามสเกล λ → ตัดวงกลม g = 1 → หาความยาวสตับจากขอบกราฟ → เข้าศูนย์กลาง) แต่ละขั้นไฮไลต์จุด/เส้นทาง/วงกลม/สเกล λ บน Smith Chart หลักด้วยสีชมพู (deep link `&sstep=N`)
 - ปุ่ม **⤢ ขยาย** ที่หัวทุกแผง ขยายแผงนั้นเต็มจอ (กด Esc หรือ ⤡ ย่อกลับ) เหมาะกับการฉายในห้องเรียน · จอเตี้ยกว่า 880px หน้าจะเลื่อนได้แทนการตัดเนื้อหา
-- Deep link: `?example=ex7` `?lesson=l10` `&step=5` `&all=1` `&y=1` `&sel=0&probe=0.1` `&max=chart` (palette / inspector / canvas / chart / explain)
+- **ลิงก์สองทางระหว่าง Lab กับคอร์ส**: การ์ดทุกใบในเมนูบทเรียน/โจทย์/ตัวอย่างมีแถบ 📖 ใต้การ์ดที่พาไปยัง section ที่เกี่ยวข้องของคอร์ส (section ที่ไปถึงจะไฮไลต์สีเหลืองชั่วครู่) แถบบนหัวเว็บแสดงตัวอย่าง/บทเรียนที่กำลังเปิดพร้อมปุ่ม 📖 และแถบ Guided Lab มีชิป 📖 เช่นกัน · แผนที่ลิงก์อยู่ใน `SECTION_LINKS` (`src/engine/course.ts`)
+- Deep link: `?example=ex7` `?lesson=l10` `&step=5` `&all=1` `&y=1` `&sel=0&probe=0.1` `&max=chart` (palette / inspector / canvas / chart / explain) `&sec=<section>` (เลื่อนไปยังหัวข้อในคอร์ส เช่น `?view=course&ch=ch2&sec=qwt`)
 
 ## หัวข้อ Antenna Impedance Matching (ตามหนังสือ Caron, ARRL)
 

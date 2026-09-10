@@ -674,3 +674,16 @@ h1, h2, h3 { margin: 0; }
 .explain.flash { animation: explainFlash 0.9s ease-out; border-color: var(--accent); }
 .explain.flash .step-card.active { background: #f5f9ff; }
 .pal-item.ghost { pointer-events: none; }
+
+/* ---------- links from the Lab into the course ---------- */
+.card-wrap { display: flex; flex-direction: column; }
+.card-wrap .card { flex: 1; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.card-link { border: 1px solid var(--border); border-top: 0; border-radius: 0 0 10px 10px; background: #f8fafc; color: var(--muted); font-size: 11px; padding: 4px 10px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-link:hover { background: var(--accent-soft); color: var(--accent); border-color: #93c5fd; }
+.chip.course-link { border-color: #c7d2fe; color: #4338ca; background: #eef2ff; }
+.chip.course-link:hover { background: #e0e7ff; }
+.header .chip.header-link { background: #1e293b; border-color: #334155; color: #c7d2fe; }
+.header .chip.header-link:hover { background: #334155; }
+.lesson-pill.example { background: #134e4a; color: #99f6e4; max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
+.course-section.target { animation: sectionTarget 2.1s ease-out; border-radius: 10px; }
+@keyframes sectionTarget { 0% { background: #fef3c7; box-shadow: 0 0 0 8px #fef3c7; } 100% { background: transparent; box-shadow: 0 0 0 8px transparent; } }

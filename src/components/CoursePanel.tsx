@@ -129,16 +129,41 @@ export const CoursePanel: React.FC = () => {
   const dispatch = useDispatch();
   const chapter = findChapter(state.courseChapter) ?? COURSE[0];
   const bodyRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    bodyRef.current?.scrollTo({ top: 0 });
-  }, [chapter.id]);
-  const idx = COURSE.findIndex((c) => c.id === chapter.id);
-  const jump = (secId: string) => {
-    const el = bodyRef.current?.querySelector(`#sec-${secId}`) as HTMLElement | null;
+  const scrollToSection = (secId: string, opts: { smooth?: boolean; highlight?: boolean } = {}) => {
     const box = bodyRef.current;
-    if (!el || !box) return;
-    box.scrollTo({ top: el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8, behavior: 'smooth' });
+    const el = box?.querySelector(`#sec-${CSS.escape(secId)}`) as HTMLElement | null;
+    if (!box || !el) return false;
+    const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8;
+    box.scrollTo({ top: Math.max(0, top), behavior: opts.smooth === false ? 'auto' : 'smooth' });
+    if (opts.highlight !== false) {
+      el.classList.remove('target');
+      void el.offsetWidth;
+      el.classList.add('target');
+      window.setTimeout(() => el.classList.remove('target'), 2400);
+    }
+    return true;
   };
+  // scroll to the top only when the chapter itself changes — clearing a pending
+  // section jump must not undo the jump we just made
+  const lastChapter = useRef<string | null>(null);
+  useEffect(() => {
+    if (lastChapter.current === chapter.id) return;
+    lastChapter.current = chapter.id;
+    if (!state.courseSection) bodyRef.current?.scrollTo({ top: 0 });
+  }, [chapter.id, state.courseSection]);
+  // Jump to a section requested from the Lab (or a ?sec= deep link). Figures and KaTeX
+  // change the layout after the first paint, so re-run the scroll until it settles.
+  useEffect(() => {
+    if (!state.courseSection) return;
+    const id = state.courseSection;
+    const timers = [0, 120, 320, 650, 1100].map((d, i) =>
+      window.setTimeout(() => scrollToSection(id, { smooth: i > 0, highlight: i === 0 || i === 4 }), d),
+    );
+    const done = window.setTimeout(() => dispatch({ type: 'course_section_seen' }), 1250);
+    return () => { timers.forEach((t) => window.clearTimeout(t)); window.clearTimeout(done); };
+  }, [state.courseSection, chapter.id, dispatch]);
+  const idx = COURSE.findIndex((c) => c.id === chapter.id);
+  const jump = (secId: string) => scrollToSection(secId, { highlight: true });
   return (
     <div className="course">
       <aside className="course-nav">

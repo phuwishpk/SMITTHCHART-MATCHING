@@ -611,6 +611,69 @@ export const COURSE: Chapter[] = [
 ];
 
 export const findChapter = (id: string): Chapter | undefined => COURSE.find((c) => c.id === id);
+export const findSection = (chapter: string, section: string): Section | undefined => findChapter(chapter)?.sections.find((x) => x.id === section);
+
+/**
+ * Which course section explains a given Lab item (example / lesson / problem id).
+ * Used by the Lab to jump into the Antenna Impedance Matching course.
+ */
+export interface SectionLink { chapter: string; section: string; }
+export const SECTION_LINKS: Record<string, SectionLink> = {
+  // ---- examples ----
+  ex1: { chapter: 'ch3', section: 'norm' },
+  ex2: { chapter: 'ch3', section: 'norm' },
+  ex3: { chapter: 'ch3', section: 'norm' },
+  ex4: { chapter: 'ch3', section: 'move' },
+  ex5: { chapter: 'ch3', section: 'rotate' },
+  ex6: { chapter: 'ch2', section: 'qwt' },
+  ex7: { chapter: 'ch4', section: 'ex80' },
+  ex8: { chapter: 'ch2', section: 'shunt-stub' },
+  ex9: { chapter: 'ch4', section: 'lnet' },
+  ex10: { chapter: 'ch3', section: 'admit' },
+  ex11: { chapter: 'ch4', section: 'lnet' },
+  ex12: { chapter: 'ch6', section: 'ex1' },
+  ex13: { chapter: 'ch6', section: 'ex2' },
+  ex14: { chapter: 'ch6', section: 'ex5' },
+  // ---- guided lessons ----
+  l1: { chapter: 'ch3', section: 'norm' },
+  l2: { chapter: 'ch3', section: 'norm' },
+  l3: { chapter: 'ch3', section: 'norm' },
+  l4: { chapter: 'ch3', section: 'norm' },
+  l5: { chapter: 'ch3', section: 'move' },
+  l6: { chapter: 'ch3', section: 'move' },
+  l7: { chapter: 'ch3', section: 'admit' },
+  l8: { chapter: 'ch3', section: 'rotate' },
+  l9: { chapter: 'ch2', section: 'qwt' },
+  l10: { chapter: 'ch4', section: 'ex80' },
+  l11: { chapter: 'ch2', section: 'stub' },
+  l12: { chapter: 'ch2', section: 'shunt-stub' },
+  l13: { chapter: 'ch4', section: 'lnet' },
+  l14: { chapter: 'ch4', section: 'lnet' },
+  // ---- practice problems ----
+  pz1: { chapter: 'ch3', section: 'norm' },
+  pz2: { chapter: 'ch3', section: 'move' },
+  pz3: { chapter: 'ch3', section: 'norm' },
+  pz4: { chapter: 'ch3', section: 'rotate' },
+  pz5: { chapter: 'ch2', section: 'qwt' },
+  py1: { chapter: 'ch3', section: 'admit' },
+  py2: { chapter: 'ch3', section: 'admit' },
+  py3: { chapter: 'ch3', section: 'admit' },
+  py4: { chapter: 'ch4', section: 'ex80' },
+  py5: { chapter: 'ch4', section: 'lnet' },
+  py6: { chapter: 'ch4', section: 'lnet' },
+  pb1: { chapter: 'ch2', section: 'series-stub' },
+  pb2: { chapter: 'ch2', section: 'qwt' },
+  pb3: { chapter: 'ch4', section: 'ex80' },
+  pb4: { chapter: 'ch6', section: 'ex1' },
+};
+/** short human label for a link target, e.g. "Ch. III · Impedance ↔ Admittance" */
+export const sectionLabel = (link: SectionLink | undefined): string => {
+  if (!link) return '';
+  const ch = findChapter(link.chapter);
+  const sec = ch?.sections.find((x) => x.id === link.section);
+  if (!ch || !sec) return '';
+  return `${ch.num === '0' ? 'บทนำ' : `Ch. ${ch.num}`} · ${sec.title.split('(')[0].trim()}`;
+};
 /** cheap sanity check used by the self-test: every figure's numeric data is finite */
 export const courseFiguresFinite = (): { ok: boolean; bad: string[] } => {
   const bad: string[] = [];

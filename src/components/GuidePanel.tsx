@@ -3,6 +3,7 @@ import { useAppState, useDispatch, useDerived } from '../state/store';
 import { LESSONS, PROBLEMS, findLesson, AnswerSpec } from '../engine/lessons';
 import { SolutionRow } from './SolutionPanel';
 import { solveCircuit } from '../engine/solver';
+import { SECTION_LINKS, sectionLabel } from '../engine/course';
 import { fmtNum } from '../engine/complex';
 
 export const GuidePanel: React.FC = () => {
@@ -64,6 +65,11 @@ export const GuidePanel: React.FC = () => {
         <span className="progress">{Math.min(done, total)}/{total}</span>
         <button className="chip" onClick={() => setShowConcept(!showConcept)}>{showConcept ? 'ซ่อนแนวคิด' : 'แนวคิด'}</button>
         <button className={`chip ${state.showSolution ? 'on' : ''}`} onClick={() => dispatch({ type: 'show_solution', value: !state.showSolution })}>{state.showSolution ? 'ซ่อนเฉลย' : 'เฉลย'}</button>
+        {SECTION_LINKS[lesson.id] && (
+          <button className="chip course-link" title={`เปิดคอร์ส: ${sectionLabel(SECTION_LINKS[lesson.id])}`} onClick={() => dispatch({ type: 'course_section', chapter: SECTION_LINKS[lesson.id].chapter, section: SECTION_LINKS[lesson.id].section })}>
+            📖 {sectionLabel(SECTION_LINKS[lesson.id])}
+          </button>
+        )}
         <button className="chip" onClick={() => dispatch({ type: 'lesson', id: lesson.id })}>เริ่มใหม่</button>
         {nextLesson && <button className={`chip ${complete ? 'on' : ''}`} onClick={() => dispatch({ type: 'lesson', id: nextLesson.id })}>ถัดไป: {lesson.kind === 'problem' ? nextLesson.title.split(' ')[0] : `L${nextLesson.level}`} ▶</button>}
       </div>

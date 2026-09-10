@@ -1,11 +1,23 @@
 import React, { useEffect } from 'react';
 import { useAppState, useDispatch } from '../state/store';
 import { LESSONS, EXAMPLES, PROBLEMS, findLesson } from '../engine/lessons';
+import { SECTION_LINKS, sectionLabel } from '../engine/course';
 import { SolutionModalBody } from './SolutionPanel';
 
 export const Modals: React.FC = () => {
   const state = useAppState();
   const dispatch = useDispatch();
+  /** small link under a card that opens the matching section of the course */
+  const CourseLink: React.FC<{ id: string }> = ({ id }) => {
+    const link = SECTION_LINKS[id];
+    const label = sectionLabel(link);
+    if (!link || !label) return null;
+    return (
+      <button className="card-link" title={`เปิดเนื้อหา: ${label}`} onClick={() => dispatch({ type: 'course_section', chapter: link.chapter, section: link.section })}>
+        📖 {label}
+      </button>
+    );
+  };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') dispatch({ type: 'modal', modal: 'none' });
@@ -44,16 +56,19 @@ export const Modals: React.FC = () => {
                 <h3>{cat === 'impedance' ? 'ชุด Z — Impedance: normalize, r/x, Γ, SWR, สายส่ง, λ/4' : cat === 'admittance' ? 'ชุด Y — Admittance: y = 1/z, g/b, อุปกรณ์ขนาน, stub, L-section' : 'ชุดหนังสือ Caron — Antenna Impedance Matching: series stub/C, λ/4 600→50, 80−j40, Example 1'}</h3>
                 <div className="card-grid">
                   {PROBLEMS.filter((p) => p.category === cat).map((p) => (
-                    <button key={p.id} className={`card ${state.lessonId === p.id ? 'active' : ''}`} onClick={() => dispatch({ type: 'lesson', id: p.id })}>
-                      <span className="card-lvl">{cat === 'impedance' ? 'IMPEDANCE' : cat === 'admittance' ? 'ADMITTANCE' : 'CARON'} · {p.answers?.length ?? 0} คำตอบ</span>
-                      <b>{p.title}</b>
-                      <small>{p.learn}</small>
-                    </button>
+                    <div key={p.id} className="card-wrap">
+                      <button className={`card ${state.lessonId === p.id ? 'active' : ''}`} onClick={() => dispatch({ type: 'lesson', id: p.id })}>
+                        <span className="card-lvl">{cat === 'impedance' ? 'IMPEDANCE' : cat === 'admittance' ? 'ADMITTANCE' : 'CARON'} · {p.answers?.length ?? 0} คำตอบ</span>
+                        <b>{p.title}</b>
+                        <small>{p.learn}</small>
+                      </button>
+                      <CourseLink id={p.id} />
+                    </div>
                   ))}
                 </div>
               </div>
             ))}
-            <div className="ex-note">💡 ทุกข้อ: กรอกคำตอบตัวเลข + สร้างวงจรตามโจทย์ ระบบตรวจให้ทันที และมีปุ่ม "เฉลย" พร้อมวิธีทำและวิธีทำบน Smith Chart เหมือนบทเรียน</div>
+            <div className="ex-note">💡 กดการ์ดเพื่อโหลดโจทย์เข้า Lab · กดแถบ 📖 ใต้การ์ดเพื่อไปอ่านเนื้อหาส่วนที่เกี่ยวข้องในคอร์ส · ทุกข้อ: กรอกคำตอบตัวเลข + สร้างวงจรตามโจทย์ ระบบตรวจให้ทันที และมีปุ่ม "เฉลย" พร้อมวิธีทำและวิธีทำบน Smith Chart เหมือนบทเรียน</div>
           </div>
         </div>
       </div>
@@ -75,11 +90,14 @@ export const Modals: React.FC = () => {
                 </h3>
                 <div className="card-grid">
                   {LESSONS.filter((l) => l.phase === ph).map((l) => (
-                    <button key={l.id} className={`card ${state.lessonId === l.id ? 'active' : ''}`} onClick={() => dispatch({ type: 'lesson', id: l.id })}>
-                      <span className="card-lvl">Level {l.level}{l.bookPriority && <em title="ตรงกับบท Transmission Lines ในหนังสือ"> ★ หนังสือ</em>}</span>
-                      <b>{l.title}</b>
-                      <small>{l.learn}</small>
-                    </button>
+                    <div key={l.id} className="card-wrap">
+                      <button className={`card ${state.lessonId === l.id ? 'active' : ''}`} onClick={() => dispatch({ type: 'lesson', id: l.id })}>
+                        <span className="card-lvl">Level {l.level}{l.bookPriority && <em title="ตรงกับบท Transmission Lines ในหนังสือ"> ★ หนังสือ</em>}</span>
+                        <b>{l.title}</b>
+                        <small>{l.learn}</small>
+                      </button>
+                      <CourseLink id={l.id} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -89,11 +107,14 @@ export const Modals: React.FC = () => {
           <div className="modal-body">
             <div className="card-grid">
               {EXAMPLES.map((ex) => (
-                <button key={ex.id} className="card" onClick={() => dispatch({ type: 'example', id: ex.id })}>
-                  <span className="card-lvl">{ex.title}</span>
-                  <b>{ex.subtitle}</b>
-                  <small>{ex.circuit().elements.map((e) => (e.orient === 'shunt' ? `${e.type}↓` : e.type)).join(' — ')}</small>
-                </button>
+                <div key={ex.id} className="card-wrap">
+                  <button className={`card ${state.exampleId === ex.id ? 'active' : ''}`} onClick={() => dispatch({ type: 'example', id: ex.id })}>
+                    <span className="card-lvl">{ex.title}</span>
+                    <b>{ex.subtitle}</b>
+                    <small>{ex.circuit().elements.map((e) => (e.orient === 'shunt' ? `${e.type}↓` : e.type)).join(' — ')}</small>
+                  </button>
+                  <CourseLink id={ex.id} />
+                </div>
               ))}
             </div>
           </div>
