@@ -296,3 +296,30 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
 
 console.log(fails === 0 ? '\nALL PASS (auto-match)' : `\n${fails} FAILED`);
 if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
+
+// 21. Auto-match modes: 'replace' drops the old network, 'add' keeps the whole circuit
+{
+  const { autoMatch } = await import('./autoMatch');
+  const { EXAMPLES: EXS } = await import('./lessons');
+  const withNetwork = ['ex7', 'ex9', 'ex12', 'ex14'];
+  const bad: string[] = [];
+  for (const id of withNetwork) {
+    const c = EXS.find((e) => e.id === id)!.circuit();
+    const sig = (els: { type: string; orient: string }[]) => els.map((e) => `${e.type}:${e.orient}`).join(',');
+    for (const mode of ['replace', 'add'] as const) {
+      const r = autoMatch(c, mode);
+      const best = r.candidates[0];
+      if (!best) { bad.push(`${id}/${mode}:none`); continue; }
+      const res = solveCircuit(best.circuit);
+      const keptAll = sig(best.circuit.elements.slice(-c.elements.length)) === sig(c.elements);
+      if (res.swrIn > 1.05) bad.push(`${id}/${mode}:swr${fmtNum(res.swrIn, 2)}`);
+      if (mode === 'add' && !keptAll) bad.push(`${id}/add:lostOriginal`);
+      if (mode === 'add' && best.circuit.elements.length <= c.elements.length) bad.push(`${id}/add:notAdded`);
+      if (mode === 'replace' && r.loadCount >= c.elements.length && c.elements.length > 1) bad.push(`${id}/replace:keptNetwork`);
+    }
+  }
+  check('auto-match replace/add modes behave differently and both match', bad.length === 0, bad.join(' '));
+}
+
+console.log(fails === 0 ? '\nALL PASS (match modes)' : `\n${fails} FAILED`);
+if (fails > 0) throw new Error(`${fails} self-test(s) failed`);

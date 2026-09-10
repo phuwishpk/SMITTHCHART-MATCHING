@@ -27,7 +27,11 @@ export interface MatchCandidate {
   notes: string[];
 }
 
+/** replace the existing matching network, or keep the whole circuit and add a network in front of it */
+export type MatchMode = 'replace' | 'add';
+
 export interface AutoMatchResult {
+  mode: MatchMode;
   /** impedance of the load group at the design frequency */
   ZL: Complex;
   zL: Complex;
@@ -65,25 +69,32 @@ const describe = (e: CircuitElement, f: number): string => {
   }
 };
 
-/** Design matching networks for the load of `circuit` and return complete new circuits. */
-export const autoMatch = (circuit: Circuit): AutoMatchResult => {
+/**
+ * Design matching networks and return complete new circuits.
+ *  - 'replace' (default): the trailing load stays, any existing matching network is replaced
+ *  - 'add': the whole circuit is treated as the load and the new network goes in front of it
+ */
+export const autoMatch = (circuit: Circuit, mode: MatchMode = 'replace'): AutoMatchResult => {
   const res = solveCircuit(circuit);
-  const loadStart = findLoadStart(circuit.elements);
+  const netStart = findLoadStart(circuit.elements);
+  const loadStart = mode === 'add' ? 0 : netStart;
   const loadEls = circuit.elements.slice(loadStart).map(clone);
   const Z0 = circuit.Z0;
   const f = circuit.f;
-  const ZL = res.ZL;
+  const ZL = mode === 'add' ? res.Zin : res.ZL;
   const zL = normalize(ZL, Z0);
   const swrL = swrFromGamma(gammaFromZ(ZL, Z0));
   const hasSweep = loadEls.some((e) => e.type === 'antenna');
   const base: AutoMatchResult = {
+    mode,
     ZL, zL, swrL,
-    replacesNetwork: loadStart > 0,
+    replacesNetwork: mode === 'replace' && netStart > 0,
     loadCount: loadEls.length,
-    alreadyMatched: abs(res.gammaL) < 0.02,
+    alreadyMatched: abs(mode === 'add' ? res.gammaIn : res.gammaL) < 0.02,
     candidates: [],
   };
   if (loadEls.length === 0) return { ...base, problem: 'ยังไม่มีโหลดในวงจร — วางอุปกรณ์อย่างน้อยหนึ่งตัว (เช่น Load Z_L หรือ Antenna) ก่อน' };
+  if (mode === 'add' && !isFiniteC(res.Zin)) return { ...base, problem: 'อิมพีแดนซ์ขาเข้าของวงจรเดิมเป็นอนันต์ (ปลายเปิด) จึงเพิ่ม network ต่อไม่ได้' };
   if (!isFiniteC(ZL)) return { ...base, problem: 'ปลายวงจรเปิดอยู่ (Z_L = ∞) จึงไม่มีกำลังส่งเข้าโหลด ให้ปิดปลายวงจรด้วยโหลดก่อน' };
   if (ZL.re <= 1e-6) return { ...base, problem: 'โหลดมีส่วนจริงเป็นศูนย์ (หรือติดลบ) จึงไม่ดูดกำลัง วงจร passive ไม่สามารถ match ได้' };
 
@@ -95,7 +106,7 @@ export const autoMatch = (circuit: Circuit): AutoMatchResult => {
     if (!Number.isFinite(swr) || swr > 1.2) return null; // must actually match at the design frequency
     return {
       id, kind, title, circuit: c,
-      parts: [...net.map((e) => describe(e, f)), ...(loadEls.length ? [`โหลดเดิม: ${loadEls.map((e) => ELEMENT_SPECS[e.type].symbol + (e.orient === 'shunt' ? '↓' : '')).join(' — ')}`] : [])],
+      parts: [...net.map((e) => describe(e, f)), ...(loadEls.length ? [`${mode === 'add' ? 'วงจรเดิมทั้งชุด' : 'โหลดเดิม'}: ${loadEls.map((e) => ELEMENT_SPECS[e.type].symbol + (e.orient === 'shunt' ? '↓' : '')).join(' — ')}`] : [])],
       zin: r.zin, swr,
       bandMaxSwr: hasSweep ? sweepMaxSwr(solveSweep(c)) : undefined,
       notes,

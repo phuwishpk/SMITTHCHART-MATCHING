@@ -941,3 +941,6 @@ img, svg, table { max-width: 100%; }
   .canvas-scroll { min-height: 220px; }
   .explain { max-height: none; }
 }
+
+.mt-mode { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed var(--border); }
+.mt-mode .seg.small { margin: 0; }
