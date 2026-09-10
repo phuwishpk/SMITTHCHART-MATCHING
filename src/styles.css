@@ -610,6 +610,9 @@ h1, h2, h3 { margin: 0; }
 .app.view-course { grid-template-rows: auto 1fr; }
 .course { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 10px; padding: 10px; min-height: 0; }
 .course-nav { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: auto; display: flex; flex-direction: column; }
+.course-here { display: none; }
+.course-progress { height: 3px; background: #e2e8f0; border-radius: 2px; overflow: hidden; }
+.course-progress i { display: block; height: 100%; background: var(--accent); transition: width 0.25s ease; }
 .course-book { font-size: 12px; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); line-height: 1.5; }
 .course-toc { list-style: none; margin: 0; padding: 6px; display: flex; flex-direction: column; gap: 2px; }
 .course-toc > li > button { width: 100%; text-align: left; display: flex; gap: 10px; align-items: flex-start; border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 6px 8px; }
@@ -745,7 +748,17 @@ h1, h2, h3 { margin: 0; }
 .lc-table th { color: var(--muted); font-size: 11px; background: #f8fafc; }
 .lc-table td.mono { font-family: var(--mono); font-size: 11.5px; }
 .lc-table tr.infeasible td { color: #94a3b8; }
-@media (max-width: 1080px) { .course { grid-template-columns: minmax(0, 1fr); } .course-nav { max-height: 320px; } }
+@media (max-width: 1080px) {
+  .course { grid-template-columns: minmax(0, 1fr); }
+  .course-here { display: block; position: sticky; top: 0; z-index: 6; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08); }
+  .course-here-btn { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: none; padding: 7px 10px; text-align: left; font-family: inherit; color: var(--text); }
+  .course-here-btn .here-ch { flex: 0 0 auto; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 1px 8px; font-size: 11.5px; font-weight: 700; }
+  .course-here-btn .here-sec { flex: 1 1 auto; min-width: 0; font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .course-here-btn .here-caret { flex: 0 0 auto; color: var(--muted); font-size: 11px; }
+  .course-progress { margin: 0 10px 6px; }
+  .course-nav { display: none; max-height: 62vh; }
+  .course.nav-open .course-nav { display: flex; position: sticky; top: 42px; z-index: 5; }
+}
 
 /* ---------- review fixes ---------- */
 .cfigs { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }

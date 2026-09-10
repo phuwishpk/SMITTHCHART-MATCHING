@@ -212,6 +212,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
   }, [wantSection, chapter.id]);
   // ---- which section is the reader looking at? the sidebar follows it ----
   const [activeSec, setActiveSec] = useState<string>(chapter.sections[0]?.id ?? '');
+  const [navOpen, setNavOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   useEffect(() => { setActiveSec(chapter.sections[0]?.id ?? ''); }, [chapter.id, chapter.sections]);
   useEffect(() => {
@@ -257,8 +258,12 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
     if (lr.top < nr.top + 4) nav.scrollTo({ top: nav.scrollTop + (lr.top - nr.top) - 12, behavior: 'smooth' });
     else if (lr.bottom > nr.bottom - 4) nav.scrollTo({ top: nav.scrollTop + (lr.bottom - nr.bottom) + 12, behavior: 'smooth' });
   }, [activeSec]);
+  const activeIndex = chapter.sections.findIndex((x) => x.id === activeSec);
+  const progressPct = chapter.sections.length > 1
+    ? Math.round(((Math.max(activeIndex, 0)) / (chapter.sections.length - 1)) * 100)
+    : 100;
   const idx = chapters.findIndex((c) => c.id === chapter.id);
-  const jump = (secId: string) => { setActiveSec(secId); scrollToSection(secId, { highlight: true }); };
+  const jump = (secId: string) => { setActiveSec(secId); setNavOpen(false); scrollToSection(secId, { highlight: true }); };
   // a section of another chapter: the reducer switches chapter and the jump effect scrolls to it
   const jumpAcross = (chId: string, secId: string) => {
     if (chId === chapter.id) { jump(secId); return; }
@@ -267,7 +272,19 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
       : { type: 'course_section', chapter: chId, section: secId });
   };
   return (
-    <div className="course">
+    <div className={`course ${navOpen ? 'nav-open' : ''}`}>
+      {/* stacked layouts scroll the nav away, so a sticky bar keeps the reader's place visible */}
+      <div className="course-here">
+        <button className="course-here-btn" onClick={() => setNavOpen((v) => !v)} aria-expanded={navOpen}>
+          <span className="here-ch">{chapter.num ? `${basics ? 'บทที่' : 'Ch.'} ${chapter.num}` : 'บทนำ'}</span>
+          <span className="here-sec">
+            {activeIndex >= 0 && chapter.num ? `${chapter.num}.${activeIndex + 1} ` : ''}
+            {chapter.sections[activeIndex >= 0 ? activeIndex : 0]?.title ?? chapter.title}
+          </span>
+          <span className="here-caret">{navOpen ? '▲' : '▼'}</span>
+        </button>
+        <div className="course-progress"><i style={{ width: `${progressPct}%` }} /></div>
+      </div>
       <aside className="course-nav" ref={navRef}>
         <div className="panel-head"><span className="panel-title">{basics ? 'SMITH CHART พื้นฐาน' : 'ANTENNA IMPEDANCE MATCHING'}</span></div>
         <div className="course-book">{basics
