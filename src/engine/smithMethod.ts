@@ -98,7 +98,8 @@ export const smithMethodSteps = (lesson: Lesson, sol: Circuit): ExplainStep[] =>
     T('ใช้วงเวียนปักที่ศูนย์กลาง รัศมีถึงจุดโหลด วงกลมนี้คือ |Γ| คงที่ = SWR คงที่'),
     M(`|\\Gamma| = ${tn(abs(gL), 3)}\\qquad SWR = \\frac{1+|\\Gamma|}{1-|\\Gamma|} = ${Number.isFinite(swrL) ? tn(swrL, 2) : '\\infty'}`),
     N('อ่านค่า SWR ได้จากจุดที่วงกลมตัดแกนจริงด้านขวา (r = SWR) · ทุกจุดบนสายส่งไร้การสูญเสียจะอยู่บนวงกลมนี้'),
-  ], { swrRadius: abs(gL), points: [{ g: gL, label: 'z_L', cls: 'load' }], rCircle: Number.isFinite(swrL) ? swrL : undefined });
+  ], { swrRadius: abs(gL), points: [{ g: gL, label: 'z_L', cls: 'load' }], rCircle: Number.isFinite(swrL) ? swrL : undefined,
+    readout: { g: gL, from: 'load', label: 'z_L' } });
 
   // ---------- network ----------
   if (netStages.length > 0) {
@@ -131,12 +132,12 @@ export const smithMethodSteps = (lesson: Lesson, sol: Circuit): ExplainStep[] =>
     push('✓ ศูนย์กลาง', '✓ MATCHED — จุดถึงศูนย์กลาง', [
       R(`z_{in} = ${tc(res.zin, 3)} \\approx 1 + j0,\\quad SWR = ${tn(res.swrIn, 2)}`),
       N('ไม่มีคลื่นสะท้อน กำลังส่งไปโหลดทั้งหมด'),
-    ], { center: true, points: [{ g: gin, label: 'z_in', cls: 'in' }] }, 'match');
+    ], { center: true, points: [{ g: gin, label: 'z_in', cls: 'in' }], readout: { g: gin, from: 'in', label: 'z_in' } }, 'match');
   } else {
     push('z_in', `จุดสุดท้าย z_in = ${fz(res.zin)}`, [
       M(`z_{in} = ${tc(res.zin, 3)},\\qquad SWR = ${Number.isFinite(res.swrIn) ? tn(res.swrIn, 2) : '\\infty'}`),
       N(lesson.level <= 3 ? 'บทนี้ดูตำแหน่งของจุดเป็นหลัก ยังไม่ต้อง match' : 'บทนี้ไม่ได้ match ที่ศูนย์กลาง แต่ให้สังเกตการเคลื่อนที่ของจุด'),
-    ], { swrRadius: abs(gin), points: [{ g: gin, label: 'z_in', cls: 'in' }] });
+    ], { swrRadius: abs(gin), points: [{ g: gin, label: 'z_in', cls: 'in' }], readout: { g: gin, from: 'in', label: 'z_in' } });
   }
   return steps;
 

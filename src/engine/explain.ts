@@ -46,7 +46,7 @@ export interface Highlight {
    * line from there to the SWR / RL strip. The strip is forced visible while this is
    * set. `from` says which plotted point the compass starts at.
    */
-  readout?: { mag: number; from?: 'load' | 'in'; label?: string };
+  readout?: { g: Complex; from?: 'load' | 'in'; label?: string };
 }
 
 export interface ExplainStep {
@@ -109,19 +109,27 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
     const swrTex = Number.isFinite(ro.swr) ? tn(ro.swr, 2) : '\\infty';
     const rlTex = Number.isFinite(ro.rlDb) ? tn(ro.rlDb, 1) : '\\infty';
     const mlTex = Number.isFinite(ro.mismatchDb) ? tn(ro.mismatchDb, 2) : '\\infty';
+    // The chart swings the radius along the SHORT arc to the +real axis, so a point in
+    // the lower half (x < 0) sweeps UP, not down; below |Γ| = 0.02 (radius < 6 px)
+    // SmithGrid draws no spoke or arc at all, so do not ask for a compass there.
+    const up = !(arg(g) > 0);
+    const how = ro.mag < 0.02
+      ? `จุด ${name} เกือบทับศูนย์กลาง รัศมีเกือบเป็นศูนย์ จึงไม่ต้องกางวงเวียน: อ่านทุกค่าที่ปลายซ้ายสุดของแถบด้านล่าง (SWR ≈ 1 กำลังสะท้อนเกือบ 0)`
+      : `วิธีทำด้วยมือบนกระดาษ: ① กางวงเวียนจากศูนย์กลางไปที่จุด ${name} (อยู่ครึ่ง${up ? 'ล่าง' : 'บน'}) ② กวาดส่วนโค้งรัศมีเดิม${up ? 'ขึ้นไป' : 'ลงมา'}แตะแกนนอนครึ่งขวา จุดที่แตะอ่าน r ได้เท่ากับ SWR ③ ยกระยะรัศมีเดิมไปทาบบนแถบสเกลใต้กราฟ แล้วอ่าน |Γ|, SWR, Return loss และกำลังสะท้อนจากรอยทาบเดียวกัน`;
     push({
       short: `อ่านค่า ${name}`,
       title: `อ่าน SWR / Return loss จากแถบสเกลด้านล่างกราฟ (${name})`,
       tag: 'swr',
       lines: [
-        { kind: 'text', text: `ค่าทั้งสี่บนแถบ RADIALLY SCALED PARAMETERS ขึ้นกับ |Γ| อย่างเดียว จึงอ่านได้จาก "ระยะ" จากศูนย์กลางกราฟถึงจุด ${name} โดยไม่ต้องคำนวณใหม่` },
-        { kind: 'text', text: `วิธีทำด้วยมือ: กางวงเวียนจากศูนย์กลางไปที่จุด ${name} → หมุนลงมาแตะแกนนอนด้านขวา จุดที่แตะคือ r = SWR → ลากเส้นดิ่งลงมาที่แถบด้านล่าง แล้วอ่านทุกค่าตรงเส้นนั้น` },
+        { kind: 'text', text: `ค่าทั้งสี่แถวบนแถบสเกลใต้กราฟ (RADIALLY SCALED PARAMETERS) ขึ้นกับ |Γ| อย่างเดียว จึงอ่านได้จาก "ระยะ" จากศูนย์กลางกราฟถึงจุด ${name} โดยไม่ต้องคำนวณใหม่` },
+        { kind: 'text', text: how },
         { kind: 'math', tex: `|\\Gamma| = ${tn(ro.mag, 3)} \\quad\\Rightarrow\\quad SWR = \\frac{1+|\\Gamma|}{1-|\\Gamma|} = ${swrTex}` },
         { kind: 'math', tex: `${T('Return loss')} = -20\\log_{10}|\\Gamma| = ${rlTex}\\ ${T('dB')}, \\qquad ${T('Mismatch loss')} = ${mlTex}\\ ${T('dB')}` },
-        { kind: 'result', tex: `${T('อ่านตรงเส้นนี้:')}\\; |\\Gamma| = ${tn(ro.mag, 3)},\\; SWR = ${swrTex},\\; RL = ${rlTex}\\ ${T('dB')},\\; ${T('สะท้อน')} = ${tn(ro.reflPct, 1)}\\%` },
-        { kind: 'note', text: 'เส้นประที่ลากลงมาบนกราฟคือการ "ถ่ายระยะ" อันเดียวกับที่ใช้วงเวียนบนกระดาษ Smith Chart จริง ปุ่ม "แถบ SWR/RL" ที่หัวแผงเปิด/ปิดแถบนี้ได้' },
+        { kind: 'result', tex: `${T('อ่านตรงเส้นนี้:')}\\; |\\Gamma| = ${tn(ro.mag, 3)},\\; SWR = ${swrTex},\\; RL = ${rlTex}\\ ${T('dB')},\\; ${T('กำลังสะท้อน')}\\ |\\Gamma|^2 = ${tn(ro.reflPct, 1)}\\%` },
+        { kind: 'note', text: 'ในแอปไม่ต้องยกวงเวียนเอง: เส้นประบนกราฟชี้จุดที่รัศมีแตะแกน r = SWR และแถบด้านล่างขีดเส้นอ่านค่าที่ |Γ| เดียวกันไว้ให้แล้ว (สองเส้นนี้อยู่คนละสเกล จึงไม่ตรงกันในแนวตั้ง) ปุ่ม "อ่าน SWR/RL" ที่หัวแผง SMITH CHART เปิด/ปิดแถบนี้ได้' },
+        { kind: 'note', text: `Mismatch loss ไม่มีแถวของตัวเองบนแถบในแอปนี้ ค่า ${Number.isFinite(ro.mismatchDb) ? fmtNum(ro.mismatchDb, 2) : '∞'} dB ข้างต้นจึงมาจากสูตร −10·log₁₀(1 − |Γ|²) ที่แอปคำนวณให้` },
       ],
-      highlight: { swrCircle: from, point: from, readout: { mag: ro.mag, from, label: name } },
+      highlight: { swrCircle: from, point: from, readout: { g, from, label: name } },
     });
   };
 
@@ -348,8 +356,7 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
       lines: [
         { kind: 'math', tex: `SWR = \\frac{1 + |\\Gamma|}{1 - |\\Gamma|} = \\frac{1 + ${tn(abs(g), 3)}}{1 - ${tn(abs(g), 3)}}` },
         { kind: 'result', tex: `SWR \\approx ${Number.isFinite(swr) ? tn(swr, 2) : '\\infty'}` },
-        { kind: 'text', text: `Return loss = ${Number.isFinite(res.hasNetwork ? -20 * Math.log10(Math.max(abs(g), 1e-12)) : res.returnLossDb) ? fmtNum(-20 * Math.log10(Math.max(abs(g), 1e-12)), 1) : '∞'} dB, กำลังสะท้อน |Γ|² = ${fmtNum(abs(g) ** 2 * 100, 1)} %` },
-        { kind: 'note', text: 'อ่านค่า SWR ได้จากจุดที่วงกลม SWR ตัดแกนนอนด้านขวา (r = SWR)' },
+        { kind: 'note', text: 'อ่านค่า SWR ได้จากจุดที่วงกลม SWR ตัดแกนนอนครึ่งขวา ตรงนั้น r มีค่าเท่ากับ SWR พอดี — ขั้นถัดไปจะพาไปอ่าน return loss และกำลังสะท้อนจากรัศมีเดียวกันนี้' },
       ],
       highlight: { swrCircle: 'load', point: 'load', rCircle: Number.isFinite(swr) ? swr : undefined },
     });
@@ -484,7 +491,22 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
       lines,
       highlight: { point: 'in', swrCircle: 'in', center: true },
     });
-    if (res.hasNetwork) pushReadOff(g, 'in', 'z_in');
+    if (res.hasNetwork) {
+      // A lossless line only rotates the point; the radius — and therefore every
+      // reading on the strip — is unchanged, so re-teaching the transfer is noise.
+      if (Math.abs(abs(g) - abs(res.gammaL)) > 5e-3) pushReadOff(g, 'in', 'z_in');
+      else push({
+        short: 'อ่านค่า z_in',
+        title: 'รัศมีเท่าเดิม ค่าบนแถบจึงเท่าเดิม',
+        tag: 'swr',
+        lines: [
+          { kind: 'text', text: 'network นี้ไม่ได้ย้ายจุดเข้าหรือออกจากศูนย์กลาง (|Γ| เท่าเดิม) จุดแค่หมุนไปตามวงกลม SWR วงเดิม' },
+          { kind: 'math', tex: `|\\Gamma_L| = ${tn(abs(res.gammaL), 3)} \\;\\Rightarrow\\; |\\Gamma_{in}| = ${tn(abs(g), 3)}` },
+          { kind: 'note', text: 'เส้นอ่านค่าบนแถบ SWR/RL จึงอยู่ตำแหน่งเดิม: SWR, return loss และกำลังสะท้อนไม่เปลี่ยน สายส่งไร้การสูญเสียเปลี่ยนได้แค่ "เฟส" ไม่ใช่ "ขนาด" ของการสะท้อน' },
+        ],
+        highlight: { swrCircle: 'in', point: 'in', readout: { g, from: 'in', label: 'z_in' } },
+      });
+    }
   }
 
   return steps;

@@ -3,7 +3,7 @@ import { useAppState, useDispatch, useDerived } from '../state/store';
 import { Complex, abs, arg, deg, fmtNum, isFiniteC } from '../engine/complex';
 import { ELEMENT_SPECS } from '../engine/circuit';
 import { rCircle, xCircle, gCircle, bCircle, toSvg, fromSvg, pathToPoints, angleForWtg } from '../engine/smith';
-import { VB, CX, CY, R, RING, circleSvg, DetailedGrid, OuterScales, RadialScales } from './SmithGrid';
+import { VB, CX, CY, R, RING, circleSvg, DetailedGrid, OuterScales, RadialScales, ReadOff } from './SmithGrid';
 import { zFromGamma, admittance, swrFromGamma, wtgFromGamma, gammaFromz, returnLossDb } from '../engine/rf';
 import { probeOnLine } from '../engine/solver';
 import { Highlight } from '../engine/explain';
@@ -36,6 +36,27 @@ export const SmithChart: React.FC = () => {
   const walkStep = state.solutionStep !== null && walk.length > 0 ? walk[Math.min(state.solutionStep, walk.length - 1)] : undefined;
   const hl: Highlight = walkStep ? walkStep.highlight ?? {} : step?.highlight ?? {};
   const effShowY = showY || !!hl.showY;
+
+  // Which Γ is being read off the SWR/RL scales. An explanation step asking for a
+  // read-off wins; otherwise it follows the input point. The construction itself is
+  // always drawn; the "อ่าน SWR/RL" chip adds the ruler and the strip below.
+  const readoff = useMemo(() => {
+    if (hl.readout) {
+      const { g } = hl.readout;
+      if (!isFiniteC(g) || abs(g) > 1.0001) return null;
+      const fromLoad = hl.readout.from === 'load';
+      const cls = (walkStep ? fromLoad : fromLoad && result.hasNetwork) ? 'load' : 'in';
+      return { g, cls: cls as 'load' | 'in', label: hl.readout.label };
+    }
+    if (result.circuit.elements.length === 0) return null;
+    if (!isFiniteC(result.gammaIn) || abs(result.gammaIn) > 1.0001) return null;
+    return { g: result.gammaIn, cls: 'in' as const, label: result.hasNetwork ? 'z_in' : 'z_L' };
+  }, [hl.readout, result, walkStep]);
+  const showStrip = state.showRadial || !!hl.readout;
+  const stripReadout = useMemo(
+    () => (readoff ? { mag: abs(readoff.g), cls: readoff.cls, label: readoff.label } : undefined),
+    [readoff],
+  );
 
   // points
   const pts: Pt[] = useMemo(() => {
@@ -128,7 +149,7 @@ export const SmithChart: React.FC = () => {
           <Toggle k="showPath" label="Path" />
           <Toggle k="showScale" label="สเกลรอบนอก" />
           <Toggle k="showFine" label="กริดละเอียด" />
-          <Toggle k="showRadial" label="แถบ SWR/RL" />
+          <Toggle k="showRadial" label="อ่าน SWR/RL" />
           {sweep.length > 0 && <Toggle k="showSweep" label="กวาดความถี่" />}
           <button className={`chip ${state.markerMode ? 'on' : ''}`} onClick={() => dispatch({ type: 'marker_mode', value: !state.markerMode })} title="เปิดแล้วคลิกบนกราฟเพื่อปักจุด z (ดูรายการด้านล่างกราฟ)">
             📍 Mark z{state.markers.length ? ` (${state.markers.length})` : ''}
@@ -153,6 +174,12 @@ export const SmithChart: React.FC = () => {
             </marker>
             <marker id="arrowOv" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto">
               <path d="M0,0 L10,5 L0,10 z" fill="#be185d" />
+            </marker>
+            <marker id="arrowRo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="context-stroke" />
+            </marker>
+            <marker id="arrowRoDown" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="context-stroke" />
             </marker>
           </defs>
           <circle cx={CX} cy={CY} r={R} className="chart-bg" />
@@ -306,6 +333,9 @@ export const SmithChart: React.FC = () => {
               })}
             </g>
           )}
+          {/* read SWR / RL off the radius */}
+          {readoff && <ReadOff g={readoff.g} cls={readoff.cls} label={readoff.label} ruler={showStrip} />}
+
           {/* center marker */}
           <g className={`center ${hl.center ? 'hl' : ''}`}>
             <line x1={CX - 7} y1={CY} x2={CX + 7} y2={CY} />
@@ -369,7 +399,14 @@ export const SmithChart: React.FC = () => {
           <span><i className="dot in" /> z_in</span>
           <span><i className="dot probe" /> Probe</span>
         </div>
-        {(state.showRadial || state.maximized === 'chart') && <RadialScales gammaIn={result.gammaIn} gammaL={result.gammaL} hasNetwork={result.hasNetwork} />}
+        {showStrip && (
+          <RadialScales
+            gammaIn={result.gammaIn}
+            gammaL={result.gammaL}
+            hasNetwork={result.hasNetwork}
+            readout={stripReadout}
+          />
+        )}
       </div>
       {(state.markerMode || state.markers.length > 0) && <MarkerPanel />}
       <div className={`stats ${result.matched ? 'matched' : ''}`}>

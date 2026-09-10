@@ -418,5 +418,58 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
     !Number.isFinite(ro1.swr) && near(ro1.rlDb, 0, 1e-9) && near(ro1.reflPct, 100, 1e-9), '');
 }
 
+// 24. Every circuit gets a "read it off the scales" step, and the |Γ| it asks the
+//     chart to draw must be the |Γ| of the point it names.
+{
+  const { magFromSwr: magFromSwr2, zFromGamma: zFromG2 } = await import('./rf');
+  const bad: string[] = [];
+  let withNetwork = 0;
+  for (const lesson of ALL_LESSONS) {
+    const circuit = lesson.solution ? lesson.solution() : lesson.start();
+    if (circuit.elements.length === 0) continue;
+    const res = solveCircuit(circuit);
+    const steps = explainCircuit(res);
+    const ro = steps.filter((st) => st.highlight?.readout);
+    if (ro.length === 0) { bad.push(`${lesson.id}: no read-off step`); continue; }
+    for (const st of ro) {
+      const r = st.highlight!.readout!;
+      const g = r.from === 'load' ? res.gammaL : res.gammaIn;
+      if (Math.abs(abs(r.g) - abs(g)) > 1e-9) bad.push(`${lesson.id}/${r.from}: mag ${abs(r.g)} vs ${abs(g)}`);
+      if (!(abs(r.g) >= 0 && abs(r.g) <= 1.0001)) bad.push(`${lesson.id}: mag out of range ${abs(r.g)}`);
+    }
+    if (res.hasNetwork) { withNetwork++; if (ro.length < 2) bad.push(`${lesson.id}: network but only ${ro.length} read-off step(s)`); }
+  }
+  check('every circuit explains how to read SWR/RL off the scales', bad.length === 0, bad.slice(0, 3).join(' | '));
+  check('circuits with a matching network read off twice (load and input)', withNetwork > 5, `${withNetwork} with a network`);
+
+  // the walkthrough carries the same construction
+  const walkBad: string[] = [];
+  for (const lesson of ALL_LESSONS) {
+    if (!lesson.solution) continue;
+    const sol = lesson.solution();
+    const w = smithMethodSteps(lesson, sol);
+    const solRes = solveCircuit(sol);
+    const ro = w.filter((st) => st.highlight?.readout);
+    if (ro.length === 0) walkBad.push(lesson.id);
+    for (const st of ro) {
+      const r = st.highlight!.readout!;
+      // the walkthrough draws the SOLUTION's point, never the learner's live circuit
+      const gw = r.from === 'load' ? solRes.gammaL : solRes.gammaIn;
+      if (!Number.isFinite(abs(r.g)) || abs(r.g) < 0 || abs(r.g) > 1.0001) walkBad.push(`${lesson.id}:mag`);
+      if (Math.abs(abs(r.g) - abs(gw)) > 1e-9) walkBad.push(`${lesson.id}:${r.from} ${abs(r.g)} vs ${abs(gw)}`);
+    }
+  }
+  check('the Smith-chart walkthrough also shows the read-off', walkBad.length === 0, walkBad.slice(0, 4).join(' '));
+
+  // the axis the chart draws the ruler on really is the SWR axis
+  const rulerBad: string[] = [];
+  for (const swr of [1.5, 2, 3, 5, 10]) {
+    const m = magFromSwr2(swr);
+    const zAtTick = zFromG2({ re: m, im: 0 });
+    if (Math.abs(zAtTick.re - swr) > 1e-9 || Math.abs(zAtTick.im) > 1e-12) rulerBad.push(`${swr}->${fmtNum(zAtTick.re, 4)}`);
+  }
+  check('the SWR ruler ticks land on r = SWR', rulerBad.length === 0, rulerBad.join(' '));
+}
+
 console.log(fails === 0 ? '\nALL PASS (basics course)' : `\n${fails} FAILED`);
 if (fails > 0) throw new Error(`${fails} self-test(s) failed`);

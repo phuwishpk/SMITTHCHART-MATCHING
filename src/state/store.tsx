@@ -166,6 +166,8 @@ const applyQuery = (s: State): State => {
     if (step) out = { ...out, explainStep: Math.max(0, parseInt(step, 10) - 1 || 0) };
     if (q.get('all') === '1') out = { ...out, explainAll: true };
     if (q.get('y') === '1') out = { ...out, showY: true };
+    if (q.get('rad') === '1') out = { ...out, showRadial: true };
+    if (q.get('rad') === '0') out = { ...out, showRadial: false };
     if (q.get('solution') === '1') out = { ...out, showSolution: true };
     if (q.get('solution') === 'modal') out = { ...out, showSolution: true, modal: 'solution' };
     if (['problems', 'lessons', 'examples', 'glossary', 'matching'].includes(q.get('modal') ?? '')) out = { ...out, modal: q.get('modal') as State['modal'] };

@@ -128,7 +128,7 @@ h1, h2, h3 { margin: 0; }
 .numfield.compact label { font-size: 12px; }
 
 /* ---------- canvas ---------- */
-.canvas-wrap { display: flex; flex-direction: column; flex: 1 0 auto; min-height: 220px; }
+.canvas-wrap { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 220px; }
 .canvas-toolbar { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--border); background: #fff; flex-wrap: wrap; }
 .tb-group { display: flex; align-items: center; gap: 5px; font-size: 12.5px; }
 .tb-group label { color: var(--muted); font-weight: 600; }
@@ -192,7 +192,7 @@ h1, h2, h3 { margin: 0; }
 
 /* ---------- smith chart ---------- */
 .smith-wrap { display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: auto; }
-.smith-svg-wrap { position: relative; padding: 4px; flex: 1 0 auto; min-height: 300px; display: flex; flex-direction: column; align-items: center; }
+.smith-svg-wrap { position: relative; padding: 4px; flex: 1 1 auto; min-height: 340px; display: flex; flex-direction: column; align-items: center; }
 .smith-svg { width: 100%; height: 100%; flex: 1; min-height: 0; display: block; }
 .legend { flex-shrink: 0; }
 .stats { flex-shrink: 0; }
@@ -386,8 +386,9 @@ h1, h2, h3 { margin: 0; }
 /* chart */
 .app.max-chart .col-right { display: flex; }
 .app.max-chart .smith-svg-wrap { align-items: center; justify-content: center; }
-.app.max-chart .smith-svg { max-width: min(100%, calc(100vh - 210px)); }
-.app.max-chart .smith-svg-wrap { min-height: min(76vh, 88vw); }
+.app.max-chart .smith-svg { max-width: min(100%, calc(100vh - 240px)); }
+.app.max-chart .radial-scales { max-width: min(100%, calc(100vh - 240px)); }
+.app.max-chart .smith-svg-wrap { min-height: min(70vh, 86vw); }
 /* explanation */
 .app.max-explain { grid-template-rows: auto auto 1fr; }
 .app.max-explain .main { display: none; }
@@ -543,6 +544,43 @@ h1, h2, h3 { margin: 0; }
 .rs-marker.in text { fill: var(--in); }
 .rs-marker.load line { stroke: var(--load); }
 .rs-marker.load text { fill: var(--load); }
+
+/* ---------- read the value off the scales ---------- */
+/* the line the compass would leave on the strip, and what each row reads there */
+.rs-read-halo { stroke: #fff; stroke-width: 5; }
+.rs-read-line { stroke-width: 2; stroke-dasharray: 6 3; }
+.rs-read-dot { stroke: #fff; stroke-width: 1.2; }
+.rs-read-val { font-size: 11px; font-weight: 700; font-family: var(--mono); paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.rs-read-flag rect { stroke: none; }
+.rs-read-flag text { font-size: 10.5px; font-weight: 700; fill: #fff; }
+.rs-title { font-size: 8px; fill: #94a3b8; font-weight: 700; letter-spacing: 0.08em; }
+.rs-read.in .rs-read-line { stroke: var(--in); }
+.rs-read.in .rs-read-dot, .rs-read.in .rs-read-flag rect { fill: var(--in); }
+.rs-read.in .rs-read-val { fill: var(--in); }
+.rs-read.load .rs-read-line { stroke: var(--load); }
+.rs-read.load .rs-read-dot, .rs-read.load .rs-read-flag rect { fill: var(--load); }
+.rs-read.load .rs-read-val { fill: var(--load); }
+
+/* the same construction drawn on the chart: radius, swing, drop line */
+.smith-svg .ro-axis { stroke: #334155; stroke-width: 1.6; }
+.smith-svg .ro-tick { stroke: #334155; stroke-width: 1.2; }
+.smith-svg .ro-tick.minor { stroke: #94a3b8; stroke-width: 0.8; }
+.smith-svg .ro-tick-label { font-size: 11px; font-weight: 700; fill: #0f172a; font-family: var(--mono); paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.smith-svg .ro-caption { font-size: 10.5px; font-weight: 700; fill: #475569; letter-spacing: 0.04em; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.smith-svg .ro-spoke { stroke-width: 2.6; opacity: 0.95; }
+.smith-svg .ro-arc { fill: none; stroke-width: 2.6; stroke-dasharray: 7 4; opacity: 0.95; }
+.smith-svg .ro-dot { stroke: #fff; stroke-width: 1.6; }
+.smith-svg .ro-drop-halo { stroke: #fff; stroke-width: 6; }
+.smith-svg .ro-drop { stroke-width: 2.2; stroke-dasharray: 7 5; }
+.smith-svg .ro-flag text { font-size: 13px; font-weight: 700; font-family: var(--mono); paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
+.smith-svg .ro-flag .ro-flag-sub { font-size: 11.5px; }
+.smith-svg .ro-drop-label { font-size: 11px; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.smith-svg .ro.in .ro-spoke, .smith-svg .ro.in .ro-arc, .smith-svg .ro.in .ro-drop { stroke: var(--in); }
+.smith-svg .ro.in .ro-dot { fill: var(--in); }
+.smith-svg .ro.in .ro-flag text, .smith-svg .ro.in .ro-drop-label { fill: var(--in); }
+.smith-svg .ro.load .ro-spoke, .smith-svg .ro.load .ro-arc, .smith-svg .ro.load .ro-drop { stroke: var(--load); }
+.smith-svg .ro.load .ro-dot { fill: var(--load); }
+.smith-svg .ro.load .ro-flag text, .smith-svg .ro.load .ro-drop-label { fill: var(--load); }
 
 /* ---------- frequency sweep / band ---------- */
 .smith-svg .target-circle { fill: none; stroke: #d97706; stroke-width: 2.2; stroke-dasharray: 8 5; }
@@ -836,7 +874,7 @@ img, svg, table { max-width: 100%; }
   .schematic-svg .el-name { font-size: 17px; }
   .schematic-svg .el-value { font-size: 15px; }
   .schematic-svg .tl-label { font-size: 14px; }
-  .radial-scales { max-width: 700px; }
+  .radial-scales { max-width: 620px; }
 }
 
 /* ---------------- phone: everything stacks ---------------- */
@@ -895,6 +933,13 @@ img, svg, table { max-width: 100%; }
   .rs-label { font-size: 12px; }
   .rs-tick-label { font-size: 10px; }
   .rs-marker text { font-size: 11px; }
+  .rs-read-val { font-size: 13px; }
+  .rs-read-flag text { font-size: 12px; }
+  .smith-svg .ro-tick-label { font-size: 19px; }
+  .smith-svg .ro-caption { font-size: 17px; }
+  .smith-svg .ro-flag text { font-size: 22px; }
+  .smith-svg .ro-flag .ro-flag-sub { font-size: 19px; }
+  .smith-svg .ro-drop-label { font-size: 18px; }
   .band-table { font-size: 10px; }
   .band-table-wrap { max-height: 150px; }
 
