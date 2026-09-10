@@ -243,6 +243,7 @@ export const reducer = (s: State, a: Action): State => {
       if (!lesson) return s;
       return {
         ...s,
+        view: 'lab',
         mode: 'guided',
         lessonId: lesson.id,
         lessonDone: 0,
@@ -264,7 +265,7 @@ export const reducer = (s: State, a: Action): State => {
     case 'lesson_solution': {
       const lesson = findLesson(s.lessonId);
       if (!lesson || !lesson.solution) return s;
-      return { ...s, circuit: lesson.solution(), selectedId: null, probe: null, lastSolutionStep: 'ใช้ค่าเฉลยทั้งหมดแล้ว' };
+      return { ...s, circuit: lesson.solution(), selectedId: null, probe: null, lastSolutionStep: 'ใช้ค่าเฉลยทั้งหมดแล้ว', view: 'lab' };
     }
     case 'show_solution':
       return { ...s, showSolution: a.value, solutionStep: a.value ? s.solutionStep : null };
@@ -273,13 +274,13 @@ export const reducer = (s: State, a: Action): State => {
     case 'answers_checked':
       return { ...s, answersChecked: a.value };
     case 'solution_walk':
-      return { ...s, solutionStep: a.i, showSolution: a.i === null ? s.showSolution : true };
+      return { ...s, solutionStep: a.i, showSolution: a.i === null ? s.showSolution : true, view: a.i === null ? s.view : 'lab' };
     case 'solution_step':
-      return { ...s, circuit: a.circuit, lastSolutionStep: a.what, selectedId: null, probe: null };
+      return { ...s, circuit: a.circuit, lastSolutionStep: a.what, selectedId: null, probe: null, view: 'lab' };
     case 'example': {
       const ex = EXAMPLES.find((e) => e.id === a.id);
       if (!ex) return s;
-      return { ...s, circuit: ex.circuit(), selectedId: null, probe: null, modal: 'none', explainStep: 0, lessonId: null, mode: 'free' };
+      return { ...s, circuit: ex.circuit(), selectedId: null, probe: null, modal: 'none', explainStep: 0, lessonId: null, mode: 'free', view: 'lab' };
     }
     case 'toggle':
       return { ...s, [a.key]: a.value === undefined ? !s[a.key] : a.value };
@@ -306,7 +307,7 @@ export const reducer = (s: State, a: Action): State => {
       return { ...s, circuit: { ...s.circuit, elements } };
     }
     case 'reset':
-      return { ...defaultState(), mode: s.mode, maximized: s.maximized, circuit: cloneCircuit(emptyCircuit()) };
+      return { ...defaultState(), mode: s.mode, maximized: s.maximized, courseChapter: s.courseChapter, circuit: cloneCircuit(emptyCircuit()) };
     default:
       return s;
   }

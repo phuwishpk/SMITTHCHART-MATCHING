@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { useAppState, useDispatch, useDerived } from '../state/store';
 import { CircuitElement, ELEMENT_SPECS, ElementType, isLine, isStub, antennaZ } from '../engine/circuit';
 import { fmtNum } from '../engine/complex';
+import { startExplain } from './startExplain';
 
 export const RAIL_Y = 96;
 export const SLOT_W = 124;
@@ -251,7 +252,7 @@ export const CircuitCanvas: React.FC = () => {
         <button className="btn ghost danger" onClick={() => dispatch({ type: 'set_circuit', circuit: { ...circuit, elements: [] }, select: null })} title="ล้างอุปกรณ์ทั้งหมด">
           ✕ ล้างวงจร
         </button>
-        <button className="btn primary" onClick={() => { if (state.maximized) dispatch({ type: 'maximize', panel: null }); dispatch({ type: 'explain_all', value: false }); dispatch({ type: 'explain_step', i: 0 }); requestAnimationFrame(() => document.getElementById('explain-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })); }}>
+        <button className="btn primary" onClick={() => startExplain(dispatch, state.maximized)}>
           ▶ Explain this circuit
         </button>
       </div>

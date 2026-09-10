@@ -3,6 +3,7 @@ import { useAppState, useDispatch, useDerived } from '../state/store';
 import { ExplainStep } from '../engine/explain';
 import { Line } from './StepLines';
 import { MaxButton } from './MaxButton';
+import { startExplain } from './startExplain';
 
 const StepCard: React.FC<{ step: ExplainStep; n: number; active?: boolean; onClick?: () => void }> = ({ step, n, active, onClick }) => (
   <div className={`step-card tag-${step.tag} ${active ? 'active' : ''}`} onClick={onClick}>
@@ -50,7 +51,7 @@ export const ExplanationPanel: React.FC = () => {
       <div className="panel-head">
         <span className="panel-title">STEP-BY-STEP EXPLANATION</span>
         <div className="chip-row">
-          <button className="btn primary small" onClick={() => { dispatch({ type: 'explain_all', value: false }); dispatch({ type: 'explain_step', i: 0 }); }}>
+          <button className="btn primary small" onClick={() => startExplain(dispatch, state.maximized)}>
             ▶ Explain this circuit
           </button>
           <button className={`chip ${auto ? 'on' : ''}`} onClick={() => { if (!auto && idx >= steps.length - 1) dispatch({ type: 'explain_step', i: 0 }); setAuto(!auto); dispatch({ type: 'explain_all', value: false }); }}>

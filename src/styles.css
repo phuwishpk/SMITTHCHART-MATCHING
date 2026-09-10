@@ -668,3 +668,9 @@ h1, h2, h3 { margin: 0; }
 .band-table th, .band-table td { padding: 1px 5px; }
 .band-table-wrap { max-height: 118px; overflow: auto; }
 .cfig.circuit { max-width: 620px; }
+
+/* feedback when "Explain this circuit" is pressed while already on step 1 */
+@keyframes explainFlash { 0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.55); } 100% { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0); } }
+.explain.flash { animation: explainFlash 0.9s ease-out; border-color: var(--accent); }
+.explain.flash .step-card.active { background: #f5f9ff; }
+.pal-item.ghost { pointer-events: none; }
