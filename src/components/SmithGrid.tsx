@@ -160,15 +160,15 @@ const Labels: React.FC<{ mirror: boolean }> = ({ mirror }) => {
   );
 };
 
-export const DetailedGrid: React.FC<{ showZ: boolean; showY: boolean }> = React.memo(({ showZ, showY }) => (
+export const DetailedGrid: React.FC<{ showZ: boolean; showY: boolean; clipId?: string }> = React.memo(({ showZ, showY, clipId = 'clipUnit' }) => (
   <g>
     {showZ && (
-      <g className="grid z" clipPath="url(#clipUnit)">
+      <g className="grid z" clipPath={`url(#${clipId})`}>
         <Family mirror={false} prefix="z" />
       </g>
     )}
     {showY && (
-      <g className="grid y" clipPath="url(#clipUnit)">
+      <g className="grid y" clipPath={`url(#${clipId})`}>
         <Family mirror prefix="y" />
       </g>
     )}

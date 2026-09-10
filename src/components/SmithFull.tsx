@@ -33,7 +33,7 @@ export interface SmithFullProps {
  */
 export const SmithFull: React.FC<SmithFullProps> = React.memo(
   ({ title, points, curves, swr, showY = false, scale = true, fine = true, readout, rCircles, xCircles, gCircles, bCircles, labels, note }) => {
-    const uid = React.useId().replace(/:/g, '');
+    const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
     const clip = `cf${uid}`;
     return (
       <div className="smith-full">
@@ -56,7 +56,7 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
             </defs>
             <circle cx={CX} cy={CY} r={R} className="chart-bg" />
             {scale && <OuterScales />}
-            <DetailedGrid showZ showY={showY} />
+            <DetailedGrid showZ showY={showY} clipId={clip} />
 
             {/* highlighted coordinate lines */}
             <g className="highlights" clipPath={`url(#${clip})`}>
