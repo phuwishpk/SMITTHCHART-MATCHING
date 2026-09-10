@@ -74,6 +74,7 @@ export const GuidePanel: React.FC = () => {
         <span className="spacer" />
         <span className="progress">{Math.min(done, total)}/{total}</span>
         <button className="chip" onClick={() => setShowConcept(!showConcept)}>{showConcept ? 'ซ่อนแนวคิด' : 'แนวคิด'}</button>
+        <button className="chip match-chip" title="ให้ระบบออกแบบวงจร matching จากโหลดของโจทย์นี้" onClick={() => dispatch({ type: 'modal', modal: 'matching' })}>⚡ สร้างวงจร matching</button>
         <button className={`chip ${state.showSolution ? 'on' : ''}`} onClick={() => dispatch({ type: 'show_solution', value: !state.showSolution })}>{state.showSolution ? 'ซ่อนเฉลย' : 'เฉลย'}</button>
         {SECTION_LINKS[lesson.id] && (
           <button className="chip course-link" title={`เปิดคอร์ส: ${sectionLabel(SECTION_LINKS[lesson.id])}`} onClick={() => dispatch({ type: 'course_section', chapter: SECTION_LINKS[lesson.id].chapter, section: SECTION_LINKS[lesson.id].section })}>

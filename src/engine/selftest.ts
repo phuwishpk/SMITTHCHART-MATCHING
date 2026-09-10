@@ -266,3 +266,33 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
 
 console.log(fails === 0 ? '\nALL PASS (markers)' : `\n${fails} FAILED`);
 if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
+
+// 20. Auto-match must produce a working circuit for every example, lesson and problem
+{
+  const { autoMatch } = await import('./autoMatch');
+  const { EXAMPLES: EXS } = await import('./lessons');
+  const targets: { name: string; circuit: ReturnType<typeof solveCircuit>['circuit'] }[] = [
+    ...EXS.map((e) => ({ name: `ex:${e.id}`, circuit: e.circuit() })),
+    ...ALL_LESSONS.map((l) => ({ name: `${l.id}`, circuit: l.solution ? l.solution() : l.start() })),
+  ].filter((t) => t.circuit.elements.length > 0);
+  const failed: string[] = [];
+  const skipped: string[] = [];
+  let total = 0;
+  for (const t of targets) {
+    const r = autoMatch(t.circuit);
+    if (r.problem) { skipped.push(t.name); continue; }
+    total += r.candidates.length;
+    // every proposal must match at the design frequency, and the built circuit must solve
+    const bad = r.candidates.filter((c) => !(c.swr <= 1.05) || solveCircuit(c.circuit).swrIn > 1.05);
+    if (r.candidates.length === 0 || bad.length) failed.push(`${t.name}(${bad.length}/${r.candidates.length})`);
+  }
+  check('auto-match designs a matched circuit everywhere', failed.length === 0, failed.join(' '));
+  check('auto-match keeps the load intact', targets.every((t) => {
+    const r = autoMatch(t.circuit);
+    return r.problem !== undefined || r.candidates.every((c) => c.circuit.elements.slice(-r.loadCount).every((e, i) => e.type === t.circuit.elements.slice(-r.loadCount)[i].type));
+  }));
+  console.log(`   auto-match: ${targets.length - skipped.length} วงจร, ${total} ข้อเสนอ, ข้าม ${skipped.length} (โหลดไม่มีส่วนจริง: ${skipped.join(' ')})`);
+}
+
+console.log(fails === 0 ? '\nALL PASS (auto-match)' : `\n${fails} FAILED`);
+if (fails > 0) throw new Error(`${fails} self-test(s) failed`);

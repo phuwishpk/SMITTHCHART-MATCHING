@@ -252,6 +252,9 @@ export const CircuitCanvas: React.FC = () => {
         <button className="btn ghost danger" onClick={() => dispatch({ type: 'set_circuit', circuit: { ...circuit, elements: [] }, select: null })} title="ล้างอุปกรณ์ทั้งหมด">
           ✕ ล้างวงจร
         </button>
+        <button className="btn match" title="ออกแบบวงจร matching จากโหลดปัจจุบัน แล้วเปลี่ยนเป็นวงจรใหม่ที่แมตช์" onClick={() => { if (state.maximized) dispatch({ type: 'maximize', panel: null }); dispatch({ type: 'modal', modal: 'matching' }); }}>
+          ⚡ สร้างวงจร matching
+        </button>
         <button className="btn primary" onClick={() => startExplain(dispatch, state.maximized)}>
           ▶ Explain this circuit
         </button>
