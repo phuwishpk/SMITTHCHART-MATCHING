@@ -8,6 +8,7 @@ import { zFromGamma, admittance, swrFromGamma, wtgFromGamma, gammaFromz, returnL
 import { probeOnLine } from '../engine/solver';
 import { Highlight } from '../engine/explain';
 import { MaxButton } from './MaxButton';
+import { tip } from '../engine/glossary';
 import { findLesson } from '../engine/lessons';
 import { smithMethodSteps } from '../engine/smithMethod';
 
@@ -333,16 +334,16 @@ export const SmithChart: React.FC = () => {
       </div>
       <div className={`stats ${result.matched ? 'matched' : ''}`}>
         <div className="stats-row">
-          <div className="stat"><span className="k">Z_in</span><span className="v">{isFiniteC(result.Zin) ? `${fmtNum(result.Zin.re, 2)} ${result.Zin.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(result.Zin.im), 2)} Ω` : '∞'}</span></div>
-          <div className="stat"><span className="k">z_in</span><span className="v">{fmtz(result.zin)}</span></div>
-          <div className="stat"><span className="k">Γ</span><span className="v">{fmtNum(abs(result.gammaIn), 3)} ∠{fmtNum(deg(arg(result.gammaIn)), 1)}°</span></div>
-          <div className="stat"><span className="k">SWR</span><span className="v big">{Number.isFinite(result.swrIn) ? fmtNum(result.swrIn, 2) : '∞'}</span></div>
-          <div className="stat"><span className="k">Return loss</span><span className="v">{Number.isFinite(result.returnLossDb) ? `${fmtNum(result.returnLossDb, 1)} dB` : '∞'}</span></div>
+          <div className="stat" title={tip('Zin')}><span className="k">Z_in <i className="hint">?</i></span><span className="v">{isFiniteC(result.Zin) ? `${fmtNum(result.Zin.re, 2)} ${result.Zin.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(result.Zin.im), 2)} Ω` : '∞'}</span></div>
+          <div className="stat" title={tip('z')}><span className="k">z_in <i className="hint">?</i></span><span className="v">{fmtz(result.zin)}</span></div>
+          <div className="stat" title={tip('Gamma')}><span className="k">Γ <i className="hint">?</i></span><span className="v">{fmtNum(abs(result.gammaIn), 3)} ∠{fmtNum(deg(arg(result.gammaIn)), 1)}°</span></div>
+          <div className="stat" title={tip('SWR')}><span className="k">SWR <i className="hint">?</i></span><span className="v big">{Number.isFinite(result.swrIn) ? fmtNum(result.swrIn, 2) : '∞'}</span></div>
+          <div className="stat" title={tip('RL')}><span className="k">Return loss <i className="hint">?</i></span><span className="v">{Number.isFinite(result.returnLossDb) ? `${fmtNum(result.returnLossDb, 1)} dB` : '∞'}</span></div>
         </div>
         {sweep.length > 0 && (
           <div className="band-table-wrap">
             <table className="band-table">
-              <thead><tr><th>f (MHz)</th>{result.hasNetwork && <th>z_L</th>}<th>z_in</th><th>|Γ|</th><th>SWR</th></tr></thead>
+              <thead><tr><th title={tip('f')}>f (MHz)</th>{result.hasNetwork && <th title={tip('ZL')}>z_L</th>}<th title={tip('Zin')}>z_in</th><th title={tip('absGamma')}>|Γ|</th><th title={tip('SWR')}>SWR</th></tr></thead>
               <tbody>
                 {sweep.map((p) => (
                   <tr key={p.f} className={state.swrTarget && p.result.swrIn > state.swrTarget ? 'over' : ''}>

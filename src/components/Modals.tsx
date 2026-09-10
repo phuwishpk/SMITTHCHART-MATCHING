@@ -3,6 +3,7 @@ import { useAppState, useDispatch } from '../state/store';
 import { LESSONS, EXAMPLES, PROBLEMS, findLesson } from '../engine/lessons';
 import { SECTION_LINKS, sectionLabel } from '../engine/course';
 import { SolutionModalBody } from './SolutionPanel';
+import { GlossaryPanel } from './GlossaryPanel';
 
 export const Modals: React.FC = () => {
   const state = useAppState();
@@ -38,6 +39,19 @@ export const Modals: React.FC = () => {
             <button className="btn ghost" onClick={close}>✕</button>
           </div>
           {lesson ? <SolutionModalBody lesson={lesson} /> : <div className="modal-body">เลือกบทเรียนก่อน</div>}
+        </div>
+      </div>
+    );
+  }
+  if (state.modal === 'glossary') {
+    return (
+      <div className="modal-backdrop" onClick={close}>
+        <div className="modal wide" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-head">
+            <h2>📗 ความหมายของตัวย่อและสัญลักษณ์</h2>
+            <button className="btn ghost" onClick={close}>✕</button>
+          </div>
+          <GlossaryPanel />
         </div>
       </div>
     );

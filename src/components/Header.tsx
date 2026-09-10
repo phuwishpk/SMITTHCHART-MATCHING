@@ -56,6 +56,9 @@ export const Header: React.FC = () => {
         <button className="btn" onClick={() => dispatch({ type: 'modal', modal: 'problems' })}>
           📝 โจทย์ Z / Y
         </button>
+        <button className="btn" title="อธิบายตัวย่อและสัญลักษณ์ทั้งหมดที่ใช้ในเว็บ" onClick={() => dispatch({ type: 'modal', modal: 'glossary' })}>
+          📗 ตัวย่อ
+        </button>
         <button className="btn" onClick={() => dispatch({ type: 'modal', modal: 'examples' })}>
           🧪 ตัวอย่าง
         </button>

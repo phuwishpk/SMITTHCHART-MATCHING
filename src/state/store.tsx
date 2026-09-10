@@ -39,7 +39,7 @@ export interface State {
   probe: Probe | null;
   explainStep: number;
   explainAll: boolean;
-  modal: 'none' | 'lessons' | 'examples' | 'solution' | 'problems';
+  modal: 'none' | 'lessons' | 'examples' | 'solution' | 'problems' | 'glossary';
   /** learner-typed numeric answers, keyed `${lessonId}:${answerKey}` */
   answers: Record<string, string>;
   answersChecked: boolean;
@@ -138,7 +138,7 @@ const applyQuery = (s: State): State => {
     if (q.get('y') === '1') out = { ...out, showY: true };
     if (q.get('solution') === '1') out = { ...out, showSolution: true };
     if (q.get('solution') === 'modal') out = { ...out, showSolution: true, modal: 'solution' };
-    if (q.get('modal') === 'problems' || q.get('modal') === 'lessons' || q.get('modal') === 'examples') out = { ...out, modal: q.get('modal') as State['modal'] };
+    if (['problems', 'lessons', 'examples', 'glossary'].includes(q.get('modal') ?? '')) out = { ...out, modal: q.get('modal') as State['modal'] };
     if (q.get('view') === 'course') out = { ...out, view: 'course' };
     const ch = q.get('ch');
     if (ch) out = { ...out, courseChapter: ch, view: 'course' };

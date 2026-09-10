@@ -13,6 +13,7 @@ import { gammaFromZ, zFromGamma, normalize, admittance, rotateTowardGenerator, l
 import { solveSingleStub } from './matching';
 import type { PlotSeries } from '../components/MiniPlot';
 import type { SmithPoint, SmithCurve } from '../components/SmithFigure';
+import { GLOSSARY, GROUP_LABEL } from './glossary';
 
 export type Figure =
   | { kind: 'plot'; title: string; xLabel: string; yLabel: string; xMin: number; xMax: number; yMin?: number; yMax?: number; series: PlotSeries[]; xTicks?: number[]; yTicks?: number[]; markers?: { x: number; y: number; text: string; color?: string }[]; caption?: string }
@@ -169,6 +170,19 @@ export const COURSE: Chapter[] = [
           T('ไฟล์ที่ใช้อ้างอิงมี 157 หน้า: ส่วนต้น (Foreword, Preface, About the Author, Contents, Errata), Introduction, Chapter I–V ครบ และ Chapter VI ถึง Example 6 บางส่วน — ไฟล์จบกลางตัวอย่างที่หน้า 6-39 ซึ่งเป็น schematic ของ matching solution (มีขั้นตอนถึงการทดลอง short-circuited stub 100 Ω แล้ว แต่ Fig. 6-6(a)–(c) ไม่มีในไฟล์) ส่วน Example 7–11 และ Chapter VII (Construction of Overlay Tracing Box) ไม่มีในไฟล์ แม้สารบัญจะระบุไว้'),
           W('Errata (หน้า 10–13 ของไฟล์) แก้ไขเครื่องหมายของ reactance/susceptance, สมการ characteristic impedance, VSWR, reflected power, line transformer, open/short stub และทิศทางการเคลื่อนจุดบน Smith Chart — เวลาทำโจทย์จากหนังสือให้ใช้ Errata ประกอบ สูตรในหัวข้อนี้ใช้เครื่องหมายมาตรฐาน (inductive = +jX, capacitive = −jX) ซึ่งตรงกับ engine ของแอป'),
           N('ภาพในหัวข้อนี้เป็น "ภาพจำลองตามแนวคิดของ Figure ในหนังสือ" คำนวณสดด้วย engine ไม่ใช่ภาพจากหนังสือ ตัวเลขที่ระบุว่า "จากหนังสือ" คือค่าที่ยกมาจากส่วนของหนังสือที่ใช้อ้างอิงได้ (ไฟล์ 157 หน้าข้างต้น) ส่วนค่าที่ระบุว่า "คำนวณโดยแอป" คือค่าที่ engine คำนวณเพิ่มเติม และค่าที่ระบุว่า "ค่าสมมุติ" คือตัวเลขที่ผู้จัดทำกำหนดขึ้นเพื่อประกอบคำอธิบาย ไม่ใช่ตัวเลขจากหนังสือ'),
+        ],
+      },
+      {
+        id: 'symbols', title: 'ตัวย่อและสัญลักษณ์ที่ใช้ทั้งเว็บ',
+        lines: [
+          T('ทุกบทใช้สัญลักษณ์ชุดเดียวกัน ตารางด้านล่างสรุปตัวที่พบบ่อยที่สุด · รายการเต็มพร้อมสูตรและลิงก์ไปยังหัวข้อที่อธิบาย กดปุ่ม "📗 ตัวย่อ" ที่แถบบนสุดของเว็บได้ทุกเมื่อ'),
+          N('บนหน้า Lab: เอาเมาส์ชี้ค่าที่แผง SMITH CHART (Z_in, z_in, Γ, SWR, Return loss) หัวตารางแบนด์ หรือการ์ดอุปกรณ์ จะมีคำอธิบายสั้น ๆ ขึ้นมา'),
+          N('ตัวพิมพ์เล็ก (z, r, x, y, g, b) หมายถึงค่าที่หารด้วย Z₀ แล้ว (normalized) ส่วนตัวพิมพ์ใหญ่ (Z, R, X, Y, G, B) คือค่าจริงที่มีหน่วยโอห์มหรือซีเมนส์'),
+        ],
+        figures: [
+          { kind: 'table', title: 'สัญลักษณ์ที่พบบ่อย', head: ['สัญลักษณ์', 'ชื่อ', 'หน่วย', 'ความหมาย'],
+            rows: GLOSSARY.filter((g) => g.group === 'basic' || g.group === 'norm' || g.group === 'smith').map((g) => [g.sym, `${g.nameTh} (${g.name})`, g.unit ?? '—', g.short]),
+            caption: `กลุ่มที่เหลือ (${GROUP_LABEL.line}, ${GROUP_LABEL.match}, ${GROUP_LABEL.unit}, ${GROUP_LABEL.ui}) ดูได้ในปุ่ม 📗 ตัวย่อ` },
         ],
       },
       {

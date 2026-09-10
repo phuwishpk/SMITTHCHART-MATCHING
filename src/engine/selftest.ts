@@ -219,3 +219,23 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
 
 console.log(fails === 0 ? '\nALL PASS (section links)' : `\n${fails} FAILED`);
 if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
+
+// 18. Glossary: unique ids, no empty fields, every course link resolves, tooltips render
+{
+  const { GLOSSARY, tip, searchGlossary, SYMBOLS_SECTION, glossaryEntry } = await import('./glossary');
+  const { findChapter } = await import('./course');
+  const ids = GLOSSARY.map((g) => g.id);
+  check('glossary ids unique', new Set(ids).size === ids.length, ids.filter((id, i) => ids.indexOf(id) !== i).join(' '));
+  const empty = GLOSSARY.filter((g) => !g.sym || !g.name || !g.nameTh || !g.short);
+  check('glossary entries complete', empty.length === 0, empty.map((g) => g.id).join(' '));
+  const badLinks = GLOSSARY.filter((g) => g.link && !findChapter(g.link.chapter)?.sections.some((s) => s.id === g.link!.section));
+  check('glossary course links resolve', badLinks.length === 0, badLinks.map((g) => `${g.id}->${g.link!.chapter}/${g.link!.section}`).join(' '));
+  check('glossary symbols section exists', !!findChapter(SYMBOLS_SECTION.chapter)?.sections.some((s) => s.id === SYMBOLS_SECTION.section));
+  check('glossary tooltips render', ['SWR', 'Gamma', 'r', 'b', 'QWT', 'ANT'].every((id) => tip(id).length > 20 && !!glossaryEntry(id)));
+  check('glossary search works', searchGlossary('สตับ').length > 0 && searchGlossary('admittance').length > 0 && searchGlossary('ΓΓΓ').length === 0,
+    `สตับ=${searchGlossary('สตับ').length} admittance=${searchGlossary('admittance').length}`);
+  console.log(`   glossary: ${GLOSSARY.length} entries`);
+}
+
+console.log(fails === 0 ? '\nALL PASS (glossary)' : `\n${fails} FAILED`);
+if (fails > 0) throw new Error(`${fails} self-test(s) failed`);

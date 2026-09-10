@@ -2,6 +2,19 @@ import React from 'react';
 import { ELEMENT_SPECS, ElementType, PALETTE_ORDER } from '../engine/circuit';
 import { useAppState, useDispatch } from '../state/store';
 import { MaxButton } from './MaxButton';
+import { tip } from '../engine/glossary';
+
+const GLOSSARY_TIP: Partial<Record<string, string>> = {
+  resistor: tip('R'),
+  inductor: tip('XL'),
+  capacitor: tip('XC'),
+  tline: tip('TL'),
+  qwt: tip('QWT'),
+  load: tip('ZLblock'),
+  antenna: tip('ANT'),
+  stub_short: tip('Sstub'),
+  stub_open: tip('Ostub'),
+};
 
 export const Palette: React.FC = () => {
   const dispatch = useDispatch();
@@ -40,7 +53,7 @@ export const Palette: React.FC = () => {
               onDragStart={(e) => onDragStart(e, t)}
               onDragEnd={onDragEnd}
               onClick={() => dispatch({ type: 'add', elType: t, index: n, orient: spec.allowed.includes('series') ? 'series' : 'shunt' })}
-              title={`${spec.nameTh}\n${spec.description}\n\nลากไปวางบน Canvas หรือคลิกเพื่อเพิ่มท้ายวงจร${both ? ' (ปุ่ม ⏚ = เพิ่มแบบขนาน)' : ''}`}
+              title={`${spec.symbol} — ${spec.nameTh}\n${spec.description}${GLOSSARY_TIP[t] ? `\n\n${GLOSSARY_TIP[t]}` : ''}\n\nลากไปวางบน Canvas หรือคลิกเพื่อเพิ่มท้ายวงจร${both ? ' (ปุ่ม ⏚ = เพิ่มแบบขนาน)' : ''}`}
             >
               <span className="pal-sym" style={{ background: spec.color }}>{spec.symbol}</span>
               <span className="pal-text">
@@ -64,6 +77,7 @@ export const Palette: React.FC = () => {
       </div>
       <div className="palette-tip">
         ลากไปวาง <em>บนสาย</em> = อนุกรม · <em>ใต้สาย ⏚</em> = ขนานลงกราวด์ · คลิกการ์ด = เพิ่มท้ายวงจร
+        <button className="chip glossary-chip" onClick={() => dispatch({ type: 'modal', modal: 'glossary' })}>📗 ตัวย่อทั้งหมด</button>
       </div>
     </div>
   );

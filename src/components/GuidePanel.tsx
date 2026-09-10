@@ -4,7 +4,17 @@ import { LESSONS, PROBLEMS, findLesson, AnswerSpec } from '../engine/lessons';
 import { SolutionRow } from './SolutionPanel';
 import { solveCircuit } from '../engine/solver';
 import { SECTION_LINKS, sectionLabel } from '../engine/course';
+import { tip } from '../engine/glossary';
 import { fmtNum } from '../engine/complex';
+
+/** map an answer key to its glossary explanation */
+const ANSWER_TIP: Record<string, string> = {
+  r: tip('r'), x: tip('x'), g: tip('g'), b: tip('b'), gL: tip('g'), bL: tip('b'), bC: tip('b'), bAt: tip('b'), xL: tip('x'),
+  gamma: tip('absGamma'), swr: tip('SWR'), swrL: tip('SWR'), swr175: tip('SWR'),
+  R: tip('R'), X: tip('X'), RL: tip('R'), XL: tip('X'), G: tip('G'), B: tip('B'),
+  L: tip('Lind'), C: tip('Ccap'), Lsh: tip('Lind'), Lse: tip('Lind'), Zt: tip('Zt'), Q: tip('Q'),
+  d: tip('WTG'), l: tip('stub'), rin: tip('r'), xin: tip('x'),
+};
 
 export const GuidePanel: React.FC = () => {
   const state = useAppState();
@@ -82,7 +92,7 @@ export const GuidePanel: React.FC = () => {
         <div className="answers">
           <div className="answers-grid">
             {answerInfo.rows.map((row) => (
-              <label key={row.spec.key} className={`answer ${state.answersChecked ? (row.ok ? 'ok' : 'bad') : ''}`}>
+              <label key={row.spec.key} className={`answer ${state.answersChecked ? (row.ok ? 'ok' : 'bad') : ''}`} title={ANSWER_TIP[row.spec.key] || row.spec.label}>
                 <span className="answer-label">{row.spec.label}</span>
                 <input
                   type="text"
