@@ -19,7 +19,8 @@ export type Figure =
   | { kind: 'plot'; title: string; xLabel: string; yLabel: string; xMin: number; xMax: number; yMin?: number; yMax?: number; series: PlotSeries[]; xTicks?: number[]; yTicks?: number[]; markers?: { x: number; y: number; text: string; color?: string }[]; caption?: string }
   | { kind: 'smith'; title: string; points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean; rCircles?: number[]; xCircles?: number[]; gCircles?: number[]; bCircles?: number[]; regions?: boolean; labels?: { z: Complex; text: string }[]; caption?: string }
   | { kind: 'chart'; title: string; points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean;
-      scale?: boolean; fine?: boolean; grid?: 'full' | 'light' | 'none'; table?: boolean; readout?: Complex; rCircles?: number[]; xCircles?: number[];
+      scale?: boolean; fine?: boolean; grid?: 'full' | 'light' | 'none'; table?: boolean;
+      halves?: boolean; angles?: boolean; lcBar?: boolean; glyphs?: { z: Complex; kind: 'L' | 'C' | 'R' }[]; readout?: Complex; rCircles?: number[]; xCircles?: number[];
       gCircles?: number[]; bCircles?: number[]; labels?: { z: Complex; text: string }[]; caption?: string }
   | { kind: 'quiz'; question: string; choices: string[]; answer: number; explain: string; hint?: string;
       chart?: { points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean; scale?: boolean;

@@ -87,6 +87,10 @@ const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
             scale={fig.scale}
             fine={fig.fine}
             table={fig.table}
+            halves={fig.halves}
+            angles={fig.angles}
+            lcBar={fig.lcBar}
+            glyphs={fig.glyphs}
             grid={fig.grid}
             readout={fig.readout}
             rCircles={fig.rCircles}

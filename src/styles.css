@@ -678,6 +678,8 @@ h1, h2, h3 { margin: 0; }
 
 .smith-full { display: flex; flex-direction: column; gap: 6px; }
 .smith-full-scroll { overflow-x: auto; min-width: 0; max-width: 100%; }
+/* the printed chart keeps a floor width on a phone, so say that it scrolls (see the RESPONSIVE section) */
+.sf-scrollhint { display: none; font-size: 11.5px; color: #64748b; }
 .smith-full .smith-svg { display: block; width: 100%; height: auto; }
 /* the stripped-back chart used for the very first figure */
 .smith-svg .mgrid-guides circle { fill: none; stroke: #dbe3ec; stroke-width: 1.1; }
@@ -705,6 +707,25 @@ h1, h2, h3 { margin: 0; }
 .smith-full .cf-pt text { font-size: 14px; font-weight: 700; font-family: var(--mono); fill: #0f172a; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
 .smith-full .cf-swr-label { font-size: 12.5px; font-weight: 700; font-family: var(--mono); fill: var(--load); paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
 .smith-full .cf-label { font-size: 13px; font-weight: 700; fill: #334155; paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
+
+/* ---- the annotated reference chart: shaded halves, schematic symbols, angle ends ---- */
+.smith-full .cf-halves .half { stroke: none; }
+.smith-full .cf-halves .half.ind { fill: #64748b; opacity: 0.16; }
+.smith-full .cf-halves .half.cap { fill: #f59e0b; opacity: 0.17; }
+.smith-full .cf-glyph { fill: none; stroke: #0f172a; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round;
+  paint-order: stroke; }
+.smith-full .cf-ang text { font-size: 19px; font-weight: 700; font-family: var(--mono); fill: #334155; }
+.smith-full .cf-lcbar .bar { stroke-width: 9; stroke-linecap: round; }
+.smith-full .cf-lcbar .bar.ind { stroke: #64748b; }
+.smith-full .cf-lcbar .bar.cap { stroke: #d97706; }
+.smith-full .cf-lcbar .tag { font-size: 20px; font-weight: 700; font-family: var(--mono); }
+.smith-full .cf-lcbar .tag.ind { fill: #475569; }
+.smith-full .cf-lcbar .tag.cap { fill: #b45309; }
+/* the black "which way does it increase" arrows of a reference chart */
+.smith-full .cf-curve.dir { stroke: #0f172a; stroke-width: 4.5; opacity: 1; }
+.smith-full .cf-curve-label.dir { fill: #0f172a; }
+.smith-full .cf-curve.gam { stroke: #dc2626; stroke-width: 4; }
+.smith-full .cf-curve-label.gam { fill: #dc2626; }
 .smith-full .cf-table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
 
 /* ---- a picture inside a glossary entry ---- */
@@ -1058,6 +1079,9 @@ img, svg, table { max-width: 100%; }
   .smith-full .smith-svg { min-width: 560px; }
   /* a chart with no printed grid has nothing to keep legible — let it shrink instead of scroll */
   .smith-full .smith-svg.plain { min-width: 0; }
+}
+@media (max-width: 620px) {
+  .smith-full:has(.smith-svg:not(.plain)) .sf-scrollhint { display: block; }
 
 
   /* modals */

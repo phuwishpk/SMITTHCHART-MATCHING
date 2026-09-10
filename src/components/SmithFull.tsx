@@ -20,6 +20,14 @@ export interface SmithFullProps {
   grid?: 'full' | 'light' | 'none';
   /** the z / |Γ| / SWR table under the chart (off for figures drawn before SWR is taught) */
   table?: boolean;
+  /** shade the two halves the way a printed reference chart does: upper = inductive, lower = capacitive */
+  halves?: boolean;
+  /** the Γ angle at the two ends of the real axis — 0° at OPEN, 180° at SHORT */
+  angles?: boolean;
+  /** the +jx / −jx direction bar with an inductor and a capacitor symbol, in the right margin */
+  lcBar?: boolean;
+  /** component symbols dropped on the chart at a given z, the way reference charts annotate the halves */
+  glyphs?: { z: Complex; kind: 'L' | 'C' | 'R' }[];
   /** draw the compass read-off for this z */
   readout?: Complex;
   rCircles?: number[];
@@ -30,18 +38,33 @@ export interface SmithFullProps {
   note?: string;
 }
 
+/** schematic symbols, drawn at 1:1 in the chart's own 800-unit space and centred on (x, y) */
+const GLYPH: Record<'L' | 'C' | 'R', string> = {
+  // three bumps of a coil, with a lead each side
+  L: 'M-30 0 h8 a6 6 0 0 1 12 0 a6 6 0 0 1 12 0 a6 6 0 0 1 12 0 h8',
+  // two plates
+  C: 'M-30 0 h20 M-10 -13 v26 M10 -13 v26 M10 0 h20',
+  // a resistor zigzag
+  R: 'M-30 0 h8 l4 -9 l7 18 l7 -18 l7 18 l4 -9 h8',
+};
+const Glyph: React.FC<{ x: number; y: number; kind: 'L' | 'C' | 'R' }> = ({ x, y, kind }) => (
+  <path d={GLYPH[kind]} transform={`translate(${x} ${y})`} className={`cf-glyph ${kind}`} />
+);
+
 /**
  * The Lab's chart, printed into a course figure: the same DetailedGrid, OuterScales
  * and ReadOff at the same 800-unit geometry, so what a student learns to read here
  * is literally the chart they will use. Static — no store, no hover, no markers.
  */
 export const SmithFull: React.FC<SmithFullProps> = React.memo(
-  ({ title, points, curves, swr, showY = false, scale = true, fine = true, grid = 'full', table = true, readout, rCircles, xCircles, gCircles, bCircles, labels, note }) => {
+  ({ title, points, curves, swr, showY = false, scale = true, fine = true, grid = 'full', table = true,
+     halves = false, angles = false, lcBar = false, glyphs, readout, rCircles, xCircles, gCircles, bCircles, labels, note }) => {
     const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
     const clip = `cf${uid}`;
     return (
       <div className="smith-full">
         {title && <div className="sf-title">{title}</div>}
+        <div className="sf-scrollhint">↔ เลื่อนซ้าย–ขวาเพื่อดูกราฟทั้งใบ</div>
         <div className="smith-full-scroll">
           <svg viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${fine ? 'fine' : 'coarse'}${grid === 'full' ? '' : ' plain'}`} width="100%">
             <defs>
@@ -59,6 +82,12 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
               </marker>
             </defs>
             <circle cx={CX} cy={CY} r={R} className="chart-bg" />
+            {halves && (
+              <g className="cf-halves">
+                <path d={`M${CX - R} ${CY} A${R} ${R} 0 0 1 ${CX + R} ${CY} Z`} className="half ind" />
+                <path d={`M${CX - R} ${CY} A${R} ${R} 0 0 0 ${CX + R} ${CY} Z`} className="half cap" />
+              </g>
+            )}
             {scale && <OuterScales />}
             {grid === 'full'
               ? <DetailedGrid showZ showY={showY} clipId={clip} />
@@ -125,6 +154,31 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
                 </g>
               );
             })}
+
+            {glyphs?.map((gl, i) => {
+              const g = gammaFromz(gl.z);
+              if (!isFiniteC(g)) return null;
+              const p = toSvg(g, CX, CY, R);
+              return <Glyph key={`gl${i}`} x={p.x} y={p.y} kind={gl.kind} />;
+            })}
+
+            {angles && (
+              <g className="cf-ang">
+                <text x={CX + R + 8} y={CY + 6} textAnchor="start">0°</text>
+                <text x={CX - R - 8} y={CY + 6} textAnchor="end">180°</text>
+              </g>
+            )}
+
+            {lcBar && (
+              <g className="cf-lcbar">
+                <Glyph x={CX + R + 46} y={CY - R + 22} kind="L" />
+                <line x1={CX + R + 46} y1={CY - 22} x2={CX + R + 46} y2={CY - R + 62} markerEnd={`url(#cfa${uid})`} className="bar ind" />
+                <line x1={CX + R + 46} y1={CY + 22} x2={CX + R + 46} y2={CY + R - 62} markerEnd={`url(#cfa${uid})`} className="bar cap" />
+                <Glyph x={CX + R + 46} y={CY + R - 22} kind="C" />
+                <text x={CX + R + 46} y={CY - 150} textAnchor="middle" className="tag ind">+jx</text>
+                <text x={CX + R + 46} y={CY + 160} textAnchor="middle" className="tag cap">−jx</text>
+              </g>
+            )}
 
             {labels?.map((l, i) => {
               const g = gammaFromz(l.z);
