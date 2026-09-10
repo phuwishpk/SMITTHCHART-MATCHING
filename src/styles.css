@@ -250,6 +250,12 @@ h1, h2, h3 { margin: 0; }
 .smith-svg .pt.mid-load { fill: #94a3b8; }
 .smith-svg .pt.term { fill: #cbd5e1; }
 .smith-svg .pt.probe { fill: var(--probe); }
+/* a point the step-by-step walk has not reached yet: grey now, real colour when it arrives */
+.smith-svg .ptg.pending .pt { fill: #cbd5e1; stroke: #f1f5f9; transition: fill 0.35s ease; }
+.smith-svg .ptg.pending .ptlabel { fill: #b6c0cd; }
+.smith-svg .ptg .pt { transition: fill 0.35s ease, cx 0.35s ease, cy 0.35s ease; }
+.smith-svg .ptg .ptlabel { transition: fill 0.35s ease; }
+.smith-svg .path.pending { stroke: #dde3ea !important; stroke-dasharray: 3 4; }
 .smith-svg .probe-line { stroke: var(--probe); stroke-width: 1; stroke-dasharray: 3 3; }
 .smith-svg .pulse { fill: none; stroke: var(--mid); stroke-width: 2.5; animation: pulse 1.2s ease-out infinite; }
 @keyframes pulse { 0% { opacity: 1; transform-origin: center; } 100% { opacity: 0.15; } }

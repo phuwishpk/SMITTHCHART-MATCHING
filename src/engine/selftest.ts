@@ -228,6 +228,17 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
   check('glossary ids unique', new Set(ids).size === ids.length, ids.filter((id, i) => ids.indexOf(id) !== i).join(' '));
   const empty = GLOSSARY.filter((g) => !g.sym || !g.name || !g.nameTh || !g.short);
   check('glossary entries complete', empty.length === 0, empty.map((g) => g.id).join(' '));
+  // the dialog is meant to teach, not just to list: every entry needs a plain-Thai
+  // explanation and at least one place to go next, and no cross-reference may dangle
+  {
+    const ids = new Set(GLOSSARY.map((g) => g.id));
+    const thin = GLOSSARY.filter((g) => !g.plain || g.plain.length < 60 || !(g.seeAlso ?? []).length);
+    check('every glossary entry explains itself in plain Thai', thin.length === 0, thin.map((g) => g.id).slice(0, 6).join(' '));
+    const dangling = GLOSSARY.flatMap((g) => (g.seeAlso ?? []).filter((x) => !ids.has(x)).map((x) => `${g.id}→${x}`));
+    check('glossary cross-references resolve', dangling.length === 0, dangling.slice(0, 5).join(' '));
+    const selfRef = GLOSSARY.filter((g) => (g.seeAlso ?? []).includes(g.id));
+    check('no glossary entry points at itself', selfRef.length === 0, selfRef.map((g) => g.id).join(' '));
+  }
   const badLinks = GLOSSARY.filter((g) => g.link && !findChapter(g.link.chapter)?.sections.some((s) => s.id === g.link!.section));
   check('glossary course links resolve', badLinks.length === 0, badLinks.map((g) => `${g.id}->${g.link!.chapter}/${g.link!.section}`).join(' '));
   check('glossary symbols section exists', !!findChapter(SYMBOLS_SECTION.chapter)?.sections.some((s) => s.id === SYMBOLS_SECTION.section));

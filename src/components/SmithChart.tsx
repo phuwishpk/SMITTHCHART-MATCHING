@@ -20,6 +20,8 @@ interface Pt {
   r: number;
   key: string;
   z: Complex;
+  /** stage index: the explanation walks from the load (high) down to the input (0) */
+  idx: number;
 }
 
 export const SmithChart: React.FC = () => {
@@ -53,6 +55,19 @@ export const SmithChart: React.FC = () => {
     return { g: result.gammaIn, cls: 'in' as const, label: result.hasNetwork ? 'z_in' : 'z_L' };
   }, [hl.readout, result, walkStep]);
   const showStrip = state.showRadial || !!hl.readout;
+
+  // The explanation walks from the load (highest stage index) down to the input (0).
+  // Anything the walk has not reached yet is drawn grey, and takes its real colour the
+  // moment the step that computes it arrives.
+  const frontier: number | null = useMemo(() => {
+    if (state.explainAll || walkStep) return null;
+    if (typeof hl.point === 'number') return hl.point;
+    if (hl.point === 'in' || hl.center) return 0;
+    if (hl.point === 'load') return result.loadStart;
+    if (typeof hl.stageIndex === 'number') return hl.stageIndex;
+    return null;
+  }, [hl.point, hl.center, hl.stageIndex, state.explainAll, walkStep, result.loadStart]);
+  const pending = (i: number) => frontier !== null && i < frontier;
   const stripReadout = useMemo(
     () => (readoff ? { mag: abs(readoff.g), cls: readoff.cls, label: readoff.label } : undefined),
     [readoff],
@@ -63,26 +78,26 @@ export const SmithChart: React.FC = () => {
     const out: Pt[] = [];
     const n = result.circuit.elements.length;
     if (n === 0) {
-      out.push({ g: result.gammaIn, label: 'z = 0 (short)', cls: 'in', r: 7, key: 'in', z: result.zin });
+      out.push({ g: result.gammaIn, label: 'z = 0 (short)', cls: 'in', r: 7, key: 'in', z: result.zin, idx: 0 });
       return out;
     }
     // termination
-    out.push({ g: gammaFromz(result.termination === 'open' ? { re: Infinity, im: 0 } : { re: 0, im: 0 }), label: result.termination === 'open' ? 'ปลายเปิด' : 'ปลายลัดวงจร', cls: 'term', r: 3.5, key: 'term', z: result.Zterm });
+    out.push({ g: gammaFromz(result.termination === 'open' ? { re: Infinity, im: 0 } : { re: 0, im: 0 }), label: result.termination === 'open' ? 'ปลายเปิด' : 'ปลายลัดวงจร', cls: 'term', r: 3.5, key: 'term', z: result.Zterm, idx: n });
     let netCount = 0;
     for (const s of result.stages) {
       const isLoadPt = s.index === result.loadStart;
       const isIn = s.index === 0;
       if (isLoadPt && isIn) {
-        out.push({ g: gammaFromz(s.zafter), label: result.hasNetwork ? 'z_in' : 'z_L (= z_in)', cls: 'in', r: 8, key: 'in', z: s.zafter });
+        out.push({ g: gammaFromz(s.zafter), label: result.hasNetwork ? 'z_in' : 'z_L (= z_in)', cls: 'in', r: 8, key: 'in', z: s.zafter, idx: s.index });
       } else if (isLoadPt) {
-        out.push({ g: gammaFromz(s.zafter), label: 'z_L (Load)', cls: 'load', r: 8, key: 'load', z: s.zafter });
+        out.push({ g: gammaFromz(s.zafter), label: 'z_L (Load)', cls: 'load', r: 8, key: 'load', z: s.zafter, idx: s.index });
       } else if (isIn) {
-        out.push({ g: gammaFromz(s.zafter), label: 'z_in', cls: 'in', r: 8, key: 'in', z: s.zafter });
+        out.push({ g: gammaFromz(s.zafter), label: 'z_in', cls: 'in', r: 8, key: 'in', z: s.zafter, idx: s.index });
       } else if (s.inLoad) {
-        out.push({ g: gammaFromz(s.zafter), label: `หลัง ${ELEMENT_SPECS[s.el.type].symbol}`, cls: 'mid-load', r: 3.5, key: `s${s.index}`, z: s.zafter });
+        out.push({ g: gammaFromz(s.zafter), label: `หลัง ${ELEMENT_SPECS[s.el.type].symbol}`, cls: 'mid-load', r: 3.5, key: `s${s.index}`, z: s.zafter, idx: s.index });
       } else {
         netCount += 1;
-        out.push({ g: gammaFromz(s.zafter), label: `${netCount}: หลัง ${ELEMENT_SPECS[s.el.type].symbol}`, cls: 'mid-net', r: 5.5, key: `s${s.index}`, z: s.zafter });
+        out.push({ g: gammaFromz(s.zafter), label: `${netCount}: หลัง ${ELEMENT_SPECS[s.el.type].symbol}`, cls: 'mid-net', r: 5.5, key: `s${s.index}`, z: s.zafter, idx: s.index });
       }
     }
     return out;
@@ -266,8 +281,8 @@ export const SmithChart: React.FC = () => {
                 <polyline
                   key={s.el.id}
                   points={pathToPoints(s.path, CX, CY, R)}
-                  className={`path ${s.inLoad ? 'load' : 'net'} ${hl.stageIndex === s.index ? 'hl' : ''}`}
-                  style={{ stroke: s.inLoad ? undefined : ELEMENT_SPECS[s.el.type].color }}
+                  className={`path ${s.inLoad ? 'load' : 'net'} ${hl.stageIndex === s.index ? 'hl' : ''} ${pending(s.index) ? 'pending' : ''}`}
+                  style={{ stroke: pending(s.index) ? undefined : s.inLoad ? undefined : ELEMENT_SPECS[s.el.type].color }}
                   markerEnd={s.inLoad ? undefined : 'url(#arrowPath)'}
                 />
               ))}
@@ -366,7 +381,7 @@ export const SmithChart: React.FC = () => {
               const isHl = (hl.point === 'load' && pt.key === 'load') || (hl.point === 'in' && pt.key === 'in') || (hl.point === 'load' && !result.hasNetwork && pt.key === 'in') || (typeof hl.point === 'number' && pt.key === `s${hl.point}`) || (typeof hl.point === 'number' && hl.point === 0 && pt.key === 'in') || (typeof hl.point === 'number' && hl.point === result.loadStart && pt.key === 'load');
               const show = pt.cls === 'load' || pt.cls === 'in' || pt.cls === 'mid-net';
               return (
-                <g key={pt.key} className={`ptg ${pt.cls} ${isHl ? 'hl' : ''}`}>
+                <g key={pt.key} className={`ptg ${pt.cls} ${isHl ? 'hl' : ''} ${pending(pt.idx) ? 'pending' : ''}`}>
                   {isHl && <circle cx={p.x} cy={p.y} r={pt.r + 8} className="pulse" />}
                   <circle cx={p.x} cy={p.y} r={pt.r} className={`pt ${pt.cls}`}>
                     <title>{`${pt.label}\nz = ${fmtz(pt.z)}\n|Γ| = ${fmtNum(abs(pt.g), 3)}  SWR = ${fmtNum(swrFromGamma(pt.g), 2)}`}</title>
