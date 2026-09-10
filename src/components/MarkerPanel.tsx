@@ -76,6 +76,7 @@ export const MarkerPanel: React.FC = () => {
           ยังไม่มีจุดที่ mark · กด <b>＋ ปักจุดด้วยการคลิก</b> แล้วคลิกตำแหน่งบน Smith Chart หรือกด <b>＋ พิมพ์ค่าเอง</b> เพื่อกรอก r และ x
         </div>
       ) : (
+        <div className="mk-table-wrap">
         <table className="mk-table">
           <thead>
             <tr>
@@ -103,6 +104,7 @@ export const MarkerPanel: React.FC = () => {
             })}
           </tbody>
         </table>
+        </div>
       )}
       {markers.some((m) => info(m, Z0).outside) && (
         <div className="mk-warn">⚠ จุดที่มี r ติดลบจะอยู่นอกวงกลม Smith Chart จึงไม่ถูกวาด (อิมพีแดนซ์ของวงจร passive ต้องมี r ≥ 0)</div>

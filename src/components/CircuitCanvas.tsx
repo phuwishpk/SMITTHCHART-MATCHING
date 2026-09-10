@@ -247,16 +247,16 @@ export const CircuitCanvas: React.FC = () => {
         </div>
         <div className="tb-spacer" />
         <button className="btn ghost" onClick={() => dispatch({ type: 'select', id: 'source' })}>
-          ⚙ Source
+          ⚙ <span className="lg">Source</span><span className="sm">Src</span>
         </button>
         <button className="btn ghost danger" onClick={() => dispatch({ type: 'set_circuit', circuit: { ...circuit, elements: [] }, select: null })} title="ล้างอุปกรณ์ทั้งหมด">
-          ✕ ล้างวงจร
+          ✕ <span className="lg">ล้างวงจร</span><span className="sm">ล้าง</span>
         </button>
         <button className="btn match" title="ออกแบบวงจร matching จากโหลดปัจจุบัน แล้วเปลี่ยนเป็นวงจรใหม่ที่แมตช์" onClick={() => { if (state.maximized) dispatch({ type: 'maximize', panel: null }); dispatch({ type: 'modal', modal: 'matching' }); }}>
-          ⚡ สร้างวงจร matching
+          ⚡ <span className="lg">สร้างวงจร matching</span><span className="sm">matching</span>
         </button>
         <button className="btn primary" onClick={() => startExplain(dispatch, state.maximized)}>
-          ▶ Explain this circuit
+          ▶ <span className="lg">Explain this circuit</span><span className="sm">Explain</span>
         </button>
       </div>
       <div className="canvas-scroll" onDragOver={(e) => e.preventDefault()} onDrop={onDropSvg}>

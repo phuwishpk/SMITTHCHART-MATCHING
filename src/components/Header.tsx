@@ -23,14 +23,16 @@ export const Header: React.FC = () => {
       <div className="header-mid">
         <div className="seg view-seg">
           <button className={state.view === 'lab' ? 'on' : ''} onClick={() => dispatch({ type: 'view', view: 'lab' })}>🔬 Lab</button>
-          <button className={state.view === 'course' ? 'on' : ''} onClick={() => dispatch({ type: 'view', view: 'course' })}>📖 Antenna Impedance Matching</button>
+          <button className={state.view === 'course' ? 'on' : ''} onClick={() => dispatch({ type: 'view', view: 'course' })}>
+            📖 <span className="lg">Antenna Impedance Matching</span><span className="sm">คอร์ส</span>
+          </button>
         </div>
         <div className="seg">
           <button className={state.mode === 'guided' ? 'on' : ''} onClick={() => dispatch({ type: 'mode', mode: 'guided' })}>
-            Guided Lab
+            <span className="lg">Guided Lab</span><span className="sm">Guided</span>
           </button>
           <button className={state.mode === 'free' ? 'on' : ''} onClick={() => dispatch({ type: 'mode', mode: 'free' })}>
-            Free Circuit Builder
+            <span className="lg">Free Circuit Builder</span><span className="sm">Free</span>
           </button>
         </div>
         {lesson && state.mode === 'guided' && (
@@ -45,25 +47,25 @@ export const Header: React.FC = () => {
         )}
         {state.view === 'lab' && exLink && (
           <button className="chip course-link header-link" title={`เปิดเนื้อหาในคอร์ส: ${exLabel}`} onClick={() => dispatch({ type: 'course_section', chapter: exLink.chapter, section: exLink.section })}>
-            📖 อ่านเนื้อหา · {exLabel.split(' · ')[0]}
+            📖 <span className="lg">อ่านเนื้อหา · {exLabel.split(' · ')[0]}</span><span className="sm">เนื้อหา</span>
           </button>
         )}
       </div>
       <div className="header-actions">
         <button className="btn" onClick={() => dispatch({ type: 'modal', modal: 'lessons' })}>
-          📚 บทเรียน (14)
+          📚 <span className="lg">บทเรียน (14)</span><span className="sm">บทเรียน</span>
         </button>
         <button className="btn" onClick={() => dispatch({ type: 'modal', modal: 'problems' })}>
-          📝 โจทย์ Z / Y
+          📝 <span className="lg">โจทย์ Z / Y</span><span className="sm">โจทย์</span>
         </button>
         <button className="btn" title="อธิบายตัวย่อและสัญลักษณ์ทั้งหมดที่ใช้ในเว็บ" onClick={() => dispatch({ type: 'modal', modal: 'glossary' })}>
-          📗 ตัวย่อ
+          📗 <span className="lg">ตัวย่อ</span><span className="sm">ย่อ</span>
         </button>
         <button className="btn" onClick={() => dispatch({ type: 'modal', modal: 'examples' })}>
-          🧪 ตัวอย่าง
+          🧪 <span className="lg">ตัวอย่าง</span><span className="sm">ตัวอย่าง</span>
         </button>
         <button className="btn ghost" onClick={() => { if (confirm('ล้างวงจรและเริ่มใหม่?')) dispatch({ type: 'reset' }); }}>
-          ↺ รีเซ็ต
+          ↺ <span className="lg">รีเซ็ต</span><span className="sm">ล้าง</span>
         </button>
       </div>
     </header>
