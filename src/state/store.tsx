@@ -10,6 +10,17 @@ export interface Probe {
   d: number;
 }
 
+/** a point the learner marks on the Smith chart (normalized impedance z = re + j·im) */
+export interface Marker {
+  id: string;
+  re: number;
+  im: number;
+  label: string;
+  color: string;
+}
+
+export const MARKER_COLORS = ['#be185d', '#7c3aed', '#0891b2', '#ca8a04', '#4d7c0f', '#b91c1c', '#0f766e', '#4338ca'];
+
 export type PanelId = 'palette' | 'inspector' | 'canvas' | 'chart' | 'explain';
 
 export interface State {
@@ -37,6 +48,10 @@ export interface State {
   /** design-goal SWR circle (null = off) */
   swrTarget: number | null;
   probe: Probe | null;
+  /** points marked by hand on the Smith chart */
+  markers: Marker[];
+  /** clicking the chart adds a marker */
+  markerMode: boolean;
   explainStep: number;
   explainAll: boolean;
   modal: 'none' | 'lessons' | 'examples' | 'solution' | 'problems' | 'glossary';
@@ -78,6 +93,11 @@ export type Action =
   | { type: 'course_section_seen' }
   | { type: 'antenna_table'; id: string; table: { f: number; R: number; X: number }[] }
   | { type: 'probe'; probe: Probe | null }
+  | { type: 'marker_add'; re: number; im: number; label?: string }
+  | { type: 'marker_update'; id: string; patch: Partial<Omit<Marker, 'id'>> }
+  | { type: 'marker_remove'; id: string }
+  | { type: 'markers_clear' }
+  | { type: 'marker_mode'; value: boolean }
   | { type: 'explain_step'; i: number }
   | { type: 'explain_all'; value: boolean }
   | { type: 'modal'; modal: State['modal'] }
@@ -108,6 +128,8 @@ const defaultState = (): State => ({
   exampleId: null,
   swrTarget: null,
   probe: null,
+  markers: [],
+  markerMode: false,
   explainStep: 0,
   explainAll: false,
   modal: 'none',
@@ -144,6 +166,18 @@ const applyQuery = (s: State): State => {
     if (ch) out = { ...out, courseChapter: ch, view: 'course' };
     const sec = q.get('sec');
     if (sec) out = { ...out, courseSection: sec, view: 'course' };
+    // ?mark=0.5+0.5,2-1  →  plot these normalized impedances
+    const mk = q.get('mark');
+    if (mk) {
+      out = { ...out, markers: [] }; // a shared link shows exactly the points it names
+      for (const part of mk.split(',')) {
+        const m = part.trim().match(/^(-?[\d.]+)\s*([+-])\s*j?\s*([\d.]+)$/i) ?? part.trim().match(/^(-?[\d.]+)$/);
+        if (!m) continue;
+        const re = parseFloat(m[1]);
+        const im = m.length > 2 ? (m[2] === '-' ? -1 : 1) * parseFloat(m[3]) : 0;
+        if (Number.isFinite(re) && Number.isFinite(im)) out = reducer(out, { type: 'marker_add', re, im });
+      }
+    }
     const st = q.get('swr');
     if (st !== null) out = { ...out, swrTarget: parseFloat(st) || null };
     const ss = q.get('sstep');
@@ -186,6 +220,8 @@ const loadStored = (): State => {
       modal: 'none',
       dragging: null,
       probe: null,
+      markerMode: false,
+      markers: Array.isArray(saved.markers) ? saved.markers : [],
       maximized: null,
       view: 'lab',
       showSolution: false,
@@ -299,6 +335,25 @@ export const reducer = (s: State, a: Action): State => {
       return { ...s, [a.key]: a.value === undefined ? !s[a.key] : a.value };
     case 'probe':
       return { ...s, probe: a.probe };
+    case 'marker_add': {
+      const n = s.markers.length;
+      const marker: Marker = {
+        id: `m${Date.now().toString(36)}${n}`,
+        re: a.re,
+        im: a.im,
+        label: a.label ?? `M${n + 1}`,
+        color: MARKER_COLORS[n % MARKER_COLORS.length],
+      };
+      return { ...s, markers: [...s.markers, marker] };
+    }
+    case 'marker_update':
+      return { ...s, markers: s.markers.map((m) => (m.id === a.id ? { ...m, ...a.patch } : m)) };
+    case 'marker_remove':
+      return { ...s, markers: s.markers.filter((m) => m.id !== a.id) };
+    case 'markers_clear':
+      return { ...s, markers: [], markerMode: false };
+    case 'marker_mode':
+      return { ...s, markerMode: a.value };
     case 'explain_step':
       return { ...s, explainStep: Math.max(0, a.i) };
     case 'explain_all':
@@ -352,8 +407,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     try {
-      const { circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter } = state;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter }));
+      const { circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, markers } = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, markers }));
     } catch {
       /* ignore */
     }

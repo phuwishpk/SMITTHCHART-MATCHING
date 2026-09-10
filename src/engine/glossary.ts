@@ -198,6 +198,9 @@ export const GLOSSARY: GlossaryEntry[] = [
     short: 'พล็อตทุกความถี่ในตาราง ANT เป็นเส้นโค้ง เพื่อดูว่าทั้งแบนด์อยู่ในเป้า SWR หรือไม่' },
   { id: 'target', sym: 'เป้า SWR', name: 'Target SWR circle', nameTh: 'วงกลมเป้าหมาย SWR', group: 'ui', link: L('ch2', 'resonant'),
     short: 'วงกลมประสีส้มที่กำหนดเกณฑ์ เช่น SWR ≤ 2 ทุกจุดต้องอยู่ภายในจึงถือว่าผ่าน' },
+  { id: 'marker', sym: '📍 Mark z', name: 'Marker', nameTh: 'จุดที่ mark เอง', group: 'ui', link: L('ch3', 'norm'),
+    short: 'เครื่องมือใน Free Circuit Builder: ปักจุดค่า z ที่ต้องการลงบน Smith Chart (คลิกบนกราฟ หรือพิมพ์ r และ x) เพื่อเทียบกับจุดของวงจร',
+    detail: ['แต่ละจุดบอก y, |Γ|, มุม, SWR และตำแหน่งบนสเกล wavelengths toward generator', 'แชร์จุดผ่านลิงก์ได้ด้วย ?mark=0.5+0.5,2-1'] },
   { id: 'zLpt', sym: 'จุดสีแดง / สีเขียว', name: 'Load and input points', nameTh: 'จุดโหลดและจุดขาเข้า', group: 'ui',
     short: 'จุดสีแดงคือ z_L (โหลด) จุดสีเขียวคือ z_in (ที่แหล่งจ่ายมองเห็น) จุดสีส้มคือระหว่างทาง' },
 ];

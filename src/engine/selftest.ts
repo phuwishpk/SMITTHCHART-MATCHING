@@ -239,3 +239,30 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
 
 console.log(fails === 0 ? '\nALL PASS (glossary)' : `\n${fails} FAILED`);
 if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
+
+// 19. Marker round-trip: a z marked on the chart maps to Γ and back, and the derived
+//     read-outs (y, SWR, wavelengths toward generator) agree with the engine.
+{
+  const { gammaFromz: gz, zFromGamma: zg, admittance: adm, swrFromGamma: swrG, wtgFromGamma: wtg } = await import('./rf');
+  const pts: [number, number][] = [[1, 0], [0.5, 0.5], [2, -1], [0.2, -0.8], [5, 2], [0.1, 0]];
+  let ok = true;
+  const info: string[] = [];
+  for (const [re, im] of pts) {
+    const g = gz({ re, im });
+    const back = zg(g);
+    const y = adm({ re, im });
+    const inside = abs(g) <= 1.0001;
+    const round = Math.abs(back.re - re) < 1e-9 && Math.abs(back.im - im) < 1e-9;
+    const yOk = Math.abs(y.re - re / (re * re + im * im)) < 1e-9;
+    const swrOk = Number.isFinite(swrG(g)) && swrG(g) >= 1 - 1e-9;
+    const wOk = wtg(g) >= 0 && wtg(g) < 0.5;
+    if (!(inside && round && yOk && swrOk && wOk)) ok = false;
+    info.push(`${re}${im < 0 ? '' : '+'}${im}j:SWR=${fmtNum(swrG(g), 2)}`);
+  }
+  check('marker z ↔ Γ round-trip and read-outs', ok, info.join(' '));
+  // a negative-r marker must fall outside the unit circle (the UI flags it)
+  check('marker with r < 0 is outside the chart', abs(gz({ re: -0.5, im: 0 })) > 1, fmtNum(abs(gz({ re: -0.5, im: 0 })), 3));
+}
+
+console.log(fails === 0 ? '\nALL PASS (markers)' : `\n${fails} FAILED`);
+if (fails > 0) throw new Error(`${fails} self-test(s) failed`);

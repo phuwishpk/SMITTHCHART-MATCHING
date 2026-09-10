@@ -715,3 +715,31 @@ h1, h2, h3 { margin: 0; }
 .answer[title] { cursor: help; }
 .glossary-chip { margin-top: 6px; display: inline-block; }
 @media (max-width: 900px) { .gl-list { grid-template-columns: 1fr; } }
+
+/* ---------- hand-placed markers ---------- */
+.smith-svg.marking { cursor: crosshair; }
+.smith-svg .umark-shape { fill: currentColor; stroke: #fff; stroke-width: 1.6; }
+.smith-svg .umark-core { fill: #fff; stroke: none; }
+.smith-svg .umark-label { font-size: 11.5px; font-weight: 700; font-family: var(--mono); fill: currentColor; paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
+.smith-svg .umark-value { font-size: 10px; font-family: var(--mono); fill: currentColor; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.hover-mark { color: var(--accent); font-weight: 700; }
+.markers { border-top: 1px solid var(--border); padding: 6px 10px 8px; background: #fff; flex-shrink: 0; }
+.mk-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12.5px; }
+.mk-head .spacer { flex: 1; }
+.mk-unit { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.mk-empty { font-size: 12px; color: var(--muted); padding: 6px 2px; line-height: 1.6; }
+.mk-table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 4px; }
+.mk-table th { font-size: 10.5px; color: var(--muted); font-weight: 600; text-align: left; padding: 1px 4px; }
+.mk-table td { padding: 1px 4px; border-bottom: 1px solid #f1f5f9; }
+.mk-table td.mono { font-family: var(--mono); }
+.mk-table tr.outside td { color: #b91c1c; }
+.mk-table input { padding: 2px 5px; border: 1px solid var(--border); border-radius: 5px; font-family: var(--mono); font-size: 11.5px; }
+.mk-table input.mk-label { width: 62px; font-family: var(--font); }
+.mk-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; transform: rotate(45deg); }
+.mk-warn { font-size: 11.5px; color: var(--warn-fg); background: var(--warn-bg); border-radius: 6px; padding: 4px 8px; margin-top: 5px; }
+
+/* the marker table drops its extra columns unless the chart panel is maximized */
+.mk-table .col-wide { display: none; }
+.app.max-chart .mk-table .col-wide { display: table-cell; }
+.mk-table td[title] { cursor: help; }
+@media (max-width: 1080px) { .mk-table .col-wide { display: table-cell; } }

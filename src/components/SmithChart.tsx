@@ -9,6 +9,7 @@ import { probeOnLine } from '../engine/solver';
 import { Highlight } from '../engine/explain';
 import { MaxButton } from './MaxButton';
 import { tip } from '../engine/glossary';
+import { MarkerPanel } from './MarkerPanel';
 import { findLesson } from '../engine/lessons';
 import { smithMethodSteps } from '../engine/smithMethod';
 
@@ -73,16 +74,27 @@ export const SmithChart: React.FC = () => {
     return probeOnLine(st, probe.d, Z0);
   }, [probe, result, Z0]);
 
-  const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+  const gammaAt = (e: React.MouseEvent<SVGSVGElement>): Complex | null => {
     const svg = e.currentTarget;
     const pt = svg.createSVGPoint();
     pt.x = e.clientX;
     pt.y = e.clientY;
     const ctm = svg.getScreenCTM();
-    if (!ctm) return;
+    if (!ctm) return null;
     const p = pt.matrixTransform(ctm.inverse());
-    const g = fromSvg(p.x, p.y, CX, CY, R);
-    setHover(abs(g) <= 1 ? g : null);
+    return fromSvg(p.x, p.y, CX, CY, R);
+  };
+  const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const g = gammaAt(e);
+    setHover(g && abs(g) <= 1 ? g : null);
+  };
+  const onChartClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!state.markerMode) return;
+    const g = gammaAt(e);
+    if (!g || abs(g) > 1) return;
+    const z = zFromGamma(g);
+    if (!isFiniteC(z)) return;
+    dispatch({ type: 'marker_add', re: Number(z.re.toFixed(3)), im: Number(z.im.toFixed(3)) });
   };
 
   const hoverZ = hover ? zFromGamma(hover) : null;
@@ -118,6 +130,9 @@ export const SmithChart: React.FC = () => {
           <Toggle k="showFine" label="กริดละเอียด" />
           <Toggle k="showRadial" label="แถบ SWR/RL" />
           {sweep.length > 0 && <Toggle k="showSweep" label="กวาดความถี่" />}
+          <button className={`chip ${state.markerMode ? 'on' : ''}`} onClick={() => dispatch({ type: 'marker_mode', value: !state.markerMode })} title="เปิดแล้วคลิกบนกราฟเพื่อปักจุด z (ดูรายการด้านล่างกราฟ)">
+            📍 Mark z{state.markers.length ? ` (${state.markers.length})` : ''}
+          </button>
           <button className={`chip ${state.swrTarget ? 'on' : ''}`} onClick={() => { const seq = [null, 1.5, 2, 3]; const i = seq.indexOf(state.swrTarget as never); dispatch({ type: 'swr_target', value: seq[(i + 1) % seq.length] }); }} title="วงกลมเป้าหมาย SWR (คลิกวนค่า)">
             เป้า SWR {state.swrTarget ? `≤ ${state.swrTarget}` : 'ปิด'}
           </button>
@@ -125,7 +140,7 @@ export const SmithChart: React.FC = () => {
         </div>
       </div>
       <div className="smith-svg-wrap">
-        <svg viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${state.showFine ? 'fine' : 'coarse'}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${state.showFine ? 'fine' : 'coarse'} ${state.markerMode ? 'marking' : ''}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onChartClick}>
           <defs>
             <clipPath id="clipUnit">
               <circle cx={CX} cy={CY} r={R} />
@@ -268,6 +283,29 @@ export const SmithChart: React.FC = () => {
               })}
             </g>
           )}
+          {/* hand-placed markers */}
+          {state.markers.length > 0 && (
+            <g className="user-markers">
+              {state.markers.map((m) => {
+                const g = gammaFromz({ re: m.re, im: m.im });
+                if (!isFiniteC(g) || abs(g) > 1.0001) return null;
+                const p = toSvg(g, CX, CY, R);
+                const right = p.x > CX;
+                return (
+                  <g key={m.id} className="umark" style={{ color: m.color }}>
+                    <path d={`M${p.x},${p.y - 8} L${p.x + 8},${p.y} L${p.x},${p.y + 8} L${p.x - 8},${p.y} Z`} className="umark-shape" />
+                    <circle cx={p.x} cy={p.y} r={1.8} className="umark-core" />
+                    <text x={p.x + (right ? -11 : 11)} y={p.y - 10} textAnchor={right ? 'end' : 'start'} className="umark-label">
+                      {m.label}
+                    </text>
+                    <text x={p.x + (right ? -11 : 11)} y={p.y + 17} textAnchor={right ? 'end' : 'start'} className="umark-value">
+                      {fmtNum(m.re, 2)}{m.im < 0 ? '−' : '+'}j{fmtNum(Math.abs(m.im), 2)}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+          )}
           {/* center marker */}
           <g className={`center ${hl.center ? 'hl' : ''}`}>
             <line x1={CX - 7} y1={CY} x2={CX + 7} y2={CY} />
@@ -322,6 +360,7 @@ export const SmithChart: React.FC = () => {
             <div>Γ = {fmtNum(abs(hover), 4)} ∠{fmtNum(deg(arg(hover)), 2)}°</div>
             <div>SWR = {fmtNum(swrFromGamma(hover), 3)} · RL = {Number.isFinite(returnLossDb(hover)) ? `${fmtNum(returnLossDb(hover), 2)} dB` : '∞'}</div>
             <div>→gen {fmtNum(wtgFromGamma(hover), 4)} λ · →load {fmtNum(((0.5 - wtgFromGamma(hover)) % 0.5 + 0.5) % 0.5, 4)} λ</div>
+            {state.markerMode && <div className="hover-mark">คลิกเพื่อปักจุดนี้</div>}
           </div>
         )}
         <div className="legend">
@@ -332,6 +371,7 @@ export const SmithChart: React.FC = () => {
         </div>
         {(state.showRadial || state.maximized === 'chart') && <RadialScales gammaIn={result.gammaIn} gammaL={result.gammaL} hasNetwork={result.hasNetwork} />}
       </div>
+      {(state.markerMode || state.markers.length > 0) && <MarkerPanel />}
       <div className={`stats ${result.matched ? 'matched' : ''}`}>
         <div className="stats-row">
           <div className="stat" title={tip('Zin')}><span className="k">Z_in <i className="hint">?</i></span><span className="v">{isFiniteC(result.Zin) ? `${fmtNum(result.Zin.re, 2)} ${result.Zin.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(result.Zin.im), 2)} Ω` : '∞'}</span></div>
