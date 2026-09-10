@@ -54,6 +54,37 @@ export const mismatchLossDb = (g: Complex): number => {
 export const reflectedPowerFrac = (g: Complex): number => Math.min(1, abs(g) ** 2);
 
 /**
+ * The four quantities printed on a Smith chart's "radially scaled parameters"
+ * strip. All of them are functions of |Γ| alone — that is why one compass
+ * setting (the distance from the chart centre to the plotted point) reads them
+ * all off at once.
+ */
+export interface ReadOff {
+  /** |Γ|, the radius on the chart normalised so the rim is 1 */
+  mag: number;
+  swr: number;
+  /** return loss in dB (∞ for a perfect match) */
+  rlDb: number;
+  /** reflected power as a percentage of the incident power */
+  reflPct: number;
+  /** mismatch loss in dB (∞ for total reflection) */
+  mismatchDb: number;
+}
+
+export const readOff = (g: Complex): ReadOff => ({
+  mag: Math.min(abs(g), 1),
+  swr: swrFromGamma(g),
+  rlDb: returnLossDb(g),
+  reflPct: reflectedPowerFrac(g) * 100,
+  mismatchDb: mismatchLossDb(g),
+});
+
+/* ---- inverse maps: where a printed tick sits on the 0…1 radius ---- */
+export const magFromSwr = (swr: number): number => (Number.isFinite(swr) ? (swr - 1) / (swr + 1) : 1);
+export const magFromRlDb = (rlDb: number): number => (Number.isFinite(rlDb) ? 10 ** (-rlDb / 20) : 0);
+export const magFromReflPct = (pct: number): number => Math.sqrt(Math.max(0, Math.min(100, pct)) / 100);
+
+/**
  * Position on the "wavelengths toward generator" scale (0 … 0.5 λ),
  * measured clockwise from the short-circuit point (Γ = −1).
  */

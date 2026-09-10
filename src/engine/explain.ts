@@ -5,7 +5,7 @@
 import { Complex, abs, arg, deg, fmtNum, isFiniteC } from './complex';
 import { ELEMENT_SPECS } from './circuit';
 import { SolveResult } from './solver';
-import { admittance, wtgFromGamma } from './rf';
+import { admittance, wtgFromGamma, readOff } from './rf';
 
 export type StepLine =
   | { kind: 'text'; text: string }
@@ -40,6 +40,13 @@ export interface Highlight {
   swrRadius?: number;
   /** marks on the wavelengths-toward-generator scale */
   wtgMarks?: { w: number; label: string }[];
+  /**
+   * Draw the "read it off the radially scaled parameters" construction: swing the
+   * radius of this |Γ| down onto the positive real axis (where r = SWR) and drop a
+   * line from there to the SWR / RL strip. The strip is forced visible while this is
+   * set. `from` says which plotted point the compass starts at.
+   */
+  readout?: { mag: number; from?: 'load' | 'in'; label?: string };
 }
 
 export interface ExplainStep {
@@ -91,6 +98,31 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
   const push = (s: Omit<ExplainStep, 'id'>) => {
     n += 1;
     steps.push({ id: `s${n}`, ...s });
+  };
+
+  /**
+   * The step that teaches the compass transfer: every quantity on the radially
+   * scaled strip depends on |Γ| alone, so one radius reads them all.
+   */
+  const pushReadOff = (g: Complex, from: 'load' | 'in', name: string) => {
+    const ro = readOff(g);
+    const swrTex = Number.isFinite(ro.swr) ? tn(ro.swr, 2) : '\\infty';
+    const rlTex = Number.isFinite(ro.rlDb) ? tn(ro.rlDb, 1) : '\\infty';
+    const mlTex = Number.isFinite(ro.mismatchDb) ? tn(ro.mismatchDb, 2) : '\\infty';
+    push({
+      short: `อ่านค่า ${name}`,
+      title: `อ่าน SWR / Return loss จากแถบสเกลด้านล่างกราฟ (${name})`,
+      tag: 'swr',
+      lines: [
+        { kind: 'text', text: `ค่าทั้งสี่บนแถบ RADIALLY SCALED PARAMETERS ขึ้นกับ |Γ| อย่างเดียว จึงอ่านได้จาก "ระยะ" จากศูนย์กลางกราฟถึงจุด ${name} โดยไม่ต้องคำนวณใหม่` },
+        { kind: 'text', text: `วิธีทำด้วยมือ: กางวงเวียนจากศูนย์กลางไปที่จุด ${name} → หมุนลงมาแตะแกนนอนด้านขวา จุดที่แตะคือ r = SWR → ลากเส้นดิ่งลงมาที่แถบด้านล่าง แล้วอ่านทุกค่าตรงเส้นนั้น` },
+        { kind: 'math', tex: `|\\Gamma| = ${tn(ro.mag, 3)} \\quad\\Rightarrow\\quad SWR = \\frac{1+|\\Gamma|}{1-|\\Gamma|} = ${swrTex}` },
+        { kind: 'math', tex: `${T('Return loss')} = -20\\log_{10}|\\Gamma| = ${rlTex}\\ ${T('dB')}, \\qquad ${T('Mismatch loss')} = ${mlTex}\\ ${T('dB')}` },
+        { kind: 'result', tex: `${T('อ่านตรงเส้นนี้:')}\\; |\\Gamma| = ${tn(ro.mag, 3)},\\; SWR = ${swrTex},\\; RL = ${rlTex}\\ ${T('dB')},\\; ${T('สะท้อน')} = ${tn(ro.reflPct, 1)}\\%` },
+        { kind: 'note', text: 'เส้นประที่ลากลงมาบนกราฟคือการ "ถ่ายระยะ" อันเดียวกับที่ใช้วงเวียนบนกระดาษ Smith Chart จริง ปุ่ม "แถบ SWR/RL" ที่หัวแผงเปิด/ปิดแถบนี้ได้' },
+      ],
+      highlight: { swrCircle: from, point: from, readout: { mag: ro.mag, from, label: name } },
+    });
   };
 
   if (circuit.elements.length === 0) {
@@ -321,6 +353,7 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
       ],
       highlight: { swrCircle: 'load', point: 'load', rCircle: Number.isFinite(swr) ? swr : undefined },
     });
+    pushReadOff(g, 'load', 'z_L');
   }
 
   // ---------- STEP: network stages (toward generator) ----------
@@ -451,6 +484,7 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
       lines,
       highlight: { point: 'in', swrCircle: 'in', center: true },
     });
+    if (res.hasNetwork) pushReadOff(g, 'in', 'z_in');
   }
 
   return steps;

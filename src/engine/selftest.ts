@@ -367,5 +367,56 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
   console.log(`   basics: ${BASICS.length} chapters, ${BASICS.reduce((a, c) => a + c.sections.length, 0)} sections, ${figs} figures`);
 }
 
+// 23. Radially scaled parameters: the strip's ticks must sit where the maths says,
+//     and one |Γ| must read the same value on every row (that is why one compass
+//     setting reads SWR, return loss and reflected power at once).
+{
+  const { readOff, magFromSwr, magFromRlDb, magFromReflPct, swrFromGamma: swrG, returnLossDb: rlDb, gammaFromz: gz, zFromGamma: zFromG } = await import('./rf');
+  const absC = abs;
+  const bad: string[] = [];
+  for (const swr of [1, 1.2, 1.5, 2, 3, 5, 10, 50]) {
+    const m = magFromSwr(swr);
+    const back = swrG({ re: m, im: 0 });
+    if (!near(back, swr, Math.max(1e-6, swr * 1e-9))) bad.push(`SWR ${swr} -> m ${m} -> ${back}`);
+  }
+  for (const rl of [0, 1, 3, 6, 10, 20, 40]) {
+    const m = magFromRlDb(rl);
+    const back = rlDb({ re: m, im: 0 });
+    if (!near(back, rl, 1e-9)) bad.push(`RL ${rl} -> m ${m} -> ${back}`);
+  }
+  for (const pct of [0, 1, 10, 25, 50, 100]) {
+    const m = magFromReflPct(pct);
+    if (!near(m * m * 100, pct, 1e-9)) bad.push(`refl ${pct}% -> m ${m}`);
+  }
+  check('radial scale ticks invert exactly', bad.length === 0, bad.slice(0, 3).join(' | '));
+
+  // a known point: z = 25 + j25 on 50 Ω  ->  |Γ| = 0.447, SWR = 2.62, RL = 7.0 dB, 20 % reflected
+  const g = gz({ re: 0.5, im: 0.5 });
+  const ro = readOff(g);
+  check('read-off of z = 0.5 + j0.5 gives |Γ| 0.447, SWR 2.62, RL 7.0 dB, 20 %',
+    near(ro.mag, 0.4472, 5e-4) && near(ro.swr, 2.618, 2e-3) && near(ro.rlDb, 6.99, 0.02) && near(ro.reflPct, 20, 0.05),
+    `|Γ|=${fmtNum(ro.mag, 4)} SWR=${fmtNum(ro.swr, 3)} RL=${fmtNum(ro.rlDb, 2)} refl=${fmtNum(ro.reflPct, 2)}%`);
+
+  // the SWR read on the strip must equal the r where the constant-|Γ| circle crosses
+  // the positive real axis — the construction the chart draws
+  const axisBad: string[] = [];
+  for (const z of [{ re: 0.5, im: 0.5 }, { re: 2, im: -1 }, { re: 0.2, im: 0 }, { re: 4, im: 3 }]) {
+    const gg = gz(z);
+    const m = Math.min(absC(gg), 1);
+    const rAtAxis = zFromG({ re: m, im: 0 }).re; // Γ = |Γ| ∠0 lies on the +r axis
+    if (!near(rAtAxis, swrG(gg), 1e-6 * Math.max(1, swrG(gg)))) axisBad.push(fmtC(z, 2));
+  }
+  check('SWR equals r where the |Γ| circle crosses the right-hand axis', axisBad.length === 0, axisBad.join(' '));
+
+  // matched load: every reading collapses to the ideal
+  const ro0 = readOff({ re: 0, im: 0 });
+  check('a matched load reads SWR 1, RL ∞, 0 % reflected',
+    ro0.swr === 1 && !Number.isFinite(ro0.rlDb) && ro0.reflPct === 0, '');
+  // total reflection: SWR ∞, RL 0 dB, 100 %
+  const ro1 = readOff({ re: -1, im: 0 });
+  check('a short circuit reads SWR ∞, RL 0 dB, 100 % reflected',
+    !Number.isFinite(ro1.swr) && near(ro1.rlDb, 0, 1e-9) && near(ro1.reflPct, 100, 1e-9), '');
+}
+
 console.log(fails === 0 ? '\nALL PASS (basics course)' : `\n${fails} FAILED`);
 if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
