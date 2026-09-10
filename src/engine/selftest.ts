@@ -238,6 +238,23 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
     check('glossary cross-references resolve', dangling.length === 0, dangling.slice(0, 5).join(' '));
     const selfRef = GLOSSARY.filter((g) => (g.seeAlso ?? []).includes(g.id));
     check('no glossary entry points at itself', selfRef.length === 0, selfRef.map((g) => g.id).join(' '));
+    // Thai usage: "เหนี่ยวนำ" and "เก็บประจุ" are verbs. They may only follow a word that
+    // turns them into the property (ความ), the component (ตัว) or the behaviour (แบบ / ลักษณะ).
+    const verbBad: string[] = [];
+    const scan = (where: string, txt: string) => {
+      for (const m of txt.matchAll(/(.{0,6})(เหนี่ยวนำ|เก็บประจุ)/g)) {
+        if (!/(ความ|ตัว|แบบ|ลักษณะ|การ)$/.test(m[1])) verbBad.push(`${where}: …${m[1]}${m[2]}`);
+      }
+    };
+    for (const g of GLOSSARY) {
+      for (const t of [g.short, g.plain ?? '', g.read ?? '', g.example ?? '', g.confuse ?? '', ...(g.detail ?? [])]) scan(g.id, t);
+    }
+    const { BASICS: BAS } = await import('./basics');
+    for (const ch of BAS) for (const sec of ch.sections) {
+      for (const l of sec.lines) scan(`${ch.num || '·'}/${sec.id}`, (l as { text?: string }).text ?? '');
+      for (const fg of sec.figures ?? []) scan(`${ch.num || '·'}/${sec.id}`, `${fg.kind === 'lab' ? fg.label : (fg as { title?: string }).title ?? ''} ${(fg as { caption?: string }).caption ?? ''}`);
+    }
+    check('Thai: เหนี่ยวนำ / เก็บประจุ never stand as bare verbs', verbBad.length === 0, [...new Set(verbBad)].slice(0, 4).join(' | '));
   }
   const badLinks = GLOSSARY.filter((g) => g.link && !findChapter(g.link.chapter)?.sections.some((s) => s.id === g.link!.section));
   check('glossary course links resolve', badLinks.length === 0, badLinks.map((g) => `${g.id}->${g.link!.chapter}/${g.link!.section}`).join(' '));

@@ -98,7 +98,7 @@ export const ELEMENT_SPECS: Record<ElementType, ElementSpec> = {
       { key: 'L', label: 'Inductance', labelTh: 'ความเหนี่ยวนำ', unit: 'nH', scale: 1e-9, min: 0.1, max: 100000, step: 0.1, log: true },
     ],
     defaults: { L: 39.8 },
-    description: 'ให้รีแอกแตนซ์บวก X_L = 2πfL (inductive) จุดจะอยู่ครึ่งบนของ Smith Chart',
+    description: 'ให้รีแอกแตนซ์เป็นบวก X_L = 2πfL (มีลักษณะเหนี่ยวนำ) ต่ออนุกรมจะดันจุดขึ้นตามวงกลม r คงที่ ไปทางครึ่งบนของ Smith Chart',
   },
   capacitor: {
     type: 'capacitor',
@@ -112,7 +112,7 @@ export const ELEMENT_SPECS: Record<ElementType, ElementSpec> = {
       { key: 'C', label: 'Capacitance', labelTh: 'ความจุ', unit: 'pF', scale: 1e-12, min: 0.1, max: 10000, step: 0.1, log: true },
     ],
     defaults: { C: 31.8 },
-    description: 'ให้รีแอกแตนซ์ลบ X_C = −1/(2πfC) (capacitive) จุดจะอยู่ครึ่งล่างของ Smith Chart',
+    description: 'ให้รีแอกแตนซ์เป็นลบ X_C = −1/(2πfC) (มีลักษณะเก็บประจุ) ต่ออนุกรมจะดึงจุดลงตามวงกลม r คงที่ ไปทางครึ่งล่างของ Smith Chart',
   },
   tline: {
     type: 'tline',
@@ -173,7 +173,7 @@ export const ELEMENT_SPECS: Record<ElementType, ElementSpec> = {
       { key: 'len', label: 'Stub length', labelTh: 'ความยาวสตับ', unit: 'λ', scale: 1, min: 0, max: 0.5, step: 0.001 },
     ],
     defaults: { Z0: 50, len: 0.125 },
-    description: 'สตับขนานปลายเปิด ให้ susceptance b = tan(βl) สั้นกว่าสตับลัดวงจร λ/4 สำหรับค่า b เดียวกัน',
+    description: 'สตับขนานปลายเปิด ให้ susceptance b = tan(βl) ความยาวต่างจากสตับปลายลัดวงจร λ/4 สำหรับค่า b เดียวกัน (b > 0 สั้นกว่า, b < 0 ยาวกว่า)',
   },
   load: {
     type: 'load',
