@@ -636,6 +636,7 @@ h1, h2, h3 { margin: 0; }
 .course-intro { font-size: 14px; line-height: 1.6; background: #f8fafc; border-left: 4px solid var(--accent); padding: 8px 12px; border-radius: 6px; }
 .course-section { margin-top: 26px; padding-top: 10px; border-top: 1px solid var(--border); }
 .course-section h3 { font-size: 16px; margin-bottom: 8px; color: #0f172a; }
+.course-section h3 .secnum { font-family: var(--mono); color: var(--accent); margin-right: 2px; }
 .course-section .step-body { gap: 8px; font-size: 14px; line-height: 1.6; max-width: 980px; }
 .cfigs { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; margin-top: 12px; align-items: start; }
 .cfig { margin: 0; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 8px; }

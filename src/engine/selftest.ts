@@ -353,6 +353,33 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
         if (fg.kind === 'wave' && !Number.isFinite(fg.gammaMag)) badFig.push(`${ch.id}/${sec.id}/wave`);
       }
   check('basics figures are all finite', badFig.length === 0, [...new Set(badFig)].join(' '));
+  // section titles no longer carry their own numbers: the app numbers them by position,
+  // so every "บทที่ N.M" / "หัวข้อ N.M" in the prose must resolve to a real section
+  {
+    const byNum = new Map(BASICS.map((c) => [c.num, c]));
+    const refBad: string[] = [];
+    const re = /(บทที่|หัวข้อ) (\d+)(?:\.(\d+))?/g;
+    const seen = (where: string, txt: string) => {
+      for (const m of txt.matchAll(re)) {
+        const ch = byNum.get(m[2]);
+        if (!ch) refBad.push(`${where}: ไม่มีบทที่ ${m[2]}`);
+        else if (m[3] && !ch.sections[parseInt(m[3], 10) - 1]) refBad.push(`${where}: ไม่มีหัวข้อ ${m[2]}.${m[3]}`);
+      }
+    };
+    for (const ch of BASICS) for (const sec of ch.sections) {
+      if (/^\d+\.\d+ /.test(sec.title)) refBad.push(`${ch.num}/${sec.id}: title still carries its own number`);
+      for (const l of sec.lines) seen(`${ch.num}/${sec.id}`, (l as { text?: string; tex?: string }).text ?? (l as { text?: string; tex?: string }).tex ?? '');
+      for (const fg of sec.figures ?? []) if (fg.kind === 'table') for (const row of fg.rows) for (const cell of row) seen(`${ch.num}/${sec.id}/table`, String(cell));
+    }
+    check('every chapter and section reference in the basics course resolves', refBad.length === 0, [...new Set(refBad)].slice(0, 4).join(' | '));
+    // a single backslash before ';' inside a TS string reaches KaTeX as a bare semicolon
+    const texBad: string[] = [];
+    for (const ch of BASICS) for (const sec of ch.sections) for (const l of sec.lines) {
+      const tex = (l as { tex?: string }).tex;
+      if (tex && /[^\\];/.test(tex)) texBad.push(`${ch.num}/${sec.id}`);
+    }
+    check('basics TeX has no stray semicolons (\\; needs a double backslash)', texBad.length === 0, [...new Set(texBad)].slice(0, 4).join(' '));
+  }
   // textbook answers
   const a77 = sq(EX77.ZL, EX77.Z0).slice().sort((x, y) => x.dLambda - y.dLambda)[0];
   check('Example 7-7 matches the book (0.184λ, 39.8 Ω, 54.5 Ω)',

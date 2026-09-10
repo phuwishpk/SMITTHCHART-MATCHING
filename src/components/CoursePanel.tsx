@@ -278,8 +278,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
                   {c.sections.map((s, si) => (
                     <li key={s.id} data-sec={s.id} className={s.id === activeSec ? 'active' : ''}>
                       <button onClick={() => jumpAcross(c.id, s.id)}>
-                        {/* basics titles already start with their own number */}
-                        {!/^\d+(\.\d+)*[\s.)]/.test(s.title) && <span className="snum">{c.num}.{si + 1}</span>}
+                        <span className="snum">{c.num}.{si + 1}</span>
                         <span className="stitle">{s.title}</span>
                       </button>
                     </li>
@@ -298,9 +297,9 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
           <div className="course-th">{chapter.titleTh}</div>
           <p className="course-intro">{chapter.intro}</p>
         </header>
-        {chapter.sections.map((sec) => (
+        {chapter.sections.map((sec, si) => (
           <section key={sec.id} id={`sec-${sec.id}`} className="course-section">
-            <h3>{sec.title}</h3>
+            <h3><span className="secnum">{chapter.num}.{si + 1}</span> {sec.title}</h3>
             <StepLines lines={sec.lines} />
             {sec.figures && sec.figures.length > 0 && (
               <div className="cfigs">
