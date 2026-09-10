@@ -62,7 +62,7 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
             {scale && <OuterScales />}
             {grid === 'full'
               ? <DetailedGrid showZ showY={showY} clipId={clip} />
-              : <MinimalGrid guides={grid === 'light'} showY={showY} />}
+              : <MinimalGrid guides={grid === 'light'} showY={showY} clipId={clip} />}
 
             {/* highlighted coordinate lines */}
             <g className="highlights" clipPath={`url(#${clip})`}>
