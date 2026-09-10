@@ -262,6 +262,48 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
   check('glossary tooltips render', ['SWR', 'Gamma', 'r', 'b', 'QWT', 'ANT'].every((id) => tip(id).length > 20 && !!glossaryEntry(id)));
   check('glossary search works', searchGlossary('สตับ').length > 0 && searchGlossary('admittance').length > 0 && searchGlossary('ΓΓΓ').length === 0,
     `สตับ=${searchGlossary('สตับ').length} admittance=${searchGlossary('admittance').length}`);
+  // every glossary picture has to be drawable: a point the renderer skips, or a caption that
+  // quotes a number the engine does not produce, is worse than no picture at all.
+  {
+    const { gammaFromZ: gZ2 } = await import('./rf');
+    const { solveCircuit: solve2 } = await import('./solver');
+    const badFig: string[] = [];
+    const okG = (z: { re: number; im: number }) => {
+      const g = gZ2(z, 1);
+      return Number.isFinite(g.re) && Number.isFinite(g.im) && Math.hypot(g.re, g.im) <= 1.0001;
+    };
+    let nFig = 0;
+    for (const e of GLOSSARY) {
+      const f = e.fig;
+      if (!f) continue;
+      nFig++;
+      if (!f.caption || f.caption.length < 20) badFig.push(`${e.id}/caption`);
+      if (f.kind === 'smith') {
+        for (const pt of f.points ?? []) {
+          if (!okG(pt.z)) badFig.push(`${e.id}/point`);
+          if ((pt.label ?? '').length > 30) badFig.push(`${e.id}/label-too-long`);
+        }
+        for (const cv of f.curves ?? []) {
+          if (!cv.zs.length) badFig.push(`${e.id}/empty-curve`);
+          for (const z of cv.zs) if (!okG(z)) badFig.push(`${e.id}/curve`);
+        }
+        for (const l of f.labels ?? []) if (!okG(l.z)) badFig.push(`${e.id}/label`);
+        for (const v of f.swr ?? []) if (!Number.isFinite(v) || v < 1) badFig.push(`${e.id}/swr`);
+        for (const v of [...(f.rCircles ?? []), ...(f.xCircles ?? []), ...(f.gCircles ?? []), ...(f.bCircles ?? [])]) {
+          if (!Number.isFinite(v)) badFig.push(`${e.id}/circle`);
+        }
+      }
+      if (f.kind === 'wave' && !(f.gammaMag >= 0 && f.gammaMag <= 1)) badFig.push(`${e.id}/wave`);
+      if (f.kind === 'plot') {
+        if (!(f.xMin < f.xMax)) badFig.push(`${e.id}/plot-range`);
+        if (!f.series.length) badFig.push(`${e.id}/plot-empty`);
+        for (const se of f.series) for (const [x, y] of se.points) if (!Number.isFinite(x) || !Number.isFinite(y)) badFig.push(`${e.id}/plot-point`);
+      }
+      if (f.kind === 'circuit' && Number.isNaN(solve2(f.circuit()).swrIn)) badFig.push(`${e.id}/circuit`);
+    }
+    check('every glossary picture is drawable', badFig.length === 0, [...new Set(badFig)].slice(0, 6).join(' '));
+    console.log(`   glossary pictures: ${nFig}`);
+  }
   console.log(`   glossary: ${GLOSSARY.length} entries`);
 }
 

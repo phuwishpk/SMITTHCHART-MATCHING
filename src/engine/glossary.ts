@@ -4,6 +4,28 @@
 // explains it. Used by the glossary dialog and by tooltips.
 // ---------------------------------------------------------------
 import type { SectionLink } from './course';
+import type { SmithPoint, SmithCurve } from '../components/SmithFigure';
+import type { PlotSeries } from '../components/MiniPlot';
+import type { Circuit } from './circuit';
+import { C, type Complex } from './complex';
+
+/**
+ * A picture for one glossary entry. Each kind reuses a renderer the course already has,
+ * so a symbol is explained by exactly the same drawing the lesson uses.
+ *  smith   — the compact Smith chart (SmithFigure)
+ *  wave    — the standing wave along the line (WaveFigure)
+ *  plot    — an x/y graph (MiniPlot), for anything that changes with frequency
+ *  circuit — a read-only schematic (CircuitSchematic); built lazily, it is only solved when shown
+ */
+export type GlossaryFigure =
+  | { kind: 'smith'; points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean;
+      rCircles?: number[]; xCircles?: number[]; gCircles?: number[]; bCircles?: number[];
+      regions?: boolean; labels?: { z: Complex; text: string }[]; caption: string }
+  | { kind: 'wave'; gammaMag: number; gammaDeg?: number; len?: number; caption: string }
+  | { kind: 'plot'; xLabel: string; yLabel: string; xMin: number; xMax: number; yMin?: number; yMax?: number;
+      series: PlotSeries[]; xTicks?: number[]; yTicks?: number[];
+      markers?: { x: number; y: number; text: string; color?: string }[]; caption: string }
+  | { kind: 'circuit'; circuit: () => Circuit; caption: string };
 
 export type GlossaryGroup = 'basic' | 'norm' | 'smith' | 'line' | 'match' | 'unit' | 'ui';
 
@@ -31,6 +53,8 @@ export interface GlossaryEntry {
   formula?: string;
   /** ids of entries worth reading next */
   seeAlso?: string[];
+  /** a picture that shows the symbol instead of describing it */
+  fig?: GlossaryFigure;
   group: GlossaryGroup;
   link?: SectionLink;
   aliases?: string[];
@@ -57,7 +81,9 @@ export const GLOSSARY: GlossaryEntry[] = [
     read: 'อ่านว่า "อิมพีแดนซ์" หรือ "ซีตัวใหญ่" · ในเว็บนี้อยู่ที่ช่อง Z_in และ Z_L ใต้กราฟ และเป็นค่าที่กรอกให้บล็อก Load Z_L',
     example: 'โหลดประจำคอร์ส Z_L = 25 + j25 Ω แปลว่า ส่วนที่กินกำลัง 25 Ω และส่วนที่เก็บ-คืนพลังงานอีก 25 Ω แบบ inductive',
     confuse: 'Z กับ z ตัวเล็ก — Z มีหน่วยโอห์ม เป็นค่าที่วัดได้จริง ส่วน z คือ Z ที่หารด้วย Z₀ แล้ว ไม่มีหน่วย · จุดบนกราฟใช้ z เสมอ',
-    seeAlso: ['R', 'X', 'z', 'Y'], },
+    seeAlso: ['R', 'X', 'z', 'Y'],
+    fig: { kind: 'smith', points: [{ z: C(0.5, 0.5), label: 'Z = 25 + j25 Ω', cls: 'load' }], rCircles: [0.5], xCircles: [0.5],
+      caption: 'โหลด Z = 25 + j25 Ω บนสาย 50 Ω · หารด้วย Z₀ ได้ z = 0.5 + j0.5 แล้วจึงพล็อตเป็นจุดเดียวบนกราฟ · เส้นที่เน้นไว้คือวงกลม r = 0.5 กับส่วนโค้ง x = +0.5 ที่ตัดกันตรงจุดนั้นพอดี' }, },
   { id: 'R', sym: 'R', name: 'Resistance', nameTh: 'ความต้านทาน', unit: 'Ω', group: 'basic', link: L('ch3', 'norm'),
     short: 'ส่วนจริงของอิมพีแดนซ์ ไม่ขึ้นกับความถี่', formula: 'R = \\mathrm{Re}\\{Z\\}',
     plain: 'ส่วนของอิมพีแดนซ์ที่กินกำลังจริง ๆ พลังงานที่เข้าไปตรงนี้ไม่กลับออกมา จะกลายเป็นความร้อนหรือถูกแผ่ออกไปเป็นคลื่น สำหรับสายอากาศที่ดี ส่วนใหญ่ของค่านี้คือกำลังที่แผ่ออกไปจริง ซึ่งเป็นสิ่งที่เราต้องการ',

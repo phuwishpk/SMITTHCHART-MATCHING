@@ -706,6 +706,13 @@ h1, h2, h3 { margin: 0; }
 .smith-full .cf-swr-label { font-size: 12.5px; font-weight: 700; font-family: var(--mono); fill: var(--load); paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
 .smith-full .cf-label { font-size: 13px; font-weight: 700; fill: #334155; paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
 .smith-full .cf-table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+
+/* ---- a picture inside a glossary entry ---- */
+.gl-fig { margin: 8px 0 2px; padding: 6px 8px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; max-width: 460px; }
+.gl-fig .smith-figure, .gl-fig .miniplot { margin: 0; }
+.gl-fig-wait { height: 190px; border-radius: 6px; background: repeating-linear-gradient(135deg, #f8fafc 0 10px, #f1f5f9 10px 20px); }
+.gl-fig-cap { margin-top: 5px; font-size: 12px; line-height: 1.55; color: #475569; }
+@media (max-width: 640px) { .gl-fig { max-width: 100%; } }
 .smith-full .cf-table th { font-size: 11px; color: var(--muted); text-align: left; padding: 2px 6px; background: #f8fafc; font-weight: 600; }
 .smith-full .cf-table td { padding: 2px 6px; border-bottom: 1px solid #f1f5f9; }
 .smith-full .cf-table td.mono { font-family: var(--mono); }
