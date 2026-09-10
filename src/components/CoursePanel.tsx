@@ -8,6 +8,7 @@ import { SmithFigure } from './SmithFigure';
 import { SmithFull } from './SmithFull';
 import { CourseQuiz } from './CourseQuiz';
 import { WaveFigure } from './WaveFigure';
+import { ReflectionIntro } from './ReflectionIntro';
 import { CircuitSchematic } from './CircuitSchematic';
 import { solveCircuit, solveSweep, sweepMaxSwr } from '../engine/solver';
 import { solveLCases } from '../engine/matching';
@@ -330,6 +331,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
         {chapter.sections.map((sec, si) => (
           <section key={sec.id} id={`sec-${sec.id}`} className="course-section">
             <h3>{chapter.num && <span className="secnum">{chapter.num}.{si + 1}</span>} {sec.title}</h3>
+            {basics && chapter.id === 'b1' && sec.id === 'mismatch' && <ReflectionIntro />}
             <StepLines lines={sec.lines} />
             {sec.figures && sec.figures.length > 0 && (
               <div className="cfigs">
