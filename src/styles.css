@@ -1192,15 +1192,38 @@ img, svg, table { max-width: 100%; }
 .ri-power i { background: #ea580c; }
 .reflection-intro .ri-small { font-size: 12px; color: #475569; }
 .ri-reading { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; margin: 24px 0; padding-top: 24px; border-top: 1px solid #cbd5e1; }
+.lp-line { margin: 28px 14px 16px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.lp-line > span { font-size: 13px; }
+.lp-line > span:last-of-type { text-align: right; }
+.lp-wire { position: relative; flex-basis: 100%; height: 8px; background: #93c5fd; border-radius: 8px; margin-top: 16px; }
+.lp-wire i { position: absolute; top: -24px; transform: translateX(-50%); color: #047857; font-size: 24px; font-style: normal; }
+.lp-line small { width: 100%; text-align: center; color: #475569; }
+.lp-slider { display: block; font-weight: 700; }
+.lp-slider input { display: block; width: 100%; min-height: 40px; accent-color: #047857; }
+.ri-reading > div { min-width: 0; }
+.ri-reading .smith-figure { max-width: 380px; margin: auto; }
 .ri-formulas { background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; }
 .ri-formulas summary { cursor: pointer; font-weight: 700; color: #1d4ed8; }
 .ri-formulas .tex { overflow-x: auto; }
 .ri-takeaway { margin-top: 20px; padding: 16px 20px; background: #ecfdf5; border-left: 4px solid #059669; border-radius: 8px; }
 .ri-takeaway p { margin-bottom: 0; }
+.adm-equivalents { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0 10px; }
+.adm-equivalents > div { display: flex; flex-direction: column; gap: 7px; padding: 16px; border: 1px solid #bfdbfe; border-radius: 14px; background: #fff; text-align: center; }
+.adm-equivalents small { color: #475569; }
+.adm-equivalents b { font-family: var(--mono); color: #0f172a; }
+.adm-equivalents span { color: #2563eb; font-size: 12px; }
+.adm-intro ol { padding-left: 22px; line-height: 1.8; }
+.adm-parallel { max-width: 650px; margin: 20px auto; padding: 14px 20px; border-top: 4px solid #2563eb; border-bottom: 4px solid #2563eb; text-align: center; }
+.adm-parallel > div { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 16px 0; }
+.adm-parallel span { position: relative; display: block; padding: 18px 10px; border: 2px solid #93c5fd; border-radius: 12px; background: #fff; }
+.adm-parallel span::before, .adm-parallel span::after { content: ''; position: absolute; left: 50%; width: 2px; height: 18px; background: #2563eb; }
+.adm-parallel span::before { top: -20px; }
+.adm-parallel span::after { bottom: -20px; }
 @media (max-width: 700px) {
   .ri-system { grid-template-columns: 1fr; }
   .ri-cable { padding: 0 10px; }
   .ri-reading, .ri-metrics { grid-template-columns: 1fr; }
+  .adm-equivalents { grid-template-columns: 1fr; }
   .ri-device { padding: 12px; }
   .ri-system .ri-device > span { display: none; }
 }
