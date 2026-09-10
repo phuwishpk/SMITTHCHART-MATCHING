@@ -609,7 +609,10 @@ h1, h2, h3 { margin: 0; }
 /* ---------- course view ---------- */
 .app.view-course { grid-template-rows: auto 1fr; }
 .course { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 10px; padding: 10px; min-height: 0; }
-.course-nav { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: auto; display: flex; flex-direction: column; }
+.course-nav { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: auto; display: flex; flex-direction: column;
+  /* below 880px tall the whole page scrolls, so the nav must stick instead of
+     stretching to the body's height and sliding away with it */
+  align-self: start; position: sticky; top: 8px; max-height: min(100%, calc(100vh - 24px)); }
 .course-here { display: none; }
 .course-progress { height: 3px; background: #e2e8f0; border-radius: 2px; overflow: hidden; }
 .course-progress i { display: block; height: 100%; background: var(--accent); transition: width 0.25s ease; }
