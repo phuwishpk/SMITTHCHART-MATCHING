@@ -18,9 +18,19 @@ export interface GlossaryEntry {
   unit?: string;
   /** one line, used for tooltips */
   short: string;
+  /** two to four sentences of everyday Thai — no jargon, no formula */
+  plain?: string;
+  /** how it is said aloud, and where it shows up in the app */
+  read?: string;
+  /** one concrete worked value, using numbers the engine really produces */
+  example?: string;
+  /** the symbol it gets confused with, and how to tell them apart */
+  confuse?: string;
   /** extra lines shown in the dialog */
   detail?: string[];
   formula?: string;
+  /** ids of entries worth reading next */
+  seeAlso?: string[];
   group: GlossaryGroup;
   link?: SectionLink;
   aliases?: string[];
@@ -226,7 +236,7 @@ export const searchGlossary = (q: string): GlossaryEntry[] => {
   const s = q.trim().toLowerCase();
   if (!s) return GLOSSARY;
   return GLOSSARY.filter((e) =>
-    [e.sym, e.name, e.nameTh, e.short, e.unit ?? '', ...(e.aliases ?? []), ...(e.detail ?? [])]
+    [e.sym, e.name, e.nameTh, e.short, e.plain ?? '', e.read ?? '', e.example ?? '', e.confuse ?? '', e.unit ?? '', ...(e.aliases ?? []), ...(e.detail ?? [])]
       .join(' ')
       .toLowerCase()
       .includes(s),
