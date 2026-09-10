@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppState, useDispatch } from '../state/store';
 import { COURSE, Figure } from '../engine/course';
 import { BASICS } from '../engine/basics';
@@ -136,12 +136,21 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
   const seen = () => dispatch(basics ? { type: 'basics_section_seen' } : { type: 'course_section_seen' });
   const chapter = chapters.find((c) => c.id === wantChapter) ?? chapters[0];
   const bodyRef = useRef<HTMLDivElement>(null);
+  // Wide layouts scroll inside .course-body; stacked (≤1080px) layouts scroll the page.
+  // Scrolling the wrong one silently does nothing, so pick whichever actually scrolls.
+  const scrollerOf = (box: HTMLElement): { el: HTMLElement; page: boolean } =>
+    box.scrollHeight > box.clientHeight + 4
+      ? { el: box, page: false }
+      : { el: (document.scrollingElement as HTMLElement) ?? document.documentElement, page: true };
   const scrollToSection = (secId: string, opts: { smooth?: boolean; highlight?: boolean } = {}) => {
     const box = bodyRef.current;
     const el = box?.querySelector(`#sec-${CSS.escape(secId)}`) as HTMLElement | null;
     if (!box || !el) return false;
-    const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8;
-    box.scrollTo({ top: Math.max(0, top), behavior: opts.smooth === false ? 'auto' : 'smooth' });
+    const sc = scrollerOf(box);
+    const top = sc.page
+      ? el.getBoundingClientRect().top + sc.el.scrollTop - 10
+      : el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8;
+    sc.el.scrollTo({ top: Math.max(0, top), behavior: opts.smooth === false ? 'auto' : 'smooth' });
     if (opts.highlight !== false) {
       el.classList.remove('target');
       void el.offsetWidth;
@@ -156,7 +165,9 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
   useEffect(() => {
     if (lastChapter.current === chapter.id) return;
     lastChapter.current = chapter.id;
-    if (!wantSection) bodyRef.current?.scrollTo({ top: 0 });
+    if (wantSection) return;
+    const box = bodyRef.current;
+    if (box) scrollerOf(box).el.scrollTo({ top: 0 });
   }, [chapter.id, wantSection]);
   // Jump to a section requested from the Lab (or a ?sec= deep link). Figures and KaTeX
   // change the layout after the first paint, so re-run the scroll until it settles.
@@ -170,11 +181,65 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
     return () => { timers.forEach((t) => window.clearTimeout(t)); window.clearTimeout(done); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wantSection, chapter.id]);
+  // ---- which section is the reader looking at? the sidebar follows it ----
+  const [activeSec, setActiveSec] = useState<string>(chapter.sections[0]?.id ?? '');
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => { setActiveSec(chapter.sections[0]?.id ?? ''); }, [chapter.id, chapter.sections]);
+  useEffect(() => {
+    const box = bodyRef.current;
+    if (!box) return;
+    let raf = 0;
+    const pick = () => {
+      raf = 0;
+      const sc = scrollerOf(box);
+      const top = sc.page ? 0 : box.getBoundingClientRect().top;
+      const viewH = sc.page ? window.innerHeight : box.clientHeight;
+      // the section whose heading is highest but still above the reading line
+      const line = top + Math.min(160, viewH * 0.3);
+      let best = chapter.sections[0]?.id ?? '';
+      for (const sec of chapter.sections) {
+        const el = box.querySelector(`#sec-${CSS.escape(sec.id)}`) as HTMLElement | null;
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= line) best = sec.id;
+      }
+      // at the very bottom the last section is the one being read
+      const atEnd = sc.el.scrollTop + viewH >= sc.el.scrollHeight - 4 && sc.el.scrollTop > 4;
+      if (atEnd && chapter.sections.length) best = chapter.sections[chapter.sections.length - 1].id;
+      setActiveSec((prev) => (prev === best ? prev : best));
+    };
+    const onScroll = () => { if (!raf) raf = window.requestAnimationFrame(pick); };
+    box.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    const settle = [80, 400, 900].map((d) => window.setTimeout(pick, d));
+    return () => {
+      box.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+      settle.forEach(clearTimeout);
+    };
+  }, [chapter.id, chapter.sections]);
+  // keep the active entry visible inside the sidebar's own scroller
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || !activeSec) return;
+    const li = nav.querySelector(`[data-sec="${CSS.escape(activeSec)}"]`) as HTMLElement | null;
+    if (!li) return;
+    const nr = nav.getBoundingClientRect(), lr = li.getBoundingClientRect();
+    if (lr.top < nr.top + 4) nav.scrollTo({ top: nav.scrollTop + (lr.top - nr.top) - 12, behavior: 'smooth' });
+    else if (lr.bottom > nr.bottom - 4) nav.scrollTo({ top: nav.scrollTop + (lr.bottom - nr.bottom) + 12, behavior: 'smooth' });
+  }, [activeSec]);
   const idx = chapters.findIndex((c) => c.id === chapter.id);
-  const jump = (secId: string) => scrollToSection(secId, { highlight: true });
+  const jump = (secId: string) => { setActiveSec(secId); scrollToSection(secId, { highlight: true }); };
+  // a section of another chapter: the reducer switches chapter and the jump effect scrolls to it
+  const jumpAcross = (chId: string, secId: string) => {
+    if (chId === chapter.id) { jump(secId); return; }
+    dispatch(basics
+      ? { type: 'basics_section', chapter: chId, section: secId }
+      : { type: 'course_section', chapter: chId, section: secId });
+  };
   return (
     <div className="course">
-      <aside className="course-nav">
+      <aside className="course-nav" ref={navRef}>
         <div className="panel-head"><span className="panel-title">{basics ? 'SMITH CHART พื้นฐาน' : 'ANTENNA IMPEDANCE MATCHING'}</span></div>
         <div className="course-book">{basics
           ? 'เรียนจากศูนย์: ทำไมต้องมี Smith Chart · อ่านกราฟ · วงกลม SWR · แอดมิตแตนซ์ · สตับ · หม้อแปลง λ/4 · ผลของความถี่ — ทุกตัวเลขและทุกภาพคำนวณสดโดยแอป'
@@ -188,8 +253,14 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
               </button>
               {c.id === chapter.id && (
                 <ul className="course-sections">
-                  {c.sections.map((s) => (
-                    <li key={s.id}><button onClick={() => jump(s.id)}>{s.title}</button></li>
+                  {c.sections.map((s, si) => (
+                    <li key={s.id} data-sec={s.id} className={s.id === activeSec ? 'active' : ''}>
+                      <button onClick={() => jumpAcross(c.id, s.id)}>
+                        {/* basics titles already start with their own number */}
+                        {!/^\d+(\.\d+)*[\s.)]/.test(s.title) && <span className="snum">{c.num}.{si + 1}</span>}
+                        <span className="stitle">{s.title}</span>
+                      </button>
+                    </li>
                   ))}
                 </ul>
               )}
