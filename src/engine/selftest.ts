@@ -329,7 +329,7 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
   const { BASICS, EX77, EX78, EX710, ex78AtFreq } = await import('./basics');
   const { solveSingleStub: sss, solveQwt: sq } = await import('./matching');
   const { normalize: nz, admittance: adm, swrFromGamma: swrG, gammaFromZ: gZ } = await import('./rf');
-  check('basics has 11 chapters with sections', BASICS.length === 11 && BASICS.every((c) => c.sections.length >= 1),
+  check('basics has a roadmap chapter plus 11 teaching chapters', BASICS.length === 12 && BASICS[0].id === 'b0' && BASICS.every((c) => c.sections.length >= 1),
     BASICS.map((c) => `${c.num}:${c.sections.length}`).join(' '));
   const badFig: string[] = [];
   let figs = 0;
@@ -340,6 +340,15 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
         if (fg.kind === 'plot') for (const s of fg.series) for (const [x, y] of s.points) if (!Number.isFinite(x) || Number.isNaN(y)) badFig.push(`${ch.id}/${sec.id}`);
         if (fg.kind === 'smith') { for (const p of fg.points ?? []) if (!Number.isFinite(p.z.re) || !Number.isFinite(p.z.im)) badFig.push(`${ch.id}/${sec.id}`);
           for (const cv of fg.curves ?? []) for (const z of cv.zs) if (!Number.isFinite(z.re) || !Number.isFinite(z.im)) badFig.push(`${ch.id}/${sec.id}`); }
+        if (fg.kind === 'chart') {
+          // the full printed chart: every plotted z, every curve point and every SWR value
+          // must be finite, or an SVG coordinate becomes NaN
+          for (const p of fg.points ?? []) if (!Number.isFinite(p.z.re) || !Number.isFinite(p.z.im)) badFig.push(`${ch.id}/${sec.id}/chart-pt`);
+          for (const cv of fg.curves ?? []) for (const z of cv.zs) if (!Number.isFinite(z.re) || !Number.isFinite(z.im)) badFig.push(`${ch.id}/${sec.id}/chart-curve`);
+          for (const v of fg.swr ?? []) if (!Number.isFinite(v) || v < 1) badFig.push(`${ch.id}/${sec.id}/chart-swr`);
+          for (const v of [...(fg.rCircles ?? []), ...(fg.xCircles ?? []), ...(fg.gCircles ?? []), ...(fg.bCircles ?? [])]) if (!Number.isFinite(v)) badFig.push(`${ch.id}/${sec.id}/chart-circle`);
+          if (fg.readout && (!Number.isFinite(fg.readout.re) || !Number.isFinite(fg.readout.im))) badFig.push(`${ch.id}/${sec.id}/chart-readout`);
+        }
         if (fg.kind === 'lab') { const r = solveCircuit(fg.circuit()); if (Number.isNaN(r.swrIn)) badFig.push(`${ch.id}/${sec.id}/lab`); }
         if (fg.kind === 'wave' && !Number.isFinite(fg.gammaMag)) badFig.push(`${ch.id}/${sec.id}/wave`);
       }

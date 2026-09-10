@@ -5,6 +5,7 @@ import { BASICS } from '../engine/basics';
 import { StepLines } from './StepLines';
 import { MiniPlot } from './MiniPlot';
 import { SmithFigure } from './SmithFigure';
+import { SmithFull } from './SmithFull';
 import { WaveFigure } from './WaveFigure';
 import { CircuitSchematic } from './CircuitSchematic';
 import { solveCircuit, solveSweep, sweepMaxSwr } from '../engine/solver';
@@ -64,6 +65,27 @@ const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
       return (
         <figure className="cfig smith">
           <SmithFigure title={fig.title} points={fig.points} curves={fig.curves} swr={fig.swr} showY={fig.showY} rCircles={fig.rCircles} xCircles={fig.xCircles} gCircles={fig.gCircles} bCircles={fig.bCircles} regions={fig.regions} labels={fig.labels} />
+          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+        </figure>
+      );
+    case 'chart':
+      return (
+        <figure className="cfig chart wide">
+          <SmithFull
+            title={fig.title}
+            points={fig.points}
+            curves={fig.curves}
+            swr={fig.swr}
+            showY={fig.showY}
+            scale={fig.scale}
+            fine={fig.fine}
+            readout={fig.readout}
+            rCircles={fig.rCircles}
+            xCircles={fig.xCircles}
+            gCircles={fig.gCircles}
+            bCircles={fig.bCircles}
+            labels={fig.labels}
+          />
           {fig.caption && <figcaption>{fig.caption}</figcaption>}
         </figure>
       );

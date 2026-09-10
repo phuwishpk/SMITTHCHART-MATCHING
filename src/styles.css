@@ -643,6 +643,31 @@ h1, h2, h3 { margin: 0; }
 .cfigs > .cfig:only-child { grid-column: 1 / -1; }
 .cfig figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
 .cfig-title { font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 6px; }
+/* the Lab's own chart, printed into a course figure */
+.cfig.chart { grid-column: 1 / -1; width: min(100%, 780px); justify-self: center; }
+.smith-full { display: flex; flex-direction: column; gap: 6px; }
+.smith-full-scroll { overflow-x: auto; min-width: 0; max-width: 100%; }
+.smith-full .smith-svg { display: block; width: 100%; height: auto; }
+.smith-full .cf-curve { fill: none; stroke: #be185d; stroke-width: 3.4; opacity: 0.92; }
+.smith-full .cf-curve.load { stroke: var(--load); }
+.smith-full .cf-curve.in { stroke: var(--in); }
+.smith-full .cf-curve.y { stroke: var(--teal); }
+.smith-full .cf-curve-label { font-size: 13px; font-weight: 700; font-family: var(--mono); paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; fill: #be185d; }
+.smith-full .cf-curve-label.load { fill: var(--load); }
+.smith-full .cf-curve-label.in { fill: var(--in); }
+.smith-full .cf-curve-label.y { fill: var(--teal); }
+.smith-full .cf-pt circle { fill: #be185d; stroke: #fff; stroke-width: 2; }
+.smith-full .cf-pt.load circle { fill: var(--load); }
+.smith-full .cf-pt.in circle { fill: var(--in); }
+.smith-full .cf-pt.y circle { fill: var(--teal); }
+.smith-full .cf-pt.stub circle { fill: #9333ea; }
+.smith-full .cf-pt text { font-size: 14px; font-weight: 700; font-family: var(--mono); fill: #0f172a; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+.smith-full .cf-swr-label { font-size: 12.5px; font-weight: 700; font-family: var(--mono); fill: var(--load); paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
+.smith-full .cf-label { font-size: 13px; font-weight: 700; fill: #334155; paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
+.smith-full .cf-table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+.smith-full .cf-table th { font-size: 11px; color: var(--muted); text-align: left; padding: 2px 6px; background: #f8fafc; font-weight: 600; }
+.smith-full .cf-table td { padding: 2px 6px; border-bottom: 1px solid #f1f5f9; }
+.smith-full .cf-table td.mono { font-family: var(--mono); }
 .ctable-wrap { overflow-x: auto; }
 .ctable { border-collapse: collapse; font-size: 12.5px; width: 100%; }
 .ctable th, .ctable td { border-bottom: 1px solid #e2e8f0; padding: 4px 8px; text-align: left; font-family: var(--mono); }
@@ -958,9 +983,10 @@ img, svg, table { max-width: 100%; }
   .course-section { margin-top: 18px; }
   .course-section h3 { font-size: 14.5px; }
   .course-section .step-body { font-size: 13px; }
-  .cfigs { grid-template-columns: 1fr; gap: 10px; }
+  .cfigs { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .cfig { padding: 6px; }
   .cfig.smith, .cfig.circuit { max-width: 100%; }
+  .smith-full .smith-svg { min-width: 560px; }
 
   /* modals */
   .modal-backdrop { padding: 8px; }

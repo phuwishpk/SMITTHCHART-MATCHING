@@ -18,6 +18,9 @@ import { GLOSSARY, GROUP_LABEL } from './glossary';
 export type Figure =
   | { kind: 'plot'; title: string; xLabel: string; yLabel: string; xMin: number; xMax: number; yMin?: number; yMax?: number; series: PlotSeries[]; xTicks?: number[]; yTicks?: number[]; markers?: { x: number; y: number; text: string; color?: string }[]; caption?: string }
   | { kind: 'smith'; title: string; points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean; rCircles?: number[]; xCircles?: number[]; gCircles?: number[]; bCircles?: number[]; regions?: boolean; labels?: { z: Complex; text: string }[]; caption?: string }
+  | { kind: 'chart'; title: string; points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean;
+      scale?: boolean; fine?: boolean; readout?: Complex; rCircles?: number[]; xCircles?: number[];
+      gCircles?: number[]; bCircles?: number[]; labels?: { z: Complex; text: string }[]; caption?: string }
   | { kind: 'circuit'; title: string; circuit: Circuit; caption?: string }
   | { kind: 'wave'; title: string; gammaMag: number; gammaDeg?: number; len?: number; caption?: string }
   | { kind: 'table'; title: string; head: string[]; rows: (string | number)[][]; caption?: string }
