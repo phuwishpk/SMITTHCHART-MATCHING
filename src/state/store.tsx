@@ -39,10 +39,13 @@ export interface State {
   showRadial: boolean;
   showSweep: boolean;
   /** main view: the lab or the Antenna Impedance Matching course */
-  view: 'lab' | 'course';
+  view: 'lab' | 'course' | 'basics';
   courseChapter: string;
   /** section to scroll to when the course opens (cleared after scrolling) */
   courseSection: string | null;
+  /** the Smith Chart fundamentals course */
+  basicsChapter: string;
+  basicsSection: string | null;
   /** id of the ready-made example currently loaded (null once the circuit is built by hand) */
   exampleId: string | null;
   /** design-goal SWR circle (null = off) */
@@ -87,10 +90,13 @@ export type Action =
   | { type: 'example'; id: string }
   | { type: 'toggle'; key: 'showZ' | 'showY' | 'showSwr' | 'showPath' | 'showScale' | 'showFine' | 'showRadial' | 'showSweep'; value?: boolean }
   | { type: 'swr_target'; value: number | null }
-  | { type: 'view'; view: 'lab' | 'course' }
+  | { type: 'view'; view: 'lab' | 'course' | 'basics' }
   | { type: 'course_chapter'; id: string }
   | { type: 'course_section'; chapter: string; section: string }
   | { type: 'course_section_seen' }
+  | { type: 'basics_chapter'; id: string }
+  | { type: 'basics_section'; chapter: string; section: string }
+  | { type: 'basics_section_seen' }
   | { type: 'antenna_table'; id: string; table: { f: number; R: number; X: number }[] }
   | { type: 'probe'; probe: Probe | null }
   | { type: 'marker_add'; re: number; im: number; label?: string }
@@ -125,6 +131,8 @@ const defaultState = (): State => ({
   view: 'lab',
   courseChapter: 'intro',
   courseSection: null,
+  basicsChapter: 'b1',
+  basicsSection: null,
   exampleId: null,
   swrTarget: null,
   probe: null,
@@ -162,6 +170,11 @@ const applyQuery = (s: State): State => {
     if (q.get('solution') === 'modal') out = { ...out, showSolution: true, modal: 'solution' };
     if (['problems', 'lessons', 'examples', 'glossary', 'matching'].includes(q.get('modal') ?? '')) out = { ...out, modal: q.get('modal') as State['modal'] };
     if (q.get('view') === 'course') out = { ...out, view: 'course' };
+    if (q.get('view') === 'basics') out = { ...out, view: 'basics' };
+    const bch = q.get('bch');
+    if (bch) out = { ...out, basicsChapter: bch, view: 'basics' };
+    const bsec = q.get('bsec');
+    if (bsec) out = { ...out, basicsSection: bsec, view: 'basics' };
     const ch = q.get('ch');
     if (ch) out = { ...out, courseChapter: ch, view: 'course' };
     const sec = q.get('sec');
@@ -374,6 +387,12 @@ export const reducer = (s: State, a: Action): State => {
       return { ...s, courseChapter: a.chapter, courseSection: a.section, view: 'course', modal: 'none', maximized: null };
     case 'course_section_seen':
       return s.courseSection === null ? s : { ...s, courseSection: null };
+    case 'basics_chapter':
+      return { ...s, basicsChapter: a.id, basicsSection: null, view: 'basics' };
+    case 'basics_section':
+      return { ...s, basicsChapter: a.chapter, basicsSection: a.section, view: 'basics', modal: 'none', maximized: null };
+    case 'basics_section_seen':
+      return s.basicsSection === null ? s : { ...s, basicsSection: null };
     case 'antenna_table': {
       const elements = s.circuit.elements.map((e) => (e.id === a.id ? { ...e, table: a.table.map((pt) => ({ ...pt })) } : e));
       return { ...s, circuit: { ...s.circuit, elements } };
@@ -407,8 +426,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     try {
-      const { circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, markers } = state;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, markers }));
+      const { circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, basicsChapter, markers } = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, basicsChapter, markers }));
     } catch {
       /* ignore */
     }

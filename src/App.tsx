@@ -50,7 +50,7 @@ export const App: React.FC = () => {
   }, [state.maximized]);
 
   return (
-    <div className={`app ${state.view === 'course' ? 'view-course' : ''} ${state.maximized && state.view === 'lab' ? `max max-${state.maximized}` : ''}`}>
+    <div className={`app ${state.view !== 'lab' ? 'view-course' : ''} ${state.maximized && state.view === 'lab' ? `max max-${state.maximized}` : ''}`}>
       <Header />
       {state.maximized && (
         <div className="max-bar">
@@ -61,6 +61,10 @@ export const App: React.FC = () => {
       {state.view === 'course' ? (
         <Suspense fallback={<div className="loading" role="status">Loading course…</div>}>
           <CoursePanel />
+        </Suspense>
+      ) : state.view === 'basics' ? (
+        <Suspense fallback={<div className="loading" role="status">Loading course…</div>}>
+          <CoursePanel course="basics" />
         </Suspense>
       ) : (
       <main className="main">

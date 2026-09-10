@@ -23,6 +23,9 @@ export const Header: React.FC = () => {
       <div className="header-mid">
         <div className="seg view-seg">
           <button className={state.view === 'lab' ? 'on' : ''} onClick={() => dispatch({ type: 'view', view: 'lab' })}>🔬 Lab</button>
+          <button className={state.view === 'basics' ? 'on' : ''} onClick={() => dispatch({ type: 'view', view: 'basics' })} title="เรียน Smith Chart จากพื้นฐานทีละขั้น">
+            📐 <span className="lg">Smith Chart พื้นฐาน</span><span className="sm">พื้นฐาน</span>
+          </button>
           <button className={state.view === 'course' ? 'on' : ''} onClick={() => dispatch({ type: 'view', view: 'course' })}>
             📖 <span className="lg">Antenna Impedance Matching</span><span className="sm">คอร์ส</span>
           </button>

@@ -62,6 +62,24 @@ security headers และ cache policy ดูขั้นตอนที่ [`D
 - **ลิงก์สองทางระหว่าง Lab กับคอร์ส**: การ์ดทุกใบในเมนูบทเรียน/โจทย์/ตัวอย่างมีแถบ 📖 ใต้การ์ดที่พาไปยัง section ที่เกี่ยวข้องของคอร์ส (section ที่ไปถึงจะไฮไลต์สีเหลืองชั่วครู่) แถบบนหัวเว็บแสดงตัวอย่าง/บทเรียนที่กำลังเปิดพร้อมปุ่ม 📖 และแถบ Guided Lab มีชิป 📖 เช่นกัน · แผนที่ลิงก์อยู่ใน `SECTION_LINKS` (`src/engine/course.ts`)
 - Deep link: `?example=ex7` `?lesson=l10` `&step=5` `&all=1` `&y=1` `&sel=0&probe=0.1` `&max=chart` (palette / inspector / canvas / chart / explain) `&sec=<section>` (เลื่อนไปยังหัวข้อในคอร์ส เช่น `?view=course&ch=ch2&sec=qwt`) `?modal=glossary` `?mark=0.5+0.5,2-1`
 
+## หัวข้อ Smith Chart พื้นฐาน (แท็บ 📐)
+
+คอร์สสอน Smith Chart จากศูนย์ 11 บท 42 หัวข้อ 56 ภาพ เนื้อหาอยู่ใน `src/engine/basics.ts` ทุกตัวเลขและทุกภาพคำนวณสดด้วย engine
+
+1. ปัญหาที่ทำให้ต้องมี Smith Chart (คลื่นสะท้อน, อิมพีแดนซ์เปลี่ยนตามตำแหน่ง, λ/2 ซ้ำ, λ/4 กลับส่วน, จุด x = 0 หายาก)
+2. Smith Chart คืออะไร (polar impedance diagram, ที่มาจากระนาบ Γ, ทำไมต้อง normalize)
+3. อ่านกราฟ (วงกลม r, ส่วนโค้ง x, เครื่องหมาย ±j, การตัดกันแบบตั้งฉาก, จุดกลาง = แมตช์)
+4. วงกลม SWR คงที่ (ทำไม SWR ไม่เปลี่ยน, การอ่านค่า, สายที่มีการสูญเสียเป็นเกลียว)
+5. ระยะทางบนกราฟ (หนึ่งรอบ = λ/2, toward generator/load, การอ่านสเกล)
+6. แอดมิตแตนซ์ (y = 1/z, ที่มาของการหมุน 180°)
+7. สายส่งใช้แทน L และ C (ปลายลัด/ปลายเปิด, stub, ตัวอย่าง 150 MHz)
+8. หม้อแปลง λ/4 พร้อม **Example 7-7** ทีละขั้น (0.184 λ → R′ = 39.8 Ω → Z_T = 54.6 Ω)
+9. Single stub matching พร้อม **Example 7-8** ทีละขั้น (y_L = 0.24 + j0.32 → d = 0.129 λ, l_s = 0.085 λ)
+10. ผลของความถี่ (ความยาวจริงเทียบความยาวไฟฟ้า, Example 7-8 ที่ 12 MHz, **Example 7-10** ที่ +10 %, bandwidth)
+11. สรุปเปรียบเทียบ λ/4 กับ stub และแผนผังการทำโจทย์
+
+Deep link: `?view=basics&bch=b9&bsec=ex78`
+
 ## หัวข้อ Antenna Impedance Matching (ตามหนังสือ Caron, ARRL)
 
 ปุ่ม "📖 Antenna Impedance Matching" ที่หัวเว็บ เปิดคอร์สที่เรียงตามโครงหนังสือ *Antenna Impedance Matching* (W. N. Caron) เฉพาะส่วนที่มีในไฟล์: บทนำ (+Errata), Chapter I–V และ Chapter VI Example 1–6

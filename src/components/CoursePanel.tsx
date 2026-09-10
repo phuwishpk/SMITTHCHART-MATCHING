@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useAppState, useDispatch } from '../state/store';
-import { COURSE, Figure, findChapter } from '../engine/course';
+import { COURSE, Figure } from '../engine/course';
+import { BASICS } from '../engine/basics';
 import { StepLines } from './StepLines';
 import { MiniPlot } from './MiniPlot';
 import { SmithFigure } from './SmithFigure';
@@ -124,10 +125,16 @@ const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
   }
 };
 
-export const CoursePanel: React.FC = () => {
+export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course = 'caron' }) => {
   const state = useAppState();
   const dispatch = useDispatch();
-  const chapter = findChapter(state.courseChapter) ?? COURSE[0];
+  const basics = course === 'basics';
+  const chapters = basics ? BASICS : COURSE;
+  const wantChapter = basics ? state.basicsChapter : state.courseChapter;
+  const wantSection = basics ? state.basicsSection : state.courseSection;
+  const goChapter = (id: string) => dispatch(basics ? { type: 'basics_chapter', id } : { type: 'course_chapter', id });
+  const seen = () => dispatch(basics ? { type: 'basics_section_seen' } : { type: 'course_section_seen' });
+  const chapter = chapters.find((c) => c.id === wantChapter) ?? chapters[0];
   const bodyRef = useRef<HTMLDivElement>(null);
   const scrollToSection = (secId: string, opts: { smooth?: boolean; highlight?: boolean } = {}) => {
     const box = bodyRef.current;
@@ -149,30 +156,33 @@ export const CoursePanel: React.FC = () => {
   useEffect(() => {
     if (lastChapter.current === chapter.id) return;
     lastChapter.current = chapter.id;
-    if (!state.courseSection) bodyRef.current?.scrollTo({ top: 0 });
-  }, [chapter.id, state.courseSection]);
+    if (!wantSection) bodyRef.current?.scrollTo({ top: 0 });
+  }, [chapter.id, wantSection]);
   // Jump to a section requested from the Lab (or a ?sec= deep link). Figures and KaTeX
   // change the layout after the first paint, so re-run the scroll until it settles.
   useEffect(() => {
-    if (!state.courseSection) return;
-    const id = state.courseSection;
+    if (!wantSection) return;
+    const id = wantSection;
     const timers = [0, 120, 320, 650, 1100].map((d, i) =>
       window.setTimeout(() => scrollToSection(id, { smooth: i > 0, highlight: i === 0 || i === 4 }), d),
     );
-    const done = window.setTimeout(() => dispatch({ type: 'course_section_seen' }), 1250);
+    const done = window.setTimeout(seen, 1250);
     return () => { timers.forEach((t) => window.clearTimeout(t)); window.clearTimeout(done); };
-  }, [state.courseSection, chapter.id, dispatch]);
-  const idx = COURSE.findIndex((c) => c.id === chapter.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantSection, chapter.id]);
+  const idx = chapters.findIndex((c) => c.id === chapter.id);
   const jump = (secId: string) => scrollToSection(secId, { highlight: true });
   return (
     <div className="course">
       <aside className="course-nav">
-        <div className="panel-head"><span className="panel-title">ANTENNA IMPEDANCE MATCHING</span></div>
-        <div className="course-book">W. N. Caron — <em>Antenna Impedance Matching</em> (ARRL) · เนื้อหาตามส่วนที่มีในไฟล์: บทนำ, Ch. I–V, Ch. VI Ex. 1–6</div>
+        <div className="panel-head"><span className="panel-title">{basics ? 'SMITH CHART พื้นฐาน' : 'ANTENNA IMPEDANCE MATCHING'}</span></div>
+        <div className="course-book">{basics
+          ? 'เรียนจากศูนย์: ทำไมต้องมี Smith Chart · อ่านกราฟ · วงกลม SWR · แอดมิตแตนซ์ · สตับ · หม้อแปลง λ/4 · ผลของความถี่ — ทุกตัวเลขและทุกภาพคำนวณสดโดยแอป'
+          : <>W. N. Caron — <em>Antenna Impedance Matching</em> (ARRL) · เนื้อหาตามส่วนที่มีในไฟล์: บทนำ, Ch. I–V, Ch. VI Ex. 1–6</>}</div>
         <ol className="course-toc">
-          {COURSE.map((c) => (
+          {chapters.map((c) => (
             <li key={c.id} className={c.id === chapter.id ? 'active' : ''}>
-              <button onClick={() => dispatch({ type: 'course_chapter', id: c.id })}>
+              <button onClick={() => goChapter(c.id)}>
                 <span className="cnum">{c.num}</span>
                 <span className="ctitle"><b>{c.title}</b><small>{c.titleTh}</small></span>
               </button>
@@ -190,7 +200,7 @@ export const CoursePanel: React.FC = () => {
       </aside>
       <div className="course-body" ref={bodyRef}>
         <header className="course-header">
-          <span className="chip">Chapter {chapter.num}</span>
+          <span className="chip">{basics ? `บทที่ ${chapter.num}` : `Chapter ${chapter.num}`}</span>
           <h2>{chapter.title}</h2>
           <div className="course-th">{chapter.titleTh}</div>
           <p className="course-intro">{chapter.intro}</p>
@@ -209,9 +219,9 @@ export const CoursePanel: React.FC = () => {
           </section>
         ))}
         <div className="course-footer">
-          {idx > 0 && <button className="btn" onClick={() => dispatch({ type: 'course_chapter', id: COURSE[idx - 1].id })}>◀ Chapter {COURSE[idx - 1].num}</button>}
+          {idx > 0 && <button className="btn" onClick={() => goChapter(chapters[idx - 1].id)}>◀ {basics ? 'บทที่' : 'Chapter'} {chapters[idx - 1].num}</button>}
           <span className="spacer" />
-          {idx < COURSE.length - 1 && <button className="btn primary" onClick={() => dispatch({ type: 'course_chapter', id: COURSE[idx + 1].id })}>Chapter {COURSE[idx + 1].num} ▶</button>}
+          {idx < chapters.length - 1 && <button className="btn primary" onClick={() => goChapter(chapters[idx + 1].id)}>{basics ? 'บทที่' : 'Chapter'} {chapters[idx + 1].num} ▶</button>}
         </div>
       </div>
     </div>

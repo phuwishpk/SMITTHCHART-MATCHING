@@ -323,3 +323,49 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
 
 console.log(fails === 0 ? '\nALL PASS (match modes)' : `\n${fails} FAILED`);
 if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
+
+// 22. The Smith Chart fundamentals course: structure, finite figures, textbook numbers
+{
+  const { BASICS, EX77, EX78, EX710, ex78AtFreq } = await import('./basics');
+  const { solveSingleStub: sss, solveQwt: sq } = await import('./matching');
+  const { normalize: nz, admittance: adm, swrFromGamma: swrG, gammaFromZ: gZ } = await import('./rf');
+  check('basics has 11 chapters with sections', BASICS.length === 11 && BASICS.every((c) => c.sections.length >= 1),
+    BASICS.map((c) => `${c.num}:${c.sections.length}`).join(' '));
+  const badFig: string[] = [];
+  let figs = 0;
+  for (const ch of BASICS)
+    for (const sec of ch.sections)
+      for (const fg of sec.figures ?? []) {
+        figs++;
+        if (fg.kind === 'plot') for (const s of fg.series) for (const [x, y] of s.points) if (!Number.isFinite(x) || Number.isNaN(y)) badFig.push(`${ch.id}/${sec.id}`);
+        if (fg.kind === 'smith') { for (const p of fg.points ?? []) if (!Number.isFinite(p.z.re) || !Number.isFinite(p.z.im)) badFig.push(`${ch.id}/${sec.id}`);
+          for (const cv of fg.curves ?? []) for (const z of cv.zs) if (!Number.isFinite(z.re) || !Number.isFinite(z.im)) badFig.push(`${ch.id}/${sec.id}`); }
+        if (fg.kind === 'lab') { const r = solveCircuit(fg.circuit()); if (Number.isNaN(r.swrIn)) badFig.push(`${ch.id}/${sec.id}/lab`); }
+        if (fg.kind === 'wave' && !Number.isFinite(fg.gammaMag)) badFig.push(`${ch.id}/${sec.id}/wave`);
+      }
+  check('basics figures are all finite', badFig.length === 0, [...new Set(badFig)].join(' '));
+  // textbook answers
+  const a77 = sq(EX77.ZL, EX77.Z0).slice().sort((x, y) => x.dLambda - y.dLambda)[0];
+  check('Example 7-7 matches the book (0.184λ, 39.8 Ω, 54.5 Ω)',
+    Math.abs(a77.dLambda - 0.184) < 0.002 && Math.abs(a77.Rreal - 39.8) < 0.3 && Math.abs(a77.Zt - 54.5) < 0.3,
+    `d=${fmtNum(a77.dLambda, 4)} R'=${fmtNum(a77.Rreal, 2)} Zt=${fmtNum(a77.Zt, 2)}`);
+  const a78 = sss(EX78.ZL, EX78.Z0, 'short')[0];
+  const y78t = adm(nz(EX78.ZL, EX78.Z0));
+  check('Example 7-8 matches the book (SWR 4.6, y_L 0.24+j0.32, d 0.130λ, l 0.085λ)',
+    Math.abs(swrG(gZ(EX78.ZL, EX78.Z0)) - 4.6) < 0.05 && Math.abs(y78t.re - 0.24) < 0.005 && Math.abs(y78t.im - 0.32) < 0.005 &&
+    Math.abs(a78.dLambda - 0.130) < 0.002 && Math.abs(a78.lLambda - 0.085) < 0.002,
+    `SWR=${fmtNum(swrG(gZ(EX78.ZL, EX78.Z0)), 3)} y=${fmtC(y78t, 3)} d=${fmtNum(a78.dLambda, 4)} l=${fmtNum(a78.lLambda, 4)}`);
+  const a710 = sss(EX710.ZL, EX710.Z0, 'short')[0];
+  check('Example 7-10 matches the book (SWR 1.5, y = 1 − j0.41)',
+    Math.abs(swrG(gZ(EX710.ZL, EX710.Z0)) - 1.5) < 0.01 && Math.abs(a710.yAtStub.im + 0.41) < 0.01,
+    `SWR=${fmtNum(swrG(gZ(EX710.ZL, EX710.Z0)), 3)} y=${fmtC(a710.yAtStub, 3)}`);
+  const f12b = ex78AtFreq(12);
+  check('Example 7-8 at 12 MHz gives d = 0.156λ and loses the match',
+    Math.abs(f12b.d - 0.156) < 0.001 && f12b.swr > 2, `d=${fmtNum(f12b.d, 4)} SWR=${fmtNum(f12b.swr, 2)}`);
+  // the book rounds d and l_s to three decimals, so the design frequency lands at SWR ≈ 1.03, not exactly 1
+  check('Example 7-8 still matches at its design frequency', ex78AtFreq(10).swr < 1.05, fmtNum(ex78AtFreq(10).swr, 3));
+  console.log(`   basics: ${BASICS.length} chapters, ${BASICS.reduce((a, c) => a + c.sections.length, 0)} sections, ${figs} figures`);
+}
+
+console.log(fails === 0 ? '\nALL PASS (basics course)' : `\n${fails} FAILED`);
+if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
