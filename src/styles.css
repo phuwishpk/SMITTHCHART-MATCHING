@@ -646,6 +646,24 @@ h1, h2, h3 { margin: 0; }
 .cfig-title { font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 6px; }
 /* the Lab's own chart, printed into a course figure */
 .cfig.chart { grid-column: 1 / -1; width: min(100%, 780px); justify-self: center; }
+/* one question between two ideas, answered by reading the chart */
+.cfig.quiz-fig { grid-column: 1 / -1; width: min(100%, 720px); justify-self: center; padding: 0; border: 0; background: none; }
+.quiz { border: 1px solid #bfdbfe; background: #f5f9ff; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.quiz.ok { border-color: #86efac; background: #f2fdf5; }
+.quiz.bad { border-color: #fcd34d; background: #fffbeb; }
+.quiz-q { font-size: 13.5px; line-height: 1.6; }
+.quiz-tag { display: inline-block; background: var(--accent); color: #fff; border-radius: 6px; padding: 1px 7px; font-size: 11px; font-weight: 700; margin-right: 6px; }
+.quiz-chart { max-width: 460px; width: 100%; align-self: center; }
+.quiz-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.quiz-choice { border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 6px 12px; font-size: 13px; text-align: left; font-family: inherit; color: var(--text); }
+.quiz-choice:hover:not(:disabled) { border-color: #93c5fd; background: #eff6ff; }
+.quiz-choice:disabled { opacity: 0.75; cursor: default; }
+.quiz-choice.right { border-color: #86efac; background: var(--ok-bg); color: var(--ok-fg); font-weight: 700; opacity: 1; }
+.quiz-choice.wrong { border-color: #fca5a5; background: #fef2f2; color: #b91c1c; text-decoration: line-through; opacity: 1; }
+.quiz-hint { font-size: 12px; color: var(--muted); }
+.quiz-explain { font-size: 13px; line-height: 1.6; border-top: 1px dashed var(--border); padding-top: 7px; }
+.quiz-retry { margin-left: 10px; }
+
 .smith-full { display: flex; flex-direction: column; gap: 6px; }
 .smith-full-scroll { overflow-x: auto; min-width: 0; max-width: 100%; }
 .smith-full .smith-svg { display: block; width: 100%; height: auto; }

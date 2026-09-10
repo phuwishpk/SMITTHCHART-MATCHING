@@ -21,6 +21,10 @@ export type Figure =
   | { kind: 'chart'; title: string; points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean;
       scale?: boolean; fine?: boolean; readout?: Complex; rCircles?: number[]; xCircles?: number[];
       gCircles?: number[]; bCircles?: number[]; labels?: { z: Complex; text: string }[]; caption?: string }
+  | { kind: 'quiz'; question: string; choices: string[]; answer: number; explain: string; hint?: string;
+      chart?: { points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean; scale?: boolean;
+                fine?: boolean; readout?: Complex; rCircles?: number[]; xCircles?: number[]; gCircles?: number[];
+                bCircles?: number[]; labels?: { z: Complex; text: string }[] } }
   | { kind: 'circuit'; title: string; circuit: Circuit; caption?: string }
   | { kind: 'wave'; title: string; gammaMag: number; gammaDeg?: number; len?: number; caption?: string }
   | { kind: 'table'; title: string; head: string[]; rows: (string | number)[][]; caption?: string }

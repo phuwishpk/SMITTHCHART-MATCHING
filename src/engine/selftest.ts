@@ -340,6 +340,12 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
         if (fg.kind === 'plot') for (const s of fg.series) for (const [x, y] of s.points) if (!Number.isFinite(x) || Number.isNaN(y)) badFig.push(`${ch.id}/${sec.id}`);
         if (fg.kind === 'smith') { for (const p of fg.points ?? []) if (!Number.isFinite(p.z.re) || !Number.isFinite(p.z.im)) badFig.push(`${ch.id}/${sec.id}`);
           for (const cv of fg.curves ?? []) for (const z of cv.zs) if (!Number.isFinite(z.re) || !Number.isFinite(z.im)) badFig.push(`${ch.id}/${sec.id}`); }
+        if (fg.kind === 'quiz') {
+          if (!fg.choices.length || fg.answer < 0 || fg.answer >= fg.choices.length) badFig.push(`${ch.id}/${sec.id}/quiz-answer`);
+          if (new Set(fg.choices).size !== fg.choices.length) badFig.push(`${ch.id}/${sec.id}/quiz-dup`);
+          for (const p of fg.chart?.points ?? []) if (!Number.isFinite(p.z.re) || !Number.isFinite(p.z.im)) badFig.push(`${ch.id}/${sec.id}/quiz-pt`);
+          for (const v of fg.chart?.swr ?? []) if (!Number.isFinite(v) || v < 1) badFig.push(`${ch.id}/${sec.id}/quiz-swr`);
+        }
         if (fg.kind === 'chart') {
           // the full printed chart: every plotted z, every curve point and every SWR value
           // must be finite, or an SVG coordinate becomes NaN

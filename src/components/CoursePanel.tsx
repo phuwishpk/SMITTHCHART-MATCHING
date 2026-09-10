@@ -6,6 +6,7 @@ import { StepLines } from './StepLines';
 import { MiniPlot } from './MiniPlot';
 import { SmithFigure } from './SmithFigure';
 import { SmithFull } from './SmithFull';
+import { CourseQuiz } from './CourseQuiz';
 import { WaveFigure } from './WaveFigure';
 import { CircuitSchematic } from './CircuitSchematic';
 import { solveCircuit, solveSweep, sweepMaxSwr } from '../engine/solver';
@@ -66,6 +67,12 @@ const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
         <figure className="cfig smith">
           <SmithFigure title={fig.title} points={fig.points} curves={fig.curves} swr={fig.swr} showY={fig.showY} rCircles={fig.rCircles} xCircles={fig.xCircles} gCircles={fig.gCircles} bCircles={fig.bCircles} regions={fig.regions} labels={fig.labels} />
           {fig.caption && <figcaption>{fig.caption}</figcaption>}
+        </figure>
+      );
+    case 'quiz':
+      return (
+        <figure className="cfig quiz-fig wide">
+          <CourseQuiz question={fig.question} choices={fig.choices} answer={fig.answer} explain={fig.explain} hint={fig.hint} chart={fig.chart} />
         </figure>
       );
     case 'chart':
@@ -270,7 +277,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
           {chapters.map((c) => (
             <li key={c.id} className={c.id === chapter.id ? 'active' : ''}>
               <button onClick={() => goChapter(c.id)}>
-                <span className="cnum">{c.num}</span>
+                <span className="cnum">{c.num || '·'}</span>
                 <span className="ctitle"><b>{c.title}</b><small>{c.titleTh}</small></span>
               </button>
               {c.id === chapter.id && (
@@ -278,7 +285,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
                   {c.sections.map((s, si) => (
                     <li key={s.id} data-sec={s.id} className={s.id === activeSec ? 'active' : ''}>
                       <button onClick={() => jumpAcross(c.id, s.id)}>
-                        <span className="snum">{c.num}.{si + 1}</span>
+                        {c.num && <span className="snum">{c.num}.{si + 1}</span>}
                         <span className="stitle">{s.title}</span>
                       </button>
                     </li>
@@ -292,14 +299,14 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
       </aside>
       <div className="course-body" ref={bodyRef}>
         <header className="course-header">
-          <span className="chip">{basics ? `บทที่ ${chapter.num}` : `Chapter ${chapter.num}`}</span>
+          <span className="chip">{chapter.num ? (basics ? `บทที่ ${chapter.num}` : `Chapter ${chapter.num}`) : 'บทนำ'}</span>
           <h2>{chapter.title}</h2>
           <div className="course-th">{chapter.titleTh}</div>
           <p className="course-intro">{chapter.intro}</p>
         </header>
         {chapter.sections.map((sec, si) => (
           <section key={sec.id} id={`sec-${sec.id}`} className="course-section">
-            <h3><span className="secnum">{chapter.num}.{si + 1}</span> {sec.title}</h3>
+            <h3>{chapter.num && <span className="secnum">{chapter.num}.{si + 1}</span>} {sec.title}</h3>
             <StepLines lines={sec.lines} />
             {sec.figures && sec.figures.length > 0 && (
               <div className="cfigs">

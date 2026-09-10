@@ -8,8 +8,8 @@ import { StepLine } from './explain';
 import { Complex, C, abs, arg, deg, fmtNum, isFiniteC } from './complex';
 import { buildCircuit } from './circuit';
 import {
-  gammaFromZ, gammaFromz, zFromGamma, normalize, admittance, swrFromGamma,
-  rotateTowardGenerator, wtgFromGamma, lineInput, stubInput, XL, XC,
+  gammaFromZ, gammaFromz, zFromGamma, normalize, denormalize, admittance, swrFromGamma,
+  rotateTowardGenerator, wtgFromGamma, lineInput, stubInput, returnLossDb, XL, XC,
 } from './rf';
 import { solveSingleStub, solveQwt } from './matching';
 
@@ -109,130 +109,131 @@ const LOSSY_ZL = C(200, 0);
 const LOSSY_Z0 = 50;
 const lossyZ = (d: number): Complex => normalize(lineInput(LOSSY_ZL, LOSSY_Z0, d, 6 * d), LOSSY_Z0);
 
+/** chapter 6.4: the z-versus-y mix-up — mirror the point first, then walk, and every later reading is y */
+const gMirror = gammaFromz(yApp);
+const gMirrorWalk = rotateTowardGenerator(gMirror, dApp);
+const zMirrorWalk = zFromGamma(gMirrorWalk);
+const ZMirrorWalk = C(zMirrorWalk.re * APP_Z0, zMirrorWalk.im * APP_Z0);
+const ZQuarter = C(yApp.re * APP_Z0, yApp.im * APP_Z0);
+/** chapter 11.4: what a VNA actually reads — reference plane, cable rotation, cable loss.
+ *  Only f, vf, the cable length and the dB/m figure are assumed; everything else is computed. */
+const VNA_F = 100e6;
+const VNA_VF = 0.66;
+const VNA_LEN_M = 0.5;
+const VNA_LOSS_PER_M = 0.17;
+const VNA_BIGLOSS = 3;
+const VNA_LAM = (299792458 * VNA_VF) / VNA_F;
+const VNA_LEN = VNA_LEN_M / VNA_LAM;
+const VNA_LOSS = VNA_LEN_M * VNA_LOSS_PER_M;
+const VNA_LOSSES = [0, VNA_LOSS, 0.5, 1.5, VNA_BIGLOSS];
+const vnaZ = (lossDb: number): Complex => lineInput(APP_ZL, APP_Z0, VNA_LEN, lossDb);
+const vnaG = (lossDb: number): Complex => gammaFromZ(vnaZ(lossDb), APP_Z0);
+/** the point as the reference plane creeps down the cable, the stated loss shared along it */
+const vnaPath = (lossDb: number, k = 73): Complex[] =>
+  linspace(0, VNA_LEN, k).map((l) => normalize(lineInput(APP_ZL, APP_Z0, l, (lossDb * l) / VNA_LEN), APP_Z0));
+const ZVna0 = vnaZ(0);
+const zVna0 = normalize(ZVna0, APP_Z0);
+const gVna0 = vnaG(0);
+const zVnaL = normalize(vnaZ(VNA_BIGLOSS), APP_Z0);
+/** de-embedding: rotate the measured point back toward the load by the same electrical length */
+const zVnaBack = zFromGamma(rotateTowardGenerator(gVna0, -VNA_LEN));
+const ZVnaBack = C(zVnaBack.re * APP_Z0, zVnaBack.im * APP_Z0);
+
 export const BASICS: Chapter[] = [
   {
-    id: 'b0', num: '1', title: 'ภาพรวมของคอร์ส และแผนที่ว่าเรื่องไหนอยู่บทไหน', titleTh: 'เริ่มที่นี่ถ้ายังไม่รู้ว่าจะอ่านบทไหนก่อน',
-    intro: 'บทนี้ไม่ใช่เนื้อหาใหม่ แต่เป็นแผนที่: บอกว่าเรื่องแต่ละเรื่องของ Smith Chart อยู่บทไหน และควรอ่านตามลำดับใด',
+    id: 'b0', num: '', title: 'อ่านหน้านี้ก่อน: รู้จัก Smith Chart ในห้านาที', titleTh: 'สำหรับคนที่เพิ่งเห็นกราฟนี้ครั้งแรก ยังไม่ต้องคำนวณอะไร',
+    intro: 'หน้านี้ยังไม่มีอะไรต้องคำนวณ มีแค่ห้าเรื่องที่ควรรู้ก่อนเปิดบทแรก คือกราฟนี้ใช้ทำอะไร จุดกลางคืออะไร ครึ่งบนกับครึ่งล่างต่างกันตรงไหน หนึ่งจุดบนกราฟแทนค่าอะไร และควรเริ่มอ่านจากตรงไหน',
     sections: [
       {
-        id: 'prereq', title: 'ปูพื้น: อิมพีแดนซ์บนสายที่ไม่แมตช์เปลี่ยนไปตามตำแหน่ง',
+        id: 'what', title: 'Smith Chart ใช้ทำอะไร',
         lines: [
-          T('ก่อนเข้าเรื่อง Smith Chart ต้องรู้ข้อเท็จจริงสามข้อเกี่ยวกับสายที่ไม่แมตช์ก่อน ทั้งสามข้อเป็นเหตุผลที่ทำให้กราฟนี้จำเป็น'),
-          K('1. อิมพีแดนซ์ที่ "มองเห็น" เปลี่ยนไปตามตำแหน่งบนสาย\n2. ค่ากลับมาซ้ำเดิมทุก ๆ ครึ่งความยาวคลื่น\n3. ที่ระยะหนึ่งในสี่ความยาวคลื่น ค่าที่ได้สัมพันธ์กับแอดมิตแตนซ์ของโหลด'),
-          T('ข้อแรกมาจากสมการสายส่ง ซึ่งเป็นสมการที่คำนวณด้วยมือได้ยากเมื่อโหลดเป็นจำนวนเชิงซ้อน'),
-          M('Z_{in}(l) = Z_0\\,\\frac{Z_L + jZ_0\\tan\\beta l}{Z_0 + jZ_L\\tan\\beta l}'),
-          T('ข้อที่สองเห็นได้จาก tan ที่มีคาบ π'),
-          M('\\beta l = \\frac{2\\pi}{\\lambda}\\cdot\\frac{\\lambda}{2} = \\pi \\;\\Rightarrow\\; \\tan\\beta l = 0 \\;\\Rightarrow\\; Z_{in} = Z_L'),
-          T('ข้อที่สามคือกรณี βl = π/2 ซึ่ง tan เป็นอนันต์ เหลือเพียง'),
-          R('Z_{in} = \\frac{Z_0^{2}}{Z_L} \\;\\Rightarrow\\; z_{in} = \\frac{1}{z_L} = y_L'),
-          T(`ตัวอย่างที่แอปคำนวณให้: สาย ${APP_Z0} Ω โหลด Z_L = ${fz(APP_ZL, 0)} Ω`),
-          M(`\\lambda/4: \\; Z_{in} = \\frac{${APP_Z0}^{2}}{${tc(APP_ZL, 0)}} = ${tc(lineInput(APP_ZL, APP_Z0, 0.25, 0), 1)}\\,\\Omega \\qquad \\lambda/2: \\; Z_{in} = ${tc(lineInput(APP_ZL, APP_Z0, 0.5, 0), 1)}\\,\\Omega`),
-          N('แถวสุดท้ายกลับมาเท่าโหลดเดิมพอดี — นั่นคือข้อที่สอง · บทที่ 2 อธิบายทั้งสามข้อพร้อมตารางเต็ม'),
+          T('Smith Chart คือกระดาษกราฟแผ่นเดียวที่ใช้แทนการคำนวณสายส่ง (transmission line) ที่ยุ่งยาก แทนที่จะแก้สมการจำนวนเชิงซ้อนทีละบรรทัด เราพล็อตค่าโหลดเป็นจุดหนึ่งจุด แล้วเลื่อนจุดนั้นไปตามกฎง่าย ๆ ไม่กี่ข้อ คำตอบก็อ่านได้จากกราฟเลย'),
+          T('งานสามอย่างที่วิศวกร RF ใช้กราฟนี้ทำบ่อยที่สุดคือ'),
+          K('1. ดูว่าโหลดที่ต่ออยู่ “แมตช์” กับสายดีแค่ไหน (สะท้อนกลับมากหรือน้อย)\n2. หาว่าอิมพีแดนซ์ที่มองเห็นเปลี่ยนไปเป็นเท่าไร เมื่อขยับจุดวัดไปตามสาย\n3. ออกแบบวงจร matching เพื่อกำจัดคลื่นสะท้อนให้หมด'),
+          T('กราฟจริงมีเส้นตารางถี่ยิบจนดูน่ากลัว แต่โครงของมันมีแค่ไม่กี่อย่าง รูปข้างล่างคือ “แผนที่” ที่ต้องจำให้ได้ก่อน ส่วนเส้นถี่ ๆ ค่อยว่ากันในบทต่อ ๆ ไป'),
+          N('หน้านี้ยังไม่ต้องจำสูตรอะไรเลย ขอแค่จำแผนที่ใบนี้ให้ติดตา'),
         ],
         figures: [
-          { kind: 'table', title: `อิมพีแดนซ์ที่มองเห็นตามตำแหน่ง (โหลด ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω — คำนวณโดยแอป)`,
-            head: ['ระยะจากโหลด', 'Z ที่มองเห็น (Ω)', 'z', 'SWR'],
-            rows: [0, 0.125, 0.25, 0.375, 0.5].map((d) => {
-              const Z = lineInput(APP_ZL, APP_Z0, d, 0);
-              return [`${n(d, 3)} λ`, fz(Z, 1), fz(normalize(Z, APP_Z0), 3), n(swrFromGamma(gammaFromZ(Z, APP_Z0)), 3)];
-            }),
-            caption: 'Z เปลี่ยนตลอด แต่ SWR คงที่ · แถว 0.25 λ ให้ค่าที่เป็นส่วนกลับของโหลด · แถว 0.5 λ กลับมาเท่าเดิม' },
+          { kind: 'chart', title: 'แผนที่ Smith Chart — จำแค่นี้ก่อน', scale: false, fine: false, xCircles: [0],
+            labels: [
+              { z: zFromGamma(C(0, -0.07)), text: 'MATCH  z = 1' },
+              { z: zFromGamma(C(-0.85, 0.14)), text: 'SHORT  z = 0' },
+              { z: zFromGamma(C(0.85, 0.14)), text: 'OPEN  z = ∞' },
+              { z: zFromGamma(C(0, 0.60)), text: 'ครึ่งบน = +jX (เหนี่ยวนำ)' },
+              { z: zFromGamma(C(0, -0.60)), text: 'ครึ่งล่าง = −jX (เก็บประจุ)' },
+              { z: zFromGamma(C(-0.30, -0.22)), text: 'ใกล้กลาง = สะท้อนน้อย' },
+              { z: zFromGamma(C(-0.62, 0.55)), text: 'ใกล้ขอบ = สะท้อนมาก' },
+            ],
+            caption: 'สามจุดหลัก สองครึ่ง และหนึ่งกฎเรื่องระยะจากจุดกลาง — เท่านี้ก็พอสำหรับหน้าแรก' },
         ],
       },
       {
-        id: 'fund', title: 'พื้นฐานของ Smith Chart ที่ต้องรู้ให้ครบ',
+        id: 'landmarks', title: 'จุดกลาง ครึ่งบน และครึ่งล่าง',
         lines: [
-          T('พื้นฐานที่ต้องอ่านให้ครบมีตามลำดับนี้ ตารางด้านล่างบอกว่าแต่ละเรื่องอยู่บทไหน'),
-          T('สองข้อที่ต้องจำเป็นกฎตายตัวคือทิศทางการหมุน'),
-          R('\\text{Toward Generator} = \\text{ตามเข็มนาฬิกา (clockwise)}'),
-          R('\\text{Toward Load} = \\text{ทวนเข็มนาฬิกา (counterclockwise)}'),
-          T('และความยาวหนึ่งรอบของกราฟ'),
-          R('\\text{หนึ่งรอบเต็มของ Smith Chart} = \\frac{\\lambda}{2} \\text{ บนสายส่ง}'),
-          N('ข้อควรระวัง: วงกลม SWR คงที่ใช้ได้กับสายไร้การสูญเสีย ถ้าสายมีการสูญเสีย เส้นทางจะเป็นเกลียวเข้าหาศูนย์กลาง (ดูหัวข้อ 5.4)'),
-        ],
-        figures: [
-          { kind: 'table', title: 'พื้นฐานแต่ละเรื่อง อยู่บทไหน',
-            head: ['เรื่อง', 'สาระ', 'อยู่บทที่'],
-            rows: [
-              ['Description', 'Smith Chart คือ polar impedance diagram', 'บทที่ 3 (3.1, 3.2)'],
-              ['Normalized Resistance', 'r = R/Z₀', 'บทที่ 3.3 และ 4.1'],
-              ['Normalized Reactance', 'x = X/Z₀', 'บทที่ 3.3 และ 4.2'],
-              ['Resistance Circles', 'วงกลมแทน r คงที่', 'บทที่ 4.1'],
-              ['Reactance Arcs', 'ส่วนโค้งแทน x คงที่', 'บทที่ 4.2'],
-              ['Orthogonal Coordinates', 'สองชุดตัดกันตั้งฉาก', 'บทที่ 4.4'],
-              ['Constant SWR Circle', 'โหลดเดียวกันบนสายไร้การสูญเสียอยู่บนวงเดียว', 'บทที่ 5.1, 5.2'],
-              ['Reading SWR', 'อ่าน SWR ที่จุดตัดแกน resistance', 'บทที่ 5.3'],
-              ['Normalized Impedance / Admittance', 'ค่าปกติทำให้กราฟใบเดียวใช้ได้ทุก Z₀', 'บทที่ 3.3 และ 7.1'],
-              ['Distance Along the Line', 'ระยะบนสายคือการหมุนรอบกราฟ', 'บทที่ 6.1, 6.3'],
-              ['Toward Generator / Toward Load', 'ตามเข็ม / ทวนเข็ม', 'บทที่ 6.2'],
-              ['Half-Wavelength Repetition', 'หนึ่งรอบ = λ/2', 'บทที่ 6.1'],
-              ['(lossy line)', 'สายมีการสูญเสียเดินเป็นเกลียว', 'บทที่ 5.4'],
-            ] },
+          T('จุดกลางของกราฟ คือจุดที่ทุกอย่างลงตัว โหลดเท่ากับอิมพีแดนซ์ของสายพอดี ไม่มีคลื่นสะท้อนเลย เรียกจุดนี้ว่า MATCH และเขียนแทนด้วย z = 1 เป้าหมายของงาน matching ทั้งหมดในคอร์สนี้คือ “ลากจุดให้มาถึงตรงนี้”'),
+          T('ขอบซ้ายสุดของกราฟคือ short circuit เขียนว่า z = 0 ส่วนขอบขวาสุดคือ open circuit เขียนว่า z = ∞ ทั้งสองจุดนี้สะท้อนคลื่นกลับหมดทั้งลูก'),
+          T('เส้นตรงแนวนอนที่ลากผ่านจุดกลางแบ่งกราฟเป็นสองครึ่ง ครึ่งบนคือโหลดที่มีค่า +jX หรือมีลักษณะเป็นตัวเหนี่ยวนำ (inductive) ครึ่งล่างคือ −jX หรือมีลักษณะเป็นตัวเก็บประจุ (capacitive) ส่วนบนเส้นแนวนอนพอดีคือโหลดที่เป็นความต้านทานล้วน ไม่มีส่วนเชิงซ้อน'),
+          T('กฎข้อสุดท้ายเป็นเรื่องระยะ ยิ่งจุดอยู่ใกล้จุดกลางเท่าไร แปลว่าแมตช์ดี สะท้อนน้อย ยิ่งจุดถูกผลักออกไปใกล้ขอบเท่าไร แปลว่าแมตช์แย่ สะท้อนมาก'),
+          N('มองกราฟให้เหมือนเป้ายิงธนู: กลางเป้าคือแมตช์สมบูรณ์ ขอบนอกคือสะท้อนกลับทั้งหมด · ตัวเลขที่วัดความ “ไกลจากกลาง” นี้คือ SWR ซึ่งจะได้เรียนในบทต่อ ๆ ไป'),
         ],
       },
       {
-        id: 'apps-map', title: 'การใช้งานสามกลุ่มที่ใช้บ่อยที่สุด',
+        id: 'onepoint', title: 'หนึ่งจุดบนกราฟแทนค่าอะไร',
         lines: [
-          T('การใช้งาน Smith Chart ที่ใช้บ่อยที่สุดมีสามเรื่อง คอร์สนี้ทำทั้งสามเรื่องไว้ในบทที่ 7'),
-          K('1. Admittance calculations — แปลง impedance ↔ admittance ด้วยจุดตรงข้ามบนวงกลม SWR\n2. Impedance / Admittance at Any Point and SWR — หา Z, Y ที่ตำแหน่งใด ๆ และอ่าน SWR\n3. Short-Circuited Line Reactance / Susceptance — หาความยาวสายปลายลัดที่ให้ค่าที่ต้องการ'),
-          T('ตัวอย่างมาตรฐานของกลุ่มที่ 1 คือ'),
-          M(`z = ${tc(zApp, 1)} \\;\\Rightarrow\\; y = ${tc(yApp, 0)}`),
-          T('โดยจุด impedance กับ admittance อยู่ห่างกัน λ/4 หรือพูดอีกอย่างคืออยู่คนละด้านของกราฟ'),
-          N('กลุ่มที่ 3 คือหัวใจของ stub matching ในบทที่ 10 · ขั้นตอนหกข้อของ stub matching คือการเรียงกลุ่ม 1 → 2 → 3 ต่อกัน'),
+          T('หนึ่งจุด แทน อิมพีแดนซ์หนึ่งค่า ซึ่งมีสองส่วนเสมอ คือส่วนต้านทาน R กับส่วนรีแอกแตนซ์ X ที่เขียนติดกันเป็น R + jX โอห์ม'),
+          T(`ก่อนพล็อตลงกราฟ เราหารค่าโหลดด้วยอิมพีแดนซ์ของสายก่อน (ในคอร์สนี้ส่วนใหญ่ใช้สาย ${APP_Z0} Ω) เพื่อให้กราฟใบเดียวใช้ได้กับสายทุกชนิด ค่าที่หารแล้วเขียนด้วยตัวเล็ก z และไม่มีหน่วย`),
+          R(`Z_L = ${tc(APP_ZL, 0)}\\,\\Omega \\;\\Rightarrow\\; z_L = ${tc(zApp, 1)}`),
+          T(`โหลด ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω ตัวนี้จะเป็นตัวอย่างประจำของคอร์ส เจอซ้ำเกือบทุกบท ค่า z ของมันมีส่วน +j จึงตกอยู่ครึ่งบนของกราฟ และอยู่ค่อนไปทางซ้ายของจุดกลาง`),
+          N('ตารางข้างล่างคำนวณโดยแอป ลองไล่ดูว่าค่าไหนไปตกตรงไหนของแผนที่ในหัวข้อแรก'),
         ],
         figures: [
-          { kind: 'table', title: 'สามการใช้งาน อยู่หัวข้อไหน',
-            head: ['Application', 'เนื้อหา', 'อยู่บทที่'],
-            rows: [
-              ['1. Admittance Calculations', 'z ↔ y ด้วยจุดตรงข้าม', 'บทที่ 7.5 (และที่มาใน 7.3)'],
-              ['2. Impedance / Admittance at Any Point and SWR', 'เดินตามวงกลม SWR แล้วอ่านค่า', 'บทที่ 7.6'],
-              ['3. Short-Circuited Line Reactance / Susceptance', 'หาความยาวสตับจากค่าที่ต้องการ', 'บทที่ 7.7 และ 8.1–8.3'],
-            ] },
+          { kind: 'table', title: `หนึ่งจุด = หนึ่งค่าโหลด (สาย ${APP_Z0} Ω — คำนวณโดยแอป)`,
+            head: ['โหลดจริง Z (Ω)', 'ค่าที่กราฟใช้ z', 'ไปตกตรงไหนบนแผนที่'],
+            rows: ([
+              [C(APP_Z0, 0), 'จุดกลางพอดี — MATCH'],
+              [APP_ZL, 'ครึ่งบน (มี +j) — ตัวอย่างประจำของคอร์สนี้'],
+              [C(APP_ZL.re, -APP_ZL.im), 'ครึ่งล่าง (มี −j)'],
+              [C(0, 0), 'ขอบซ้ายสุด — SHORT'],
+              [C(Infinity, 0), 'ขอบขวาสุด — OPEN'],
+            ] as [Complex, string][]).map(([Z, where]) => [fz(Z, 0), fz(normalize(Z, APP_Z0), 1), where]),
+            caption: 'ตัวเลขในคอลัมน์กลางไม่มีหน่วย เพราะโดนหารด้วยค่าของสายไปแล้ว จะแปลงกลับเป็นโอห์มก็แค่คูณกลับเข้าไป' },
+          { kind: 'lab', label: `ลองเลย: โหลด ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω`,
+            circuit: () => buildCircuit(100e6, APP_Z0, [['load', 'series', { R: APP_ZL.re, X: APP_ZL.im }]]),
+            note: 'จุดสีแดงคือโหลดตัวนี้ อยู่ครึ่งบนของกราฟ ตัวเลขรอบ ๆ ยังไม่ต้องสนใจตอนนี้' },
         ],
       },
       {
-        id: 'solve', title: 'การแก้โจทย์ matching ด้วย Smith Chart',
+        id: 'paths', title: 'จะเริ่มอ่านจากตรงไหน',
         lines: [
-          T('ครึ่งหลังของคอร์สเปลี่ยนจาก "รู้จักกราฟ" เป็น "ใช้กราฟแก้โจทย์" มีสี่เรื่อง'),
-          T('สาระของหม้อแปลง λ/4 คือ'),
-          M('Z_L \\rightarrow z_L \\rightarrow \\text{Smith Chart} \\rightarrow \\text{หาจุด } x = 0 \\rightarrow \\lambda/4 \\text{ transformer}'),
-          T('ส่วนสาระของ single stub matching คือ'),
-          M('Z_L \\rightarrow z_L \\rightarrow y_L \\rightarrow 1 \\pm jb \\rightarrow \\text{ตำแหน่งสตับ } d \\rightarrow \\text{ความยาวสตับ } l_s'),
-          T(`ตัวอย่างมาตรฐานใช้ z_L = ${tc(z78, 1)} อ่าน SWR ได้ประมาณ ${n(swr78, 1)} จากนั้นได้ y_L = ${tc(y78, 2)} และจุด y = ${tc(ex78.yAtStub, 1)} จึงต้องใช้สตับ ${n(ex78.bStub, 1)} มาหักล้าง ได้ d = ${n(ex78.dLambda, 3)} λ และ l_s = ${n(ex78.lLambda, 3)} λ`),
-          T('หัวข้อสุดท้ายคือผลของความถี่ที่เปลี่ยนไป เพราะ'),
-          M('\\lambda = \\frac{v}{f}'),
-          T(`ความยาวจริงไม่เปลี่ยน แต่ความยาวไฟฟ้าในหน่วย λ เปลี่ยน ตัวอย่าง: ระยะ 0.130 λ ที่ 10 MHz คือ ${n(0.13 * 299792458 / 10e6, 2)} m แต่ที่ 12 MHz ความยาวคลื่นเหลือ ${n(299792458 / 12e6, 1)} m ระยะเดิมจึงกลายเป็น ${n(3.9 / (299792458 / 12e6), 3)} λ`),
-          N('บทที่ 11 คำนวณ SWR ใหม่ที่ความถี่ที่เปลี่ยนไปให้ครบทุกขั้น'),
+          T('บทแรกของคอร์สเริ่มจากคำถามว่า ทำไมถึงต้องมีกราฟใบนี้ตั้งแต่แรก แล้วค่อย ๆ สร้างกราฟขึ้นมาทีละชั้นจนใช้ออกแบบวงจรได้ ถ้ายังไม่เคยเรียนเรื่องสายส่งมาก่อน ให้อ่านเรียงไปตามลำดับ ไม่ต้องข้าม'),
+          T('แต่ถ้ามีเป้าหมายอยู่แล้ว เลือกหนึ่งในสี่เส้นทางนี้ แล้วดูป้ายในคอลัมน์ขวาของตาราง'),
+          K('เริ่มจากศูนย์ → อ่านทุกแถวเรียงจากแถวแรกลงไป ไม่ต้องข้าม\nต้องการอ่านค่า Z / SWR → อ่านสองแถวแรกพอเป็นพื้น แล้วข้ามไปแถวป้าย “อ่านค่า”\nต้องการออกแบบ Matching → เก็บแถวป้าย “พื้นฐาน” ให้ครบก่อน แล้วต่อด้วยแถวป้าย “Matching”\nต้องการทบทวนสูตร → เริ่มที่แถวป้าย “ทบทวน” แล้วค่อยย้อนกลับมาเฉพาะเรื่องที่ติด'),
+          N('เกือบทุกบทมีกล่อง 🔬 Lab ให้กดเข้าไปลากค่าจริงดูได้ ถ้าอ่านแล้วยังไม่เห็นภาพ ให้เปิด Lab ควบคู่ไปด้วยเสมอ'),
         ],
         figures: [
-          { kind: 'table', title: 'การแก้โจทย์แต่ละแบบ อยู่บทไหน',
-            head: ['เรื่อง', 'เนื้อหา', 'อยู่บทที่'],
+          { kind: 'table', title: 'แผนที่คอร์ส: เรื่องไหนอยู่บทไหน',
+            head: ['บทที่', 'เรื่องของบทนั้น', 'ป้ายเส้นทาง'],
             rows: [
-              ['Matching with a Quarter-Wave Transformer', 'หาจุดความต้านทานล้วนแล้วต่อหม้อแปลง λ/4', 'บทที่ 9 ทั้งบท (Example 7-7 ที่ 9.3)'],
-              ['Matching with a Short-Circuited Stub', 'สตับให้ pure susceptance หักล้างของสายหลัก', 'บทที่ 8.2 และ 10.1–10.2'],
-              ['Matching Procedure', 'ขั้นตอนหกข้อ ตำแหน่งสตับ และความยาวสตับ', 'บทที่ 10.3 และ 10.4 (Example 7-8)'],
-              ['Effects of Frequency Variation', 'matching ใช้ได้เฉพาะที่ความถี่ออกแบบ', 'บทที่ 11 ทั้งบท'],
-            ] },
-          { kind: 'table', title: 'ลำดับการอ่านที่แนะนำ',
-            head: ['ลำดับ', 'เรื่อง', 'อยู่บทที่'],
-            rows: [
-              ['1', 'Impedance variation along a mismatched line', 'บทที่ 2'],
-              ['2', 'Fundamentals: r, x, วงกลม, ส่วนโค้ง', 'บทที่ 3–4'],
-              ['3', 'Constant SWR circle และการอ่าน SWR', 'บทที่ 5'],
-              ['4', 'ระยะทางและทิศทางบนกราฟ', 'บทที่ 6'],
-              ['5', 'Admittance และการใช้งานสามกลุ่ม', 'บทที่ 7'],
-              ['6', 'สายส่งแทน L และ C (ที่มาของสตับ)', 'บทที่ 8'],
-              ['7', 'Quarter-wave transformer matching', 'บทที่ 9'],
-              ['8', 'Short-circuited stub matching', 'บทที่ 10'],
-              ['9', 'Effects of frequency variation', 'บทที่ 11'],
-            ] },
+              ['1', 'ปัญหาที่ทำให้ต้องมี Smith Chart — สายส่งกับโหลดที่ไม่แมตช์', 'พื้นฐาน'],
+              ['2', 'Smith Chart คืออะไร และทำไมต้อง normalize', 'พื้นฐาน'],
+              ['3', 'อ่านกราฟให้เป็น: วงกลม r และส่วนโค้ง x', 'พื้นฐาน · อ่านค่า'],
+              ['4', 'วงกลม SWR คงที่ และวิธีอ่านค่า SWR', 'พื้นฐาน · อ่านค่า'],
+              ['5', 'ระยะทางบนกราฟ: หนึ่งรอบเท่ากับ λ/2', 'พื้นฐาน · อ่านค่า'],
+              ['6', 'แอดมิตแตนซ์ y และการหมุน 180°', 'พื้นฐาน · อ่านค่า · Matching'],
+              ['7', 'สายส่งใช้แทน L และ C ได้ (ที่มาของสตับ)', 'Matching'],
+              ['8', 'หม้อแปลง λ/4 ทีละขั้น', 'Matching'],
+              ['9', 'Single stub matching ทีละขั้น', 'Matching'],
+              ['10', 'ผลของความถี่ที่เปลี่ยนไป', 'Matching'],
+              ['11', 'สรุป เปรียบเทียบสองวิธี และแผนผังทำโจทย์', 'ทบทวน'],
+            ],
+            caption: 'ถ้าไม่แน่ใจว่าตัวเองอยู่ตรงไหน ให้ใช้เส้นทาง “เริ่มจากศูนย์” คืออ่านตั้งแต่แถวแรก' },
         ],
       },
     ],
   },
   // ============================================================
   {
-    id: 'b1', num: '2', title: 'ปัญหาที่ทำให้ต้องมี Smith Chart', titleTh: 'เริ่มจากสายส่งกับโหลดที่ไม่แมตช์',
+    id: 'b1', num: '1', title: 'ปัญหาที่ทำให้ต้องมี Smith Chart', titleTh: 'เริ่มจากสายส่งกับโหลดที่ไม่แมตช์',
     intro: 'ก่อนจะอ่านกราฟได้ ต้องเห็นปัญหาก่อนว่าทำไมการคำนวณสายส่งด้วยมือจึงยาก บทนี้เริ่มจากสายส่งที่มีอิมพีแดนซ์คุณลักษณะ Z₀ ต่อกับโหลด Z_L แล้วดูว่าเกิดอะไรขึ้นเมื่อทั้งสองไม่เท่ากัน',
     sections: [
       {
@@ -247,7 +248,7 @@ export const BASICS: Chapter[] = [
         ],
         figures: [
           { kind: 'wave', title: 'คลื่นนิ่งเมื่อโหลด 100 + j50 Ω บนสาย 50 Ω', gammaMag: abs(gammaFromZ(C(100, 50), 50)), gammaDeg: deg(arg(gammaFromZ(C(100, 50), 50))), len: 0.5,
-            caption: 'ยอดคลื่นและท้องคลื่นสลับกันทุกครึ่งความยาวคลื่น อัตราส่วนยอดต่อท้องคือ SWR' },
+            caption: 'จุดสูงสุดกับจุดต่ำสุดที่อยู่ติดกันห่างกัน λ/4 ส่วนจุดสูงสุดชนิดเดียวกันจะซ้ำทุก λ/2 · อัตราส่วนยอดต่อท้องคือ SWR' },
           { kind: 'wave', title: 'เทียบกับกรณีแมตช์ (Z_L = Z₀ = 50 Ω)', gammaMag: 0, gammaDeg: 0, len: 0.5, caption: 'ไม่มีคลื่นสะท้อน แรงดันคงที่ตลอดสาย SWR = 1' },
           { kind: 'lab', label: 'ทดลองใน Lab: โหลด 100 + j50 Ω บนสาย 50 Ω', circuit: () => buildCircuit(100e6, 50, [['load', 'series', { R: 100, X: 50 }]]), note: 'กด Explain เพื่อดูการคำนวณ Γ และ SWR ทีละขั้น' },
         ],
@@ -260,7 +261,7 @@ export const BASICS: Chapter[] = [
           T('สำหรับสายไร้การสูญเสีย มีสมบัติสองข้อที่เป็นรากฐานของ Smith Chart:'),
           M('l = \\frac{\\lambda}{2}: \\; Z_{in} = Z_L \\qquad\\text{(ค่ากลับมาเท่าเดิมทุกครึ่งความยาวคลื่น)}'),
           M('l = \\frac{\\lambda}{4}: \\; Z_{in} = \\frac{Z_0^{2}}{Z_L} \\;\\Rightarrow\\; z_{in} = \\frac{1}{z_L} = y_L \\qquad\\text{(กลายเป็นแอดมิตแตนซ์ปกติของโหลด)}'),
-          T('ข้อแรกทำให้กราฟหนึ่งรอบแทนระยะเพียง λ/2 ข้อที่สองทำให้การแปลง Z ↔ Y กลายเป็นการหมุนครึ่งรอบ ทั้งสองข้อจะกลับมาอีกในบทที่ 6 และ 7'),
+          T('ข้อแรกทำให้กราฟหนึ่งรอบแทนระยะเพียง λ/2 ข้อที่สองทำให้การแปลง Z ↔ Y กลายเป็นการหมุนครึ่งรอบ ทั้งสองข้อจะกลับมาอีกในบทที่ 5 และ 6'),
         ],
         figures: [
           { kind: 'table', title: 'อิมพีแดนซ์ที่เห็น เมื่อเดินจากโหลด 100 + j50 Ω ไปทางแหล่งจ่าย (สาย 50 Ω, คำนวณโดยแอป)',
@@ -270,7 +271,7 @@ export const BASICS: Chapter[] = [
               const g = gammaFromZ(Z, 50);
               return [`${n(d, 3)} λ`, fz(Z, 1), fz(normalize(Z, 50), 3), n(abs(g), 3), n(swrFromGamma(g), 2)];
             }),
-            caption: 'ค่า Z เปลี่ยนตลอด แต่ |Γ| และ SWR คงที่ · ที่ 0.25 λ ได้ 1/z_L และที่ 0.5 λ กลับมาเท่าเดิม' },
+            caption: 'ค่า Z เปลี่ยนตลอด แต่ |Γ| และ SWR คงที่ เพราะสายไร้การสูญเสีย · ที่ 0.25 λ ได้ 1/z_L และที่ 0.5 λ กลับมาเท่าเดิม' },
           { kind: 'smith', title: 'เส้นทางเดียวกันบน Smith Chart (ยังไม่ต้องอ่านตัวเลขบนกราฟตอนนี้)',
             points: [{ z: normalize(C(100, 50), 50), label: 'z_L', cls: 'load' }, { z: normalize(lineInput(C(100, 50), 50, 0.25, 0), 50), label: '0.25λ = y_L', cls: 'y' }],
             curves: [{ zs: swrPath(normalize(C(100, 50), 50), 0.5), cls: 'net', arrow: true }],
@@ -286,7 +287,7 @@ export const BASICS: Chapter[] = [
           T('ระหว่างสองตำแหน่งนั้น ต้องมีจุดหนึ่งที่ X = 0 พอดี นั่นคือจุดที่อิมพีแดนซ์เป็นความต้านทานล้วน'),
           M('Z = R + j0 \\qquad \\text{(purely resistive point)}'),
           T('การหาตำแหน่งนี้ด้วยการแก้สมการสายส่งที่มีจำนวนเชิงซ้อนซ้ำ ๆ ทำได้ยากและเสียเวลา โดยเฉพาะเมื่อโหลดเป็นจำนวนเชิงซ้อน — Smith Chart ทำให้อ่านตำแหน่งนี้ได้ทันทีจากกราฟ'),
-          N('จุด X = 0 นี้สำคัญมากในบทที่ 9 เพราะหม้อแปลง λ/4 ใช้ได้เฉพาะกับโหลดที่เป็นความต้านทานล้วนเท่านั้น'),
+          N('จุด X = 0 นี้สำคัญมากในบทที่ 8 เพราะหม้อแปลง λ/4 ใช้ได้เฉพาะกับโหลดที่เป็นความต้านทานล้วนเท่านั้น'),
         ],
         figures: [
           { kind: 'plot', title: 'ส่วน R และ X ที่มองเห็น เมื่อเดินจากโหลด 100 + j50 Ω ไปทางแหล่งจ่าย', xLabel: 'ระยะจากโหลด (λ)', yLabel: 'Ω', xMin: 0, xMax: 0.5, yMin: -120, yMax: 260,
@@ -313,7 +314,7 @@ export const BASICS: Chapter[] = [
   },
   // ============================================================
   {
-    id: 'b2', num: '3', title: 'Smith Chart คืออะไร และทำไมต้อง normalize', titleTh: 'กราฟที่แทนการแก้สมการสายส่ง',
+    id: 'b2', num: '2', title: 'Smith Chart คืออะไร และทำไมต้อง normalize', titleTh: 'กราฟที่แทนการแก้สมการสายส่ง',
     intro: 'Smith Chart คือ polar impedance diagram — กราฟที่จัดวงกลมและส่วนโค้งไว้ให้นำค่าของสายส่งที่ไม่แมตช์มาพล็อตและอ่านผลได้โดยไม่ต้องแก้สมการจำนวนเชิงซ้อนซ้ำ ๆ',
     sections: [
       {
@@ -331,7 +332,8 @@ export const BASICS: Chapter[] = [
         lines: [
           T('Smith Chart จริง ๆ แล้วคือระนาบของสัมประสิทธิ์การสะท้อน Γ ที่วาดวงกลม r และ x ทับลงไป เริ่มจากนิยาม'),
           M('\\Gamma = \\frac{Z_L - Z_0}{Z_L + Z_0} = \\frac{z - 1}{z + 1}, \\qquad z = \\frac{1 + \\Gamma}{1 - \\Gamma}'),
-          T('เพราะวงจร passive ทุกชนิดมี |Γ| ≤ 1 จุดทั้งหมดจึงตกอยู่ในวงกลมรัศมี 1 — นี่คือขอบของ Smith Chart'),
+          T('ถ้าโหลดเป็น passive (ไม่จ่ายกำลังกลับเข้าสาย) และ Z₀ เป็นจำนวนจริงบวก จะได้ |Γ| ≤ 1 เสมอ จุดทั้งหมดจึงตกอยู่ในวงกลมรัศมี 1 — นี่คือขอบของ Smith Chart'),
+          N('เงื่อนไขนี้จำเป็น: ถ้าโหลดเป็น active เช่นทรานซิสเตอร์ที่ไม่เสถียร (มี R < 0) หรือถ้า Z₀ เป็นจำนวนเชิงซ้อน จุดจะออกไปนอกวงกลมรัศมี 1 ได้ · คอร์สนี้คิดเฉพาะกรณี passive และ Z₀ จริงบวก'),
           T('เมื่อแทน z = r + jx ลงในสมการแล้วแยกส่วนจริงกับส่วนจินตภาพ จะได้สมการวงกลมสองชุด'),
           M('\\left(\\Gamma_r - \\frac{r}{1+r}\\right)^2 + \\Gamma_i^2 = \\left(\\frac{1}{1+r}\\right)^2 \\qquad \\text{(วงกลม r คงที่)}'),
           M('\\left(\\Gamma_r - 1\\right)^2 + \\left(\\Gamma_i - \\frac{1}{x}\\right)^2 = \\left(\\frac{1}{x}\\right)^2 \\qquad \\text{(วงกลม x คงที่)}'),
@@ -353,6 +355,17 @@ export const BASICS: Chapter[] = [
           M('Z = z\\,Z_0'),
         ],
         figures: [
+{ kind: 'quiz',
+  question: `ถ้าสายมี Z₀ = ${APP_Z0} Ω และอ่านค่าจากกราฟได้ z = ${fz(C(2, -1), 0)} แล้วอิมพีแดนซ์จริง Z เป็นเท่าไร`,
+  choices: [
+    `${fz(normalize(C(2, -1), APP_Z0), 2)} Ω`,
+    `${fz(denormalize(C(2, -1), APP_Z0), 0)} Ω`,
+    `${fz(C(2, -1), 0)} Ω`,
+    `${fz(denormalize(C(2, 1), APP_Z0), 0)} Ω`,
+  ],
+  answer: 1,
+  explain: `ค่าบนกราฟไม่มีหน่วย ต้องคูณกลับด้วย Z₀ เสมอ: Z = z·Z₀ = (${fz(C(2, -1), 0)}) × ${APP_Z0} = ${fz(denormalize(C(2, -1), APP_Z0), 0)} Ω`,
+},
           { kind: 'table', title: 'อิมพีแดนซ์จริงเดียวกัน เมื่อ normalize ด้วย Z₀ ต่างกัน (คำนวณโดยแอป)',
             head: ['Z จริง', 'Z₀ = 50 Ω', 'Z₀ = 75 Ω', 'Z₀ = 300 Ω'],
             rows: [C(25, 25), C(100, -50), C(450, -600), C(50, 0)].map((Z) => [fz(Z, 0) + ' Ω', fz(normalize(Z, 50), 3), fz(normalize(Z, 75), 3), fz(normalize(Z, 300), 3)]),
@@ -369,6 +382,18 @@ export const BASICS: Chapter[] = [
           N(`ตรวจย้อนกลับ: 0.5 × 50 = 25 Ω และ 0.5 × 50 = 25 Ω ✓ · จุดนี้ให้ SWR = ${n(swrFromGamma(gammaFromz(C(0.5, 0.5))), 2)}`),
         ],
         figures: [
+{ kind: 'quiz',
+  question: `สาย Z₀ = ${APP_Z0} Ω ต่อโหลด Z_L = ${fz(APP_ZL, 0)} Ω ต้องพล็อตจุดใดลงบน Smith Chart`,
+  choices: [
+    `${fz(APP_ZL, 0)}`,
+    `${fz(C(APP_ZL.re / APP_Z0, APP_ZL.im), 1)}`,
+    `${fz(zApp, 1)}`,
+    `${fz(yApp, 0)}`,
+  ],
+  answer: 2,
+  explain: `หารด้วย Z₀ ทั้งส่วนจริงและส่วนจินตภาพ: z_L = (${fz(APP_ZL, 0)})/${APP_Z0} = ${fz(zApp, 1)} · ส่วน ${fz(yApp, 0)} คือ y_L ไม่ใช่ z_L`,
+  chart: { rCircles: [0.5, 1, 2], xCircles: [0.5, -0.5, 1, -1], scale: false, fine: false },
+},
           { kind: 'smith', title: 'จุด z_L = 0.5 + j0.5 คือจุดตัดของวงกลม r = 0.5 กับเส้นโค้ง x = +0.5',
             rCircles: [0.5], xCircles: [0.5], points: [{ z: C(0.5, 0.5), label: 'z_L = 0.5 + j0.5', cls: 'load' }],
             caption: 'r บอกว่าอยู่วงไหน x บอกว่าอยู่ส่วนโค้งไหน จุดตัดคือคำตอบ' },
@@ -379,7 +404,7 @@ export const BASICS: Chapter[] = [
   },
   // ============================================================
   {
-    id: 'b3', num: '4', title: 'อ่านกราฟให้เป็น: วงกลม r และส่วนโค้ง x', titleTh: 'พิกัดของ Smith Chart',
+    id: 'b3', num: '3', title: 'อ่านกราฟให้เป็น: วงกลม r และส่วนโค้ง x', titleTh: 'พิกัดของ Smith Chart',
     intro: 'บทนี้เป็นการฝึกอ่านพิกัด: วงกลมความต้านทานคงที่ ส่วนโค้งรีแอกแตนซ์คงที่ ความหมายของเครื่องหมาย +j และ −j การตัดกันแบบตั้งฉาก และความหมายของจุดสำคัญบนกราฟ',
     sections: [
       {
@@ -412,6 +437,19 @@ export const BASICS: Chapter[] = [
           N('เส้นแนวนอนกลางกราฟคือ x = 0 ทุกจุดบนเส้นนี้เป็นความต้านทานล้วน'),
         ],
         figures: [
+{ kind: 'quiz',
+  question: 'จุดสีแดงบนกราฟอยู่บนวงกลม r = 2 และอยู่บนส่วนโค้ง x = −1 จุดนี้คือ z เท่าไร',
+  choices: [
+    `${fz(C(2, 1), 0)}`,
+    `${fz(C(1, -2), 0)}`,
+    `${fz(C(2, -1), 0)}`,
+    `${fz(admittance(C(2, -1)), 1)}`,
+  ],
+  answer: 2,
+  explain: `อ่าน r จากวงกลม อ่าน x จากส่วนโค้ง แล้วประกอบเป็น z = r + jx = ${fz(C(2, -1), 0)} · ส่วนโค้งอยู่ครึ่งล่างจึงเป็นลบ และบนสาย ${APP_Z0} Ω จุดนี้คือ Z = ${fz(denormalize(C(2, -1), APP_Z0), 0)} Ω`,
+  chart: { rCircles: [2], xCircles: [-1], scale: false, fine: false,
+    points: [{ z: C(2, -1), label: 'จุดที่ต้องอ่าน', cls: 'load' }] },
+},
           { kind: 'smith', title: 'ส่วนโค้ง x = +0.5, +1, +2 (ครึ่งบน) และ −0.5, −1, −2 (ครึ่งล่าง)',
             xCircles: [0.5, 1, 2, -0.5, -1, -2],
             points: [{ z: C(0.5, 0.5), label: '0.5 + j0.5', cls: 'load' }, { z: C(0.5, -0.5), label: '0.5 − j0.5', cls: 'mid' }],
@@ -433,6 +471,19 @@ export const BASICS: Chapter[] = [
           T('ที่มาของเครื่องหมาย: X_L = 2πfL เป็นบวกเสมอ ส่วน X_C = −1/(2πfC) เป็นลบเสมอ'),
         ],
         figures: [
+{ kind: 'quiz',
+  question: `จุด z = ${fz(C(0.5, 0.8), 1)} อยู่ครึ่งบนหรือครึ่งล่างของกราฟ`,
+  choices: [
+    'ครึ่งล่าง เพราะ r < 1',
+    'อยู่บนเส้นแนวนอนกลางกราฟ',
+    'บอกไม่ได้ ถ้ายังไม่รู้ Z₀',
+    'ครึ่งบน เพราะ x เป็นบวก (inductive)',
+  ],
+  answer: 3,
+  explain: `เครื่องหมายของ x เป็นตัวชี้ครึ่งกราฟเพียงอย่างเดียว x = +0.8 จึงอยู่ครึ่งบนเสมอ · บนสาย ${APP_Z0} Ω จุดนี้คือ Z = ${fz(denormalize(C(0.5, 0.8), APP_Z0), 0)} Ω ซึ่งมี X > 0 และให้ SWR = ${n(swrFromGamma(gammaFromz(C(0.5, 0.8))), 2)}`,
+  chart: { rCircles: [0.5], xCircles: [0.8, -0.8], scale: false, fine: false,
+    points: [{ z: C(0.5, 0.8), label: 'ตำแหน่ง ก', cls: 'mid' }, { z: C(0.5, -0.8), label: 'ตำแหน่ง ข', cls: 'mid' }] },
+},
           { kind: 'lab', label: 'ทดลอง: R 50 Ω + L (inductive) → ครึ่งบน', circuit: () => buildCircuit(100e6, 50, [['resistor', 'series', { R: 50 }], ['inductor', 'series', { L: 47.7 }]]) },
           { kind: 'lab', label: 'ทดลอง: R 50 Ω + C (capacitive) → ครึ่งล่าง', circuit: () => buildCircuit(100e6, 50, [['resistor', 'series', { R: 50 }], ['capacitor', 'series', { C: 53 }]]) },
         ],
@@ -463,6 +514,23 @@ export const BASICS: Chapter[] = [
           N('เป้าหมายของการทำ matching ทุกวิธีในคอร์สนี้ คือการย้ายจุดจากที่ใดก็ตามมาให้ถึงศูนย์กลางนี้'),
         ],
         figures: [
+{ kind: 'quiz',
+  question: 'บนแกนแนวนอนของกราฟ จุดซ้ายสุด จุดกลาง และจุดขวาสุด คือ z เท่าใดตามลำดับ',
+  choices: [
+    'z = ∞ (OPEN) · z = 1 (แมตช์) · z = 0 (SHORT)',
+    'z = −1 · z = 0 · z = +1',
+    'z = 0 (SHORT) · z = 1 (แมตช์) · z = ∞ (OPEN)',
+    'z = 0 (SHORT) · z = 0.5 · z = 1 (แมตช์)',
+  ],
+  answer: 2,
+  explain: `ซ้ายสุดคือลัดวงจร Γ = ${fz(gammaFromz(C(0, 0)), 0)} กลางคือแมตช์ Γ = ${fz(gammaFromz(C(1, 0)), 0)} และ SWR = ${n(swrFromGamma(gammaFromz(C(1, 0))), 0)} ขวาสุดคือปลายเปิด Γ = ${fz(gammaFromz(C(Infinity, 0)), 0)} · ตัวเลข −1, 0, +1 คือค่าของ Γ ไม่ใช่ z`,
+  chart: { rCircles: [1], scale: false, fine: false,
+    points: [
+      { z: C(0, 0), label: 'ซ้ายสุด', cls: 'stub' },
+      { z: C(1, 0), label: 'ศูนย์กลาง', cls: 'in' },
+      { z: C(1e6, 0), label: 'ขวาสุด', cls: 'stub' },
+    ] },
+},
           { kind: 'smith', title: 'จุดสำคัญสี่จุดบนกราฟ',
             points: [
               { z: C(1, 0), label: 'ศูนย์กลาง z = 1 (matched)', cls: 'in' },
@@ -476,7 +544,7 @@ export const BASICS: Chapter[] = [
   },
   // ============================================================
   {
-    id: 'b4', num: '5', title: 'วงกลม SWR คงที่', titleTh: 'สิ่งที่ไม่เปลี่ยนเมื่อเดินไปตามสาย',
+    id: 'b4', num: '4', title: 'วงกลม SWR คงที่', titleTh: 'สิ่งที่ไม่เปลี่ยนเมื่อเดินไปตามสาย',
     intro: 'เมื่อพล็อตโหลดแล้ว ลากวงกลมที่มีศูนย์กลางอยู่กลางกราฟผ่านจุดโหลด วงกลมนี้คือ constant SWR circle และเป็นเส้นทางที่จุดจะเดินเมื่อเราขยับไปตามสายไร้การสูญเสีย',
     sections: [
       {
@@ -485,8 +553,9 @@ export const BASICS: Chapter[] = [
           T('บนสายไร้การสูญเสีย ขนาดของสัมประสิทธิ์การสะท้อนไม่เปลี่ยน เปลี่ยนแต่มุม'),
           M('\\Gamma(l) = \\Gamma_L\\,e^{-j2\\beta l} \\;\\Rightarrow\\; |\\Gamma(l)| = |\\Gamma_L| = \\text{คงที่}'),
           T('เพราะ |Γ| คือรัศมีจากศูนย์กลางกราฟ จุดจึงหมุนอยู่บนวงกลมรัศมีเดิม และเพราะ SWR ขึ้นกับ |Γ| อย่างเดียว'),
-          M('SWR = \\frac{1 + |\\Gamma|}{1 - |\\Gamma|} = \\text{คงที่ตลอดสาย}'),
-          R('Z \\text{ เปลี่ยนทุกตำแหน่ง แต่ } SWR \\text{ ไม่เปลี่ยน}'),
+          M('SWR = \\frac{1 + |\\Gamma|}{1 - |\\Gamma|} = \\text{คงที่ตลอดสาย เฉพาะบนสายไร้การสูญเสีย}'),
+          R('\\text{บนสายไร้การสูญเสียเท่านั้น: } Z \\text{ เปลี่ยนทุกตำแหน่ง แต่ } SWR \\text{ ไม่เปลี่ยน}'),
+          W('SWR คงที่เป็นสมบัติของสายไร้การสูญเสีย (lossless) เท่านั้น ถ้าสายมีการสูญเสีย |Γ| จะเล็กลงเมื่อเดินเข้าหาแหล่งจ่าย SWR ที่วัดได้จึงต่ำลงเรื่อย ๆ (ดูหัวข้อ 4.4)'),
         ],
       },
       {
@@ -499,6 +568,22 @@ export const BASICS: Chapter[] = [
           T('อิมพีแดนซ์เปลี่ยนไปมาก แต่ทั้งสองจุดอยู่บนวงกลมเดียวกัน SWR จึงยังเท่าเดิม'),
         ],
         figures: [
+{ kind: 'quiz',
+  question: `จาก z = ${fz(zApp, 1)} เดินไปทางแหล่งจ่าย 0.100 λ จนได้ z = ${fz(zFromGamma(rotateTowardGenerator(gApp, 0.1)), 2)} แล้ว SWR ที่จุดใหม่เป็นเท่าไร`,
+  choices: [
+    'SWR = 1 เพราะเดินมาแล้วจึงแมตช์',
+    `SWR = ${n(zFromGamma(rotateTowardGenerator(gApp, 0.1)).re, 2)}`,
+    'บอกไม่ได้ ต้องคำนวณใหม่ทุกตำแหน่ง',
+    `SWR = ${n(swrApp, 2)} เท่าเดิม`,
+  ],
+  answer: 3,
+  explain: `สายไร้การสูญเสียทำให้ |Γ| = ${n(abs(gApp), 4)} คงที่ SWR จึงยังเป็น ${n(swrApp, 3)} เท่าที่โหลด · ค่า ${n(zFromGamma(rotateTowardGenerator(gApp, 0.1)).re, 2)} คือ r ที่จุดใหม่ ไม่ใช่ SWR`,
+  chart: { swr: [swrApp], scale: false, fine: false,
+    points: [
+      { z: zApp, label: 'z_L', cls: 'load' },
+      { z: zFromGamma(rotateTowardGenerator(gApp, 0.1)), label: 'ที่ 0.1 λ', cls: 'in' },
+    ] },
+},
           { kind: 'smith', title: 'จาก z = 0.5 + j0.5 เดินไปทางแหล่งจ่าย 0.100 λ',
             points: [{ z: C(0.5, 0.5), label: 'z_L = 0.5 + j0.5', cls: 'load' }, { z: zFromGamma(rotateTowardGenerator(gammaFromz(C(0.5, 0.5)), 0.1)), label: `0.1λ → ${fz(zFromGamma(rotateTowardGenerator(gammaFromz(C(0.5, 0.5)), 0.1)), 2)}`, cls: 'in' }],
             curves: [{ zs: swrPath(C(0.5, 0.5), 0.1), cls: 'net', arrow: true }],
@@ -516,6 +601,19 @@ export const BASICS: Chapter[] = [
           N(`ตัวอย่าง: ถ้าตัดที่ r = 2.6 ก็คือ SWR = 2.6 · จุดซ้ายสุดจะเป็น r = 1/2.6 = ${n(1 / 2.6, 3)}`),
         ],
         figures: [
+{ kind: 'quiz',
+  question: 'จุด ก อยู่ใกล้ศูนย์กลาง จุด ข อยู่ไกลศูนย์กลาง จุดใดมี SWR ต่ำกว่า',
+  choices: [
+    'จุด ข เพราะอยู่ไกลศูนย์กลางกว่า',
+    'เท่ากัน เพราะอยู่บนกราฟใบเดียวกัน',
+    'จุด ก เพราะอยู่ใกล้ศูนย์กลางกว่า',
+    'ขึ้นกับว่าจุดอยู่ครึ่งบนหรือครึ่งล่าง',
+  ],
+  answer: 2,
+  explain: `ระยะจากศูนย์กลางคือ |Γ| และ SWR = (1+|Γ|)/(1−|Γ|) · จุด ก (${fz(C(1.2, 0.4), 1)}) มี |Γ| = ${n(abs(gammaFromz(C(1.2, 0.4))), 3)} จึง SWR = ${n(swrFromGamma(gammaFromz(C(1.2, 0.4))), 2)} ส่วนจุด ข (${fz(zApp, 1)}) มี |Γ| = ${n(abs(gApp), 3)} จึง SWR = ${n(swrApp, 2)}`,
+  chart: { swr: [swrFromGamma(gammaFromz(C(1.2, 0.4))), swrApp], scale: false, fine: false,
+    points: [{ z: C(1.2, 0.4), label: 'จุด ก', cls: 'in' }, { z: zApp, label: 'จุด ข', cls: 'load' }] },
+},
           { kind: 'smith', title: 'วงกลม SWR ตัดแกนนอนที่ r = SWR (ขวา) และ r = 1/SWR (ซ้าย)',
             points: [{ z: C(0.5, 0.5), label: 'z_L', cls: 'load' }, { z: C(swrFromGamma(gammaFromz(C(0.5, 0.5))), 0), label: `r = ${n(swrFromGamma(gammaFromz(C(0.5, 0.5))), 2)} = SWR`, cls: 'in' }, { z: C(1 / swrFromGamma(gammaFromz(C(0.5, 0.5))), 0), label: `r = ${n(1 / swrFromGamma(gammaFromz(C(0.5, 0.5))), 2)}`, cls: 'mid' }],
             swr: [swrFromGamma(gammaFromz(C(0.5, 0.5)))] },
@@ -558,7 +656,7 @@ export const BASICS: Chapter[] = [
   },
   // ============================================================
   {
-    id: 'b5', num: '6', title: 'ระยะทางบนกราฟ', titleTh: 'หนึ่งรอบเท่ากับครึ่งความยาวคลื่น',
+    id: 'b5', num: '5', title: 'ระยะทางบนกราฟ', titleTh: 'จุดอิมพีแดนซ์วนครบรอบ = เดินไปครึ่งความยาวคลื่นบนสายสม่ำเสมอ',
     intro: 'จุดที่สับสนบ่อยที่สุดคือกราฟหนึ่งรอบแทนระยะเท่าไร และทิศไหนคือไปทางแหล่งจ่าย บทนี้ตอบทั้งสองข้อพร้อมที่มา',
     sections: [
       {
@@ -568,12 +666,26 @@ export const BASICS: Chapter[] = [
           M('\\Gamma(l) = \\Gamma_L\\,e^{-j2\\beta l}, \\qquad \\beta = \\frac{2\\pi}{\\lambda}'),
           T('มุมที่หมุนคือ 2βl ดังนั้นเมื่อ l = λ/2'),
           M('2\\beta l = 2\\cdot\\frac{2\\pi}{\\lambda}\\cdot\\frac{\\lambda}{2} = 2\\pi \\;\\Rightarrow\\; \\text{ครบหนึ่งรอบพอดี}'),
-          R('360^\\circ \\text{ บนกราฟ} \\;\\Leftrightarrow\\; 0.5\\lambda \\text{ บนสาย}'),
+          R('\\text{จุดอิมพีแดนซ์หมุน } 360^\\circ \\text{ บนกราฟ} \\;\\Leftrightarrow\\; \\text{เดิน } 0.5\\lambda \\text{ บนสายส่งสม่ำเสมอ}'),
+          N('เงื่อนไข: ข้อนี้ใช้กับสายส่งสม่ำเสมอ (uniform line) คือ Z₀ และ β เท่ากันตลอดเส้น และหมายถึงจุดอิมพีแดนซ์ที่วนรอบกราฟ ไม่ใช่ตัวคลื่นที่วนครบรอบ'),
           T('จึงได้ความสัมพันธ์ที่ใช้บ่อย'),
           M('180^\\circ \\Leftrightarrow 0.25\\lambda, \\qquad 90^\\circ \\Leftrightarrow 0.125\\lambda'),
           W('ระวังสองมุมนี้ให้ดี: βl คือความยาวไฟฟ้าของสาย (λ/4 → βl = 90°) ส่วนมุมที่หมุนบนกราฟคือ 2βl (λ/4 → หมุน 180°)'),
         ],
         figures: [
+{ kind: 'quiz',
+  question: 'หมุนครบหนึ่งรอบเต็ม (360°) บน Smith Chart ตรงกับการเดินบนสายเป็นระยะเท่าไร',
+  choices: ['0.25 λ', '0.5 λ', '1 λ', '2 λ'],
+  answer: 1,
+  explain: `มุมที่หมุนคือ 2βl ไม่ใช่ βl เมื่อ l = λ/2 จึงได้ 2βl = 360° พอดี · ตรวจได้จากเอนจิน เดินจาก z = ${fz(zApp, 1)} ครบ 0.5 λ แล้วได้ z = ${fz(zFromGamma(rotateTowardGenerator(gApp, 0.5)), 1)} คือจุดเดิม`,
+  chart: { swr: [swrApp], scale: true, fine: false,
+    points: [
+      { z: zApp, label: 'เริ่ม / จบ', cls: 'load' },
+      { z: zFromGamma(rotateTowardGenerator(gApp, 0.125)), label: '0.125 λ', cls: 'mid' },
+      { z: zFromGamma(rotateTowardGenerator(gApp, 0.25)), label: '0.25 λ', cls: 'y' },
+      { z: zFromGamma(rotateTowardGenerator(gApp, 0.375)), label: '0.375 λ', cls: 'mid' },
+    ] },
+},
           { kind: 'smith', title: 'เดินจาก z = 0.5 + j0.5 ครบ 0.5 λ กลับมาที่จุดเดิม',
             points: [{ z: C(0.5, 0.5), label: 'เริ่ม / จบ', cls: 'load' }, { z: zFromGamma(rotateTowardGenerator(gammaFromz(C(0.5, 0.5)), 0.125)), label: '0.125λ', cls: 'mid' }, { z: zFromGamma(rotateTowardGenerator(gammaFromz(C(0.5, 0.5)), 0.25)), label: '0.25λ = y_L', cls: 'y' }, { z: zFromGamma(rotateTowardGenerator(gammaFromz(C(0.5, 0.5)), 0.375)), label: '0.375λ', cls: 'mid' }],
             curves: [{ zs: swrPath(C(0.5, 0.5), 0.5), cls: 'net' }],
@@ -583,13 +695,22 @@ export const BASICS: Chapter[] = [
       {
         id: 'direction', title: 'ทิศทาง: toward generator กับ toward load',
         lines: [
+          T('สองข้อนี้เป็นข้อตกลงมาตรฐานของ Smith Chart แบบอิมพีแดนซ์ (standard impedance Smith chart convention) ไม่ใช่สิ่งที่เดาจากรูปกราฟเปล่า ๆ ได้'),
           R('\\text{Toward Generator} = \\text{ตามเข็มนาฬิกา (clockwise)}'),
           R('\\text{Toward Load} = \\text{ทวนเข็มนาฬิกา (counterclockwise)}'),
           T('ที่มา: เครื่องหมายลบใน e^{−j2βl} ทำให้มุมของ Γ ลดลงเมื่อ l เพิ่มขึ้น ซึ่งบนระนาบเชิงซ้อนคือการหมุนตามเข็มนาฬิกา'),
           T('ดังนั้นถ้าโจทย์บอกว่า "หาอิมพีแดนซ์ที่ระยะ 0.1 λ จากโหลดไปทางแหล่งจ่าย" ให้เริ่มจากจุดโหลดแล้วเดินตามเข็มนาฬิกา 0.1 λ'),
-          N('ในแอปนี้ สเกลวงกลางรอบกราฟคือ wavelengths toward generator และวงนอกสุดคือ toward load'),
+          N('ในแอปนี้ สเกลวงกลางรอบกราฟคือ wavelengths toward generator และวงนอกสุดคือ toward load ตามข้อตกลงเดียวกัน · กราฟที่พิมพ์จากที่อื่นอาจวางสเกลกลับด้าน ให้ยึดสเกลที่พิมพ์บนกราฟใบนั้นเสมอ'),
         ],
         figures: [
+{ kind: 'quiz',
+  question: 'จากจุดโหลด ถ้าจะเดินไปทางแหล่งจ่าย (toward generator) ต้องหมุนไปทางไหน',
+  choices: ['ตามเข็มนาฬิกา', 'ทวนเข็มนาฬิกา', 'เข้าหาศูนย์กลาง', 'ออกไปทางขอบกราฟ'],
+  answer: 0,
+  explain: `เครื่องหมายลบใน Γ(l) = Γ_L e^(−j2βl) ทำให้มุมลดลงเมื่อ l เพิ่มขึ้น ซึ่งคือตามเข็มนาฬิกา · ตรวจจากสเกล: z = ${fz(zApp, 1)} อยู่ที่ ${n(wtgZApp, 4)} λ เดินไป 0.1 λ แล้วได้ ${n(wtgFromGamma(rotateTowardGenerator(gApp, 0.1)), 4)} λ คือค่าที่เพิ่มขึ้น`,
+  chart: { swr: [swrApp], scale: true, fine: false,
+    points: [{ z: zApp, label: 'z_L', cls: 'load' }] },
+},
           { kind: 'smith', title: 'จากจุดเดียวกัน เดินไปคนละทิศ 0.1 λ',
             points: [{ z: C(0.5, 0.5), label: 'z_L', cls: 'load' }, { z: zFromGamma(rotateTowardGenerator(gammaFromz(C(0.5, 0.5)), 0.1)), label: 'ตามเข็ม → generator', cls: 'in' }, { z: zFromGamma(rotateTowardGenerator(gammaFromz(C(0.5, 0.5)), -0.1)), label: 'ทวนเข็ม → load', cls: 'mid' }],
             curves: [{ zs: swrPath(C(0.5, 0.5), 0.1), cls: 'in', arrow: true }, { zs: swrPath(C(0.5, 0.5), -0.1), cls: 'mid', arrow: true }],
@@ -606,6 +727,19 @@ export const BASICS: Chapter[] = [
           T(`ตัวอย่างจริงจากแอป: z_L = 0.5 + j0.5 อยู่ที่สเกล ${n(wtgFromGamma(gammaFromz(C(0.5, 0.5))), 4)} λ เมื่อเดินไป 0.1 λ จะไปอยู่ที่ ${n((wtgFromGamma(gammaFromz(C(0.5, 0.5))) + 0.1) % 0.5, 4)} λ`),
         ],
         figures: [
+{ kind: 'quiz',
+  question: `z_L = ${fz(zApp, 1)} อยู่ที่สเกล ${n(wtgZApp, 4)} λ ถ้าเดินไปทางแหล่งจ่ายอีก ${n(dApp, 3)} λ จะไปอยู่ที่สเกลเท่าไร`,
+  choices: [
+    `${n(((wtgZApp - dApp) % 0.5 + 0.5) % 0.5, 4)} λ`,
+    `${n(dApp, 4)} λ`,
+    `${n(wtgFromGamma(gApp2), 4)} λ`,
+    `${n(wtgZApp, 4)} λ`,
+  ],
+  answer: 2,
+  explain: `toward generator คือบวกเข้ากับค่าเริ่มต้น: ${n(wtgZApp, 4)} + ${n(dApp, 3)} = ${n(wtgFromGamma(gApp2), 4)} λ (ถ้าเกิน 0.5 ให้ลบ 0.5 ออก) · จุดใหม่คือ z = ${fz(zApp2, 2)}`,
+  chart: { swr: [swrApp], scale: true, fine: false,
+    points: [{ z: zApp, label: 'z_L', cls: 'load' }, { z: zApp2, label: 'จุดใหม่', cls: 'in' }] },
+},
           { kind: 'table', title: 'ตำแหน่งบนสเกลของจุดสำคัญ (คำนวณโดยแอป)', head: ['z', 'ตำแหน่งบนสเกล toward generator'],
             rows: ([[C(0, 0), 'SHORT'], [C(1e6, 0), 'OPEN'], [C(0.5, 0.5), '0.5 + j0.5'], [C(1.5, -2), '1.5 − j2'], [C(1, 0), 'ศูนย์กลาง (แมตช์)']] as [Complex, string][])
               .map(([z, name]) => [name, `${n(wtgFromGamma(gammaFromz(z)), 4)} λ`]),
@@ -616,7 +750,7 @@ export const BASICS: Chapter[] = [
   },
   // ============================================================
   {
-    id: 'b6', num: '7', title: 'แอดมิตแตนซ์และการหมุน 180°', titleTh: 'ทำไม Z → Y จึงเป็นการหมุนครึ่งรอบ',
+    id: 'b6', num: '6', title: 'แอดมิตแตนซ์และการหมุน 180°', titleTh: 'ทำไม Z → Y จึงเป็นการหมุนครึ่งรอบ',
     intro: 'อุปกรณ์ที่ต่อขนานบวกกันด้วยแอดมิตแตนซ์ ไม่ใช่อิมพีแดนซ์ บทนี้อธิบายการแปลง Z ↔ Y บนกราฟและที่มาว่าทำไมจึงเป็นการหมุนครึ่งรอบพอดี',
     sections: [
       {
@@ -651,6 +785,19 @@ export const BASICS: Chapter[] = [
           T('บนกราฟทำได้เร็วกว่านั้นมาก: ลากเส้นตรงจากจุด z ผ่านศูนย์กลางไปยังอีกด้านหนึ่งของวงกลม SWR จุดที่ได้คือ y ทันที ไม่ต้องวัดระยะทีละสเกล'),
         ],
         figures: [
+{ kind: 'quiz',
+  question: `บนวงกลม SWR เดียวกัน จุด y ของ z = ${fz(zApp, 1)} อยู่ตรงไหน`,
+  choices: [
+    'จุดตรงข้ามผ่านศูนย์กลาง ห่างกันครึ่งรอบ',
+    'จุดที่สะท้อนข้ามเส้นแนวนอน (คอนจูเกต)',
+    'จุดเดิม แต่อ่านบนวงกลม r แทน',
+    'จุดที่ใกล้ศูนย์กลางกว่าเดิม เพราะ y เล็กกว่า z',
+  ],
+  answer: 0,
+  explain: `y = 1/z คือการหมุน 180° รอบศูนย์กลางโดย |Γ| เท่าเดิม จึงได้ y = ${fz(yApp, 0)} · บนสเกลรอบกราฟจุดทั้งสองห่างกัน ${n(((wtgYApp - wtgZApp) % 0.5 + 0.5) % 0.5, 3)} λ พอดีคือ λ/4`,
+  chart: { swr: [swrApp], showY: true, scale: false, fine: false,
+    points: [{ z: zApp, label: 'z', cls: 'load' }] },
+},
           { kind: 'smith', title: 'z = 0.5 + j0.5 กับ y = 1 − j1 อยู่ตรงข้ามกันผ่านศูนย์กลาง',
             points: [{ z: C(0.5, 0.5), label: 'z = 0.5 + j0.5', cls: 'load' }, { z: admittance(C(0.5, 0.5)), label: 'y = 1 − j1 (อ่านบนสเกล Z)', cls: 'y' }],
             curves: [{ zs: [C(0.5, 0.5), C(1, 0), admittance(C(0.5, 0.5))], cls: 'mid', dashed: true }],
@@ -665,11 +812,69 @@ export const BASICS: Chapter[] = [
       {
         id: 'why180', title: 'ที่มาของการหมุน 180°',
         lines: [
-          T('จากบทที่ 2 สายยาว λ/4 ทำให้'),
+          T('จากบทที่ 1 สายยาว λ/4 ทำให้'),
           M('z_{in} = \\frac{1}{z_L} = y_L'),
-          T('และจากบทที่ 6 ระยะ λ/4 คือครึ่งรอบของกราฟ (180°) ดังนั้นการหา y จึงเท่ากับการหมุนจุด z ไป 180° ซึ่งก็คือการลากเส้นผ่านศูนย์กลางไปอีกด้านหนึ่งนั่นเอง'),
+          T('และจากบทที่ 5 ระยะ λ/4 คือครึ่งรอบของกราฟ (180°) ดังนั้นการหา y จึงเท่ากับการหมุนจุด z ไป 180° ซึ่งก็คือการลากเส้นผ่านศูนย์กลางไปอีกด้านหนึ่งนั่นเอง'),
           M('\\Gamma_y = \\Gamma_z\\,e^{-j\\pi} = -\\Gamma_z'),
           N('ตรวจได้ง่าย: ถ้า z = 0 (SHORT, Γ = −1) แล้ว y = ∞ (OPEN, Γ = +1) ซึ่งอยู่ตรงข้ามกันพอดี'),
+        ],
+      },
+      {
+        id: 'zvsy', title: 'z กับ y เป็นคนละตัวเลข แต่เป็นจุดเดียวกันบนกราฟ',
+        lines: [
+          W(`ประโยคที่ต้องจำให้แม่นที่สุดของบทนี้ — z กับ y เป็นคนละตัวเลขกัน (${fz(zApp, 1)} ไม่เท่ากับ ${fz(yApp, 0)}) แต่สภาพของสายที่ระนาบนั้นมีอยู่สภาพเดียว คือ Γ จุดเดียว · คำว่า "อยู่ตรงข้ามกัน" เป็นเรื่องของวิธีอ่าน ไม่ใช่เรื่องที่สายเปลี่ยนไป`),
+          T('สิ่งที่ถูกพล็อตลงกราฟจริง ๆ ไม่ใช่ z และไม่ใช่ y แต่คือ Γ ซึ่งเขียนได้จากทั้งสองฝั่งแล้วได้ค่าเดียวกันเสมอ'),
+          M('\\Gamma = \\frac{z-1}{z+1} = \\frac{1-y}{1+y}'),
+          T(`ตรวจด้วยตัวอย่างประจำคอร์ส z = ${fz(zApp, 1)} และ y = ${fz(yApp, 0)} (แอปคำนวณทั้งสองทาง)`),
+          R(`\\frac{(${tc(zApp, 1)})-1}{(${tc(zApp, 1)})+1} = ${tc(gApp, 1)} = \\frac{1-(${tc(yApp, 0)})}{1+(${tc(yApp, 0)})}`),
+          T('ดังนั้นเวลาบอกว่า "หา y ได้จากจุดตรงข้าม" สิ่งที่ถูกหมุนจริง ๆ คือกริด ไม่ใช่สาย — กราฟแอดมิตแตนซ์ก็คือกราฟอิมพีแดนซ์ที่หมุนไป 180° เมื่อในมือมีกริด Z พิมพ์อยู่ใบเดียว เราจึงหมุนจุดแทนการหมุนกริด ตัวเลขที่อ่านได้ถูกต้อง แต่ปลายดินสอไปอยู่ตำแหน่งที่ไม่ใช่สภาพจริงของสายแล้ว'),
+          T('จึงมีสองวิธีที่ให้ g กับ b ค่าเดียวกัน ต่างกันแค่ว่า "จุด" ไปอยู่ที่ไหน'),
+          K('วิธี ก "หมุนจุด"   — ใช้กริด Z ใบเดียว ย้ายดินสอไปจุดตรงข้ามผ่านศูนย์กลาง อ่านตัวเลข r, x ที่จุดใหม่ แล้วเรียกมันว่า g, b\nวิธี ข "ซ้อนกริด Y" — เปิดกริดสีเขียวทับลงไปบนกราฟเดิม จุดไม่ขยับเลยแม้แต่นิดเดียว อ่าน g, b จากเส้นเขียวที่ลากผ่านจุดเดิม'),
+          T(`ทั้งสองวิธีให้ g = ${n(yApp.re, 0)} และ b = ${n(yApp.im, 0)} เท่ากัน แต่สิ่งที่ยัง "ใช้ต่อได้" ไม่เท่ากัน ตารางด้านล่างแยกให้เห็นทีละข้อ`),
+          T('เหตุผลเชิงสมการที่ทำให้กับดักนี้เกิดขึ้นได้เงียบ ๆ คือ การหมุนไปตามสายกับการกลับด้าน 180° สลับลำดับกันได้'),
+          M('\\left(-\\Gamma_z\\right)e^{-j2\\beta d} = -\\left(\\Gamma_z e^{-j2\\beta d}\\right) \\qquad \\text{หมุนก่อนหรือกลับด้านก่อน ก็ลงที่เดียวกัน}'),
+          T('แปลว่าถ้าเดินระยะทางต่อจากจุดกระจก จุดที่ได้ก็ยังเป็นภาพกระจกของคำตอบที่ถูกต้องอยู่ดี กราฟจึงไม่ฟ้องอะไรเลย ตัวเลขที่อ่านได้ดูสมเหตุสมผลทุกอย่าง แต่เป็น y ไม่ใช่ z'),
+          W(`เป็นตัวเลขจริง: เดินไป ${n(dApp, 2)} λ จากจุดโหลด คำตอบที่ถูกคือ z = ${fz(zApp2, 3)} คือ Z = ${fz(ZApp2, 1)} Ω · แต่ถ้าเผลอเดินต่อจากจุดกระจกแล้วอ่านบนกริด Z จะได้ ${fz(zMirrorWalk, 3)} คือ ${fz(ZMirrorWalk, 1)} Ω ซึ่งคือ y ที่ระยะนั้นพอดี ไม่ใช่ z`),
+          N(`วิธีทำงานที่ปลอดภัยที่สุดเมื่อทำด้วยมือ: หมุนไปอ่าน y แล้วหมุนกลับทันที อย่าเดินระยะทางต่อจากจุดกระจก · ส่วนแอปนี้และเครื่องมือจริงใช้วิธี ข เสมอ ปุ่ม Y grid ไม่ได้ย้าย marker แม้แต่นิดเดียว`),
+          N(`ถ้าจำได้ข้อเดียว ให้จำว่ากราฟใบนี้เก็บ Γ ไม่ได้เก็บ z — z กับ y เป็นเพียงสองชุดพิกัดที่ตั้งชื่อให้ Γ จุดเดิม เหมือนจุดเดียวบนแผนที่ที่บอกได้ทั้งพิกัดละติจูดและพิกัด UTM`),
+        ],
+        figures: [
+          { kind: 'smith', title: 'วิธี ก "หมุนจุด" — มีแต่กริด Z จุดจึงต้องย้ายไปอีกด้าน',
+            points: [
+              { z: zApp, label: `z = ${fz(zApp, 1)} (สภาพจริงของสาย)`, cls: 'load' },
+              { z: yApp, label: 'อ่าน r, x ที่นี่ แล้วเรียกว่า g, b', cls: 'y' },
+            ],
+            curves: [{ zs: [zApp, C(1, 0), yApp], cls: 'mid', dashed: true }],
+            swr: [swrApp], rCircles: [yApp.re], xCircles: [yApp.im],
+            caption: `ดินสอย้ายจาก ${n(wtgZApp, 4)} λ ไป ${n(wtgYApp, 4)} λ บนสเกลรอบนอก — ห่างกัน 0.25 λ · วงกลม r = ${n(yApp.re, 0)} กับส่วนโค้ง x = ${n(yApp.im, 0)} ที่ตัดกันตรงจุดใหม่ คือตัวเลขที่ต้องอ่านว่า g กับ b · จุดนี้ไม่ใช่สภาพของสายที่ระนาบเดิมอีกต่อไป` },
+          { kind: 'smith', title: 'วิธี ข "ซ้อนกริด Y" — จุดเดิมไม่ขยับ เปลี่ยนแค่เส้นที่ใช้อ่าน', showY: true,
+            points: [{ z: zApp, label: 'จุดเดียว อ่านได้ทั้ง z และ y', cls: 'load' }],
+            swr: [swrApp], rCircles: [zApp.re], xCircles: [zApp.im], gCircles: [yApp.re], bCircles: [yApp.im],
+            caption: `เส้นดำสองเส้นที่ผ่านจุดคือ r = ${n(zApp.re, 1)} และ x = ${n(zApp.im, 1)} · เส้นเขียวสองเส้นที่ผ่านจุดเดียวกันคือ g = ${n(yApp.re, 0)} และ b = ${n(yApp.im, 0)} · ตำแหน่งบนสเกลรอบนอกยังเป็น ${n(wtgZApp, 4)} λ เท่าเดิม ระยะทางที่จะเดินต่อจึงยังนับจากจุดนี้ได้` },
+          { kind: 'table', title: 'หลังหมุนจุดแล้ว อะไรยังใช้ได้ อะไรใช้ไม่ได้ (คำนวณโดยแอป)',
+            head: ['สิ่งที่อ่านหรือทำต่อ', 'วิธี ก หมุนจุด (กริด Z ใบเดียว)', 'วิธี ข ซ้อนกริด Y (จุดไม่ขยับ)'],
+            rows: [
+              ['ค่า g กับ b ที่ได้', `ถูก — ${fz(yApp, 0)}`, `ถูก — ${fz(yApp, 0)}`],
+              ['|Γ| และ SWR', `ถูก — ${n(swrApp, 3)} (รัศมีเท่าเดิม)`, `ถูก — ${n(swrApp, 3)} (จุดเดิม)`],
+              ['ค่าบนสเกล wavelengths', `เพี้ยนไป 0.25 λ — ${n(wtgZApp, 4)} กลายเป็น ${n(wtgYApp, 4)}`, `เท่าเดิม — ${n(wtgZApp, 4)} λ`],
+              ['เดินระยะทางต่อจากจุดนี้', `ได้ y ที่ระยะนั้น เช่น ${fz(zMirrorWalk, 3)}`, `ได้ z ที่ระยะนั้น คือ ${fz(zApp2, 3)}`],
+              ['จุดนี้คือสภาพจริงของสายที่ระนาบนั้นหรือไม่', 'ไม่ใช่ เป็นภาพกระจก', 'ใช่'],
+            ],
+            caption: 'สองคอลัมน์ให้ตัวเลข g กับ b เท่ากัน ต่างกันแค่สามแถวล่าง ซึ่งเป็นที่มาของความผิดพลาดเกือบทั้งหมดในเรื่องนี้' },
+          { kind: 'chart', title: `ทำไมจึงห้ามเดินต่อจากจุดกระจก: เดิน ${n(dApp, 2)} λ เท่ากัน แต่เริ่มคนละจุด`, showY: true, scale: true, fine: false,
+            points: [
+              { z: zApp, label: `z_L ที่ ${n(wtgZApp, 3)} λ`, cls: 'load' },
+              { z: zApp2, label: `ถูก: z = ${fz(zApp2, 2)}`, cls: 'in' },
+              { z: yApp, label: `จุดกระจก ที่ ${n(wtgYApp, 3)} λ`, cls: 'y' },
+              { z: zMirrorWalk, label: `ผิด: อ่านได้ ${fz(zMirrorWalk, 2)} ซึ่งคือ y`, cls: 'mid' },
+            ],
+            curves: [
+              { zs: swrPath(zApp, dApp), cls: 'net', arrow: true, label: `เดินจากจุดจริง ${n(dApp, 2)} λ` },
+              { zs: swrPath(yApp, dApp), cls: 'y', arrow: true, label: `เดินจากจุดกระจก ${n(dApp, 2)} λ` },
+              { zs: [zApp2, C(1, 0), zMirrorWalk], cls: 'mid', dashed: true },
+            ],
+            swr: [swrApp],
+            caption: `เส้นทึบสองเส้นยาวเท่ากันและหมุนไปเท่ากัน ปลายทางจึงยังตรงข้ามกันเสมอ (เส้นประ) · ที่ระยะ ${n(dApp, 2)} λ ค่าที่ถูกคือ ${fz(ZApp2, 1)} Ω ส่วนที่อ่านผิดคือ ${fz(ZMirrorWalk, 1)} Ω · ทั้งสองค่ามาจากกราฟใบเดียวกัน และหน้าตาสมเหตุสมผลพอ ๆ กัน` },
         ],
       },
       {
@@ -677,8 +882,8 @@ export const BASICS: Chapter[] = [
         lines: [
           T('หนังสือระบุการใช้งาน Smith Chart ที่สำคัญไว้สามกลุ่ม'),
           K('1. คำนวณ admittance จาก impedance (และกลับกัน)\n2. หา impedance หรือ admittance ที่ตำแหน่งใด ๆ บนสาย พร้อมอ่าน SWR\n3. หาความยาวของสายปลายลัดวงจร เพื่อสร้าง reactance หรือ susceptance ตามที่ต้องการ'),
-          T('สามหัวข้อถัดไป (7.5, 7.6, 7.7) ทำทีละกลุ่มพร้อมตัวอย่างที่คำนวณครบ'),
-          N('ทั้งสามกลุ่มจะถูกใช้ซ้ำในบทที่ 9 (หม้อแปลง λ/4 ใช้กลุ่มที่ 2) และบทที่ 10 (stub matching ใช้ทั้งสามกลุ่มพร้อมกัน) — ขั้นตอนหกข้อของ stub matching ก็คือการเรียงกลุ่ม 1 → 2 → 3 ต่อกัน'),
+          T('สามหัวข้อถัดไป (6.6, 6.7, 6.8) ทำทีละกลุ่มพร้อมตัวอย่างที่คำนวณครบ'),
+          N('ทั้งสามกลุ่มจะถูกใช้ซ้ำในบทที่ 8 (หม้อแปลง λ/4 ใช้กลุ่มที่ 2) และบทที่ 9 (stub matching ใช้ทั้งสามกลุ่มพร้อมกัน) — ขั้นตอนหกข้อของ stub matching ก็คือการเรียงกลุ่ม 1 → 2 → 3 ต่อกัน'),
         ],
       },
       {
@@ -723,7 +928,7 @@ export const BASICS: Chapter[] = [
       {
         id: 'app2', title: 'การใช้งานที่ 2 — อิมพีแดนซ์/แอดมิตแตนซ์ที่ตำแหน่งใด ๆ และค่า SWR',
         lines: [
-          T('นี่คือการใช้งานที่ตอบคำถามของบทที่ 2 โดยตรง: "ที่ระยะ d จากโหลด เครื่องมองเห็นอะไร" ขั้นตอนมีสี่ข้อ'),
+          T('นี่คือการใช้งานที่ตอบคำถามของบทที่ 1 โดยตรง: "ที่ระยะ d จากโหลด เครื่องมองเห็นอะไร" ขั้นตอนมีสี่ข้อ'),
           K('1. normalize: z_L = Z_L / Z₀ แล้วพล็อตจุด\n2. ลากวงกลม SWR คงที่ผ่านจุดนั้น แล้วอ่าน SWR ที่จุดตัดแกนนอนด้านขวา (ค่านี้ใช้ได้ทุกตำแหน่งบนสาย)\n3. อ่านค่าเริ่มต้นบนสเกล toward generator แล้วบวกระยะ d (ตามเข็ม) ถ้าเกิน 0.5 λ ให้ลบ 0.5 ออก\n4. จุดใหม่บนวงกลม SWR คือคำตอบ: อ่านบนสเกล Z ได้ z และอ่านจุดตรงข้ามได้ y'),
           T(`ตัวอย่าง: สาย ${APP_Z0} Ω โหลด Z_L = ${fz(APP_ZL, 0)} Ω หา Z, Y และ SWR ที่ระยะ ${n(dApp, 2)} λ จากโหลดไปทางแหล่งจ่าย`),
           M(`z_L = \\frac{${tc(APP_ZL, 0)}}{${APP_Z0}} = ${tc(zApp, 1)} \\qquad |\\Gamma| = ${n(abs(gApp), 4)} \\;\\Rightarrow\\; SWR = ${n(swrApp, 3)}`),
@@ -759,7 +964,7 @@ export const BASICS: Chapter[] = [
               const Y = admittance(Z);
               return [n(d, 2), `${n(wtgFromGamma(rotateTowardGenerator(gApp, d)), 4)} λ`, fz(z, 3), fz(Z, 1), fz(y, 3), fz(C(Y.re * 1000, Y.im * 1000), 3), n(swrFromGamma(gammaFromZ(Z, APP_Z0)), 3)];
             }),
-            caption: 'คอลัมน์ SWR คงที่ทุกแถว · แถว 0.25 λ ให้ z เท่ากับ y_L ของแถวแรกพอดี ตามสมบัติ λ/4 · แถว 0.5 λ กลับมาเท่าโหลดเดิม' },
+            caption: 'คอลัมน์ SWR คงที่ทุกแถว เพราะสายไร้การสูญเสีย · แถว 0.25 λ ให้ z เท่ากับ y_L ของแถวแรกพอดี ตามสมบัติ λ/4 · แถว 0.5 λ กลับมาเท่าโหลดเดิม' },
           { kind: 'lab', label: `ทดลอง: โหลด ${fz(APP_ZL, 0)} Ω ผ่านสาย ${n(dApp, 2)} λ แล้วเลื่อน Probe ดูค่าที่ตำแหน่งอื่น`,
             circuit: () => buildCircuit(100e6, 50, [['tline', 'series', { Z0: 50, len: 0.15, vf: 0.66, lossDb: 0 }], ['load', 'series', { R: 25, X: 25 }]]), showY: true },
         ],
@@ -781,9 +986,22 @@ export const BASICS: Chapter[] = [
           T(`แปลงเป็นความยาวจริงต้องรู้ความถี่: ที่ ${n(APP3_F / 1e6, 0)} MHz ในสายฉนวนอากาศ`),
           M(`\\lambda = \\frac{c}{f} = ${n(APP3_LAM, 3)}\\ \\text{m} \\;\\Rightarrow\\; l = ${n(APP3_lw, 4)} \\times ${n(APP3_LAM, 3)} = ${n(APP3_lw * APP3_LAM * 100, 1)}\\ \\text{cm}`),
           W('ถ้าสายมี velocity factor (เช่น RG-58 มี vf ≈ 0.66) ต้องใช้ λ = vf·c/f ความยาวจริงจะสั้นลงตามสัดส่วนนั้น'),
-          N('หนังสือพูดถึงสายปลายลัดเป็นหลัก เพราะปลายเปิดมีแนวโน้มแผ่คลื่นออกไป (หัวข้อ 8.2) · สายปลายเปิดใช้สูตรเดียวกันแต่เลื่อนไป 0.25 λ คือ X = −Z₀ cot βl'),
+          N('หนังสือพูดถึงสายปลายลัดเป็นหลัก เพราะปลายเปิดมีแนวโน้มแผ่คลื่นออกไป (หัวข้อ 7.2) · สายปลายเปิดใช้สูตรเดียวกันแต่เลื่อนไป 0.25 λ คือ X = −Z₀ cot βl'),
         ],
         figures: [
+{ kind: 'quiz',
+  question: 'ต้องการรีแอกแตนซ์ x = +1 จากสายปลายลัด ต้องตัดสายยาวเท่าไร',
+  choices: [
+    `${n(shortLenForX(1) / 2, 4)} λ`,
+    `${n(shortLenForX(1), 3)} λ`,
+    `${n(0.25, 2)} λ`,
+    `${n(shortLenForX(-1), 3)} λ`,
+  ],
+  answer: 1,
+  explain: `x = tan βl ดังนั้น βl = arctan(1) = 45° และ 45°/360° = ${n(shortLenForX(1), 3)} λ · ตรวจย้อนด้วยเอนจิน สายปลายลัด ${APP3_Z0} Ω ยาว ${n(shortLenForX(1), 3)} λ ให้ X = ${n(stubInput('short', APP3_Z0, shortLenForX(1)).im, 1)} Ω คือ x = +1 พอดี`,
+  chart: { xCircles: [1], scale: true, fine: false,
+    points: [{ z: C(0, 0), label: 'SHORT (l = 0)', cls: 'stub' }, { z: C(0, 1), label: 'ค่าที่ต้องการ x = +1', cls: 'in' }] },
+},
           { kind: 'table', title: `สายปลายลัด ${APP3_Z0} Ω ให้ค่าอะไรบ้าง (คำนวณโดยแอป จาก X = Z₀ tan βl)`,
             head: ['l (λ)', 'βl', 'X (Ω)', 'x = X/Z₀', 'b = −1/x', 'ลักษณะ'],
             rows: APP3_LS.map((l) => {
@@ -817,7 +1035,7 @@ export const BASICS: Chapter[] = [
   },
   // ============================================================
   {
-    id: 'b7', num: '8', title: 'สายส่งใช้แทน L และ C ได้', titleTh: 'ที่มาของสตับ',
+    id: 'b7', num: '7', title: 'สายส่งใช้แทน L และ C ได้', titleTh: 'ที่มาของสตับ',
     intro: 'ที่ความถี่สูง การใช้ตัวเหนี่ยวนำหรือตัวเก็บประจุจริงทำได้ยาก แต่สายส่งสั้น ๆ ที่ปลายลัดวงจรหรือปลายเปิดให้รีแอกแตนซ์ได้เหมือนกัน นี่คือที่มาของ stub',
     sections: [
       {
@@ -831,6 +1049,23 @@ export const BASICS: Chapter[] = [
           N('สายส่งสั้น ๆ จึงใช้แทนวงจร LC ที่ความถี่สูงได้ โดยไม่ต้องใช้ชิ้นส่วนจริง'),
         ],
         figures: [
+{ kind: 'quiz',
+  question: 'สายปลายลัดที่ยาวน้อยกว่า λ/4 ให้รีแอกแตนซ์แบบใด',
+  choices: [
+    'capacitive คือ X ติดลบ',
+    'เป็นศูนย์ เพราะปลายมันลัดวงจรอยู่แล้ว',
+    'เป็นอนันต์ เหมือน LC ขนานที่ resonance',
+    'inductive คือ X เป็นบวก',
+  ],
+  answer: 3,
+  explain: `X = Z₀ tan βl และ tan เป็นบวกตลอดช่วง 0 < βl < 90° · สายปลายลัด ${APP3_Z0} Ω ยาว 0.05 λ ให้ X = ${n(stubInput('short', APP3_Z0, 0.05).im, 1)} Ω และยาว 0.15 λ ให้ X = ${n(stubInput('short', APP3_Z0, 0.15).im, 1)} Ω เป็นบวกทั้งคู่`,
+  chart: { scale: true, fine: false,
+    points: [
+      { z: C(0, 0), label: 'SHORT (l = 0)', cls: 'stub' },
+      { z: C(0, Math.tan(2 * Math.PI * 0.05)), label: 'l = 0.05 λ', cls: 'in' },
+      { z: C(0, Math.tan(2 * Math.PI * 0.15)), label: 'l = 0.15 λ', cls: 'in' },
+    ] },
+},
           { kind: 'plot', title: 'รีแอกแตนซ์ของสายปลายลัด X = Z₀ tan βl (Z₀ = 50 Ω)', xLabel: 'ความยาว (λ)', yLabel: 'X (Ω)', xMin: 0, xMax: 0.5, yMin: -300, yMax: 300,
             series: [{ name: 'ปลายลัด', points: linspace(0.001, 0.499, 200).map((l) => [l, 50 * Math.tan(2 * Math.PI * l)] as [number, number]) }],
             xTicks: [0, 0.125, 0.25, 0.375, 0.5], yTicks: [-300, -150, 0, 150, 300],
@@ -876,7 +1111,7 @@ export const BASICS: Chapter[] = [
   },
   // ============================================================
   {
-    id: 'b8', num: '9', title: 'หม้อแปลง λ/4 ทีละขั้น', titleTh: 'Quarter-wave transformer และ Example 7-7',
+    id: 'b8', num: '8', title: 'หม้อแปลง λ/4 ทีละขั้น', titleTh: 'Quarter-wave transformer และ Example 7-7',
     intro: 'หม้อแปลงหนึ่งในสี่ความยาวคลื่นคือสายส่งยาว λ/4 ที่เลือก Z_T ให้เหมาะสม ใช้แปลงอิมพีแดนซ์ได้ในขั้นตอนเดียว แต่มีเงื่อนไขสำคัญคือโหลดต้องเป็นความต้านทานล้วน',
     sections: [
       {
@@ -902,9 +1137,9 @@ export const BASICS: Chapter[] = [
           T('ถ้า Z_L = R + jX เราต่อหม้อแปลงที่โหลดโดยตรงไม่ได้ เพราะสูตรต้องการความต้านทานล้วน'),
           T('ทางแก้คือใช้สายส่งธรรมดา (Z₀ เดิม) เดินจากโหลดไปทางแหล่งจ่ายก่อน จนถึงตำแหน่งที่อิมพีแดนซ์เป็นความต้านทานล้วน (x = 0) แล้วค่อยต่อหม้อแปลงที่จุดนั้น'),
           K('โหลด Z_L ──[ สาย Z₀ ยาว d ]──┤ x = 0 ที่นี่ ├──[ λ/4, Z_T ]── ไปยังแหล่งจ่าย'),
-          T('การหาตำแหน่ง x = 0 ก็คือการใช้งานกลุ่มที่ 2 (หัวข้อ 7.6): เดินตามวงกลม SWR จนตัดแกนนอน · วงกลม SWR ตัดแกนนอนสองจุดเสมอ จึงมีคำตอบสองชุด'),
+          T('การหาตำแหน่ง x = 0 ก็คือการใช้งานกลุ่มที่ 2 (หัวข้อ 6.7): เดินตามวงกลม SWR จนตัดแกนนอน · วงกลม SWR ตัดแกนนอนสองจุดเสมอ จึงมีคำตอบสองชุด'),
           M('\\text{จุดขวา}: r = SWR \\;\\Rightarrow\\; R\' = SWR \\times Z_0, \\qquad \\text{จุดซ้าย}: r = \\frac{1}{SWR} \\;\\Rightarrow\\; R\' = \\frac{Z_0}{SWR}'),
-          N('ตำแหน่ง x = 0 หาได้ง่ายมากบน Smith Chart — นี่คือเหตุผลที่บทที่ 2 บอกว่าการหาจุดนี้ด้วยการคำนวณอย่างเดียวทำได้ยาก · หัวข้อ 9.3 ทำให้ดูทั้งสองจุด'),
+          N('ตำแหน่ง x = 0 หาได้ง่ายมากบน Smith Chart — นี่คือเหตุผลที่บทที่ 1 บอกว่าการหาจุดนี้ด้วยการคำนวณอย่างเดียวทำได้ยาก · หัวข้อ 8.3 ทำให้ดูทั้งสองจุด'),
         ],
         figures: [
           { kind: 'chart', title: 'ตามแนวคิด Fig. 7-13: เดินจากโหลดเชิงซ้อนจนถึงจุดความต้านทานล้วน แล้วจึงต่อหม้อแปลง λ/4',
@@ -960,7 +1195,7 @@ export const BASICS: Chapter[] = [
   },
   // ============================================================
   {
-    id: 'b9', num: '10', title: 'Single stub matching ทีละขั้น', titleTh: 'ขั้นตอนหกข้อ และ Example 7-8',
+    id: 'b9', num: '9', title: 'Single stub matching ทีละขั้น', titleTh: 'ขั้นตอนหกข้อ และ Example 7-8',
     intro: 'สตับต่อขนานกับสายหลัก จึงต้องทำงานในโดเมนแอดมิตแตนซ์ บทนี้อธิบายเป้าหมาย เหตุผลของทุกขั้นตอน แล้วทำ Example 7-8 ให้ครบ',
     sections: [
       {
@@ -994,7 +1229,22 @@ export const BASICS: Chapter[] = [
         id: 'procedure', title: 'ขั้นตอนหกข้อ',
         lines: [
           K('1. normalize โหลด z_L = Z_L / Z₀ แล้วพล็อตจุด\n2. แปลงเป็นแอดมิตแตนซ์ y_L (หมุน 180° ผ่านศูนย์กลาง)\n3. เดินตามวงกลม SWR ไปทาง generator จนตัดวงกลม g = 1 → ได้ y = 1 ± jb และได้ระยะ d\n4. เริ่มหาความยาวสตับจากจุด SHORT บนขอบกราฟ\n5. หาค่า susceptance ที่ตรงข้าม: ถ้าสายมี +jb สตับต้องเป็น −jb\n6. อ่านระยะบนสเกลจากจุด SHORT ถึงจุดนั้น = ความยาวสตับ l_s'),
-          N('ขั้นที่ 3 มีสองคำตอบเสมอ (วงกลม SWR ตัดวงกลม g = 1 สองจุด) เลือกจุดที่ใกล้โหลดกว่าเพื่อให้ bandwidth กว้างกว่า'),
+          N('ขั้นที่ 3 มีสองคำตอบเสมอ (วงกลม SWR ตัดวงกลม g = 1 สองจุด) · โจทย์ส่วนใหญ่ใช้จุดที่ใกล้โหลดกว่า แต่ถ้าสนใจ bandwidth ต้องเทียบทั้งสองคำตอบด้วย frequency sweep ไม่ใช่เดาจากระยะ'),
+        ],
+        figures: [
+{ kind: 'quiz',
+  question: 'ใน single stub matching ต้องติดสตับไว้ที่ตำแหน่งใดบนสายหลัก',
+  choices: [
+    'ที่ขั้วโหลดพอดี',
+    'ที่ระยะ λ/4 จากโหลดเสมอ',
+    'ที่จุดแรกซึ่งสายมี g = 1 เมื่อเดินจากโหลดไปทาง generator',
+    'ที่ปลายสายฝั่งแหล่งจ่าย',
+  ],
+  answer: 2,
+  explain: `สตับเป็น susceptance ล้วน แก้ได้แต่ b แก้ g ไม่ได้ จึงต้องติดที่จุดซึ่ง g = 1 อยู่แล้ว · ในตัวอย่าง 7-8 จุดนั้นอยู่ที่ d = ${n(ex78.dLambda, 3)} λ ซึ่งสายมี y = ${fz(ex78.yAtStub, 2)}`,
+  chart: { showY: true, gCircles: [1], swr: [swr78], scale: false, fine: false,
+    points: [{ z: y78, label: 'y_L', cls: 'y' }] },
+},
         ],
       },
       {
@@ -1051,7 +1301,7 @@ export const BASICS: Chapter[] = [
   },
   // ============================================================
   {
-    id: 'b10', num: '11', title: 'ผลของความถี่ที่เปลี่ยนไป', titleTh: 'ทำไม matching ใช้ได้แค่ที่ความถี่ออกแบบ',
+    id: 'b10', num: '10', title: 'ผลของความถี่ที่เปลี่ยนไป', titleTh: 'แมตช์สมบูรณ์ที่ความถี่ออกแบบ และยังใช้ได้ในช่วง bandwidth รอบ ๆ นั้น',
     intro: 'ทั้งสตับและหม้อแปลง λ/4 พึ่งพาความยาวไฟฟ้า เมื่อความถี่เปลี่ยน ความยาวจริงเท่าเดิมแต่ความยาวไฟฟ้าเปลี่ยน matching จึงหลุด บทนี้อธิบายที่มาและคำนวณให้เห็นจริง',
     sections: [
       {
@@ -1067,6 +1317,7 @@ export const BASICS: Chapter[] = [
       {
         id: 'ex78f', title: 'Example 7-8 เมื่อความถี่เปลี่ยนจาก 10 เป็น 12 MHz',
         lines: [
+          W('ตัวอย่างนี้สมมติว่า Z_L, Z₀, VF และ loss ไม่เปลี่ยนตามความถี่ เพื่อแยกให้เห็นผลของ electrical length เพียงอย่างเดียว · อุปกรณ์หรือเสาอากาศจริงมักมี Z_L(f) ที่เปลี่ยนไปด้วย ผลรวมจึงต่างจากนี้'),
           T('ออกแบบไว้ที่ 10 MHz ในสายอากาศ ดังนั้น λ = 30 m'),
           M('d = 0.130 \\times 30 = 3.9\\ \\text{m}, \\qquad l_s = 0.085 \\times 30 = 2.55\\ \\text{m}'),
           T('ที่ 12 MHz ความยาวคลื่นเหลือ 25 m ความยาวจริงเท่าเดิม แต่คิดเป็นความยาวคลื่นใหม่ได้'),
@@ -1124,15 +1375,16 @@ export const BASICS: Chapter[] = [
         lines: [
           T('การตรวจ SWR ที่ความถี่อื่นก็คือการหา bandwidth ของระบบ matching นั่นเอง'),
           T('ถ้ากำหนดเกณฑ์ว่า SWR ≤ 2 ก็ดูว่าช่วงความถี่ใดที่กราฟ SWR ยังต่ำกว่าเส้นนั้น'),
-          N(`จากกราฟหัวข้อ 11.2 วงจร Example 7-8 มี SWR ≤ 2 ประมาณช่วง ${(() => { const lo = linspace(6, 10, 200).find((fm) => ex78AtFreq(fm).swr <= 2); const hi = [...linspace(10, 16, 300)].reverse().find((fm) => ex78AtFreq(fm).swr <= 2); return `${n(lo ?? 0, 1)}–${n(hi ?? 0, 1)} MHz`; })()} (คำนวณโดยแอป)`),
-          T('วิธีเพิ่ม bandwidth ที่ใช้บ่อยคือเลือกตำแหน่งสตับที่ใกล้โหลดกว่า ใช้ Q ต่ำลง หรือใช้ matching หลายขั้น'),
+          N(`จากกราฟหัวข้อ 10.2 วงจร Example 7-8 มี SWR ≤ 2 ประมาณช่วง ${(() => { const lo = linspace(6, 10, 200).find((fm) => ex78AtFreq(fm).swr <= 2); const hi = [...linspace(10, 16, 300)].reverse().find((fm) => ex78AtFreq(fm).swr <= 2); return `${n(lo ?? 0, 1)}–${n(hi ?? 0, 1)} MHz`; })()} (คำนวณโดยแอป)`),
+          W('Bandwidth ขึ้นกับ Q ของโหลด, topology, ตำแหน่งสตับ, ค่า Z₀, การสูญเสีย และการเปลี่ยนของ Z_L(f) · ตำแหน่งสตับที่ใกล้โหลดกว่าไม่ได้รับประกันว่า bandwidth จะกว้างกว่าเสมอ จึงควรตรวจด้วย frequency sweep ทุกครั้ง'),
+          N('แนวทางที่มักช่วยได้คือลด Q ของเครือข่าย หรือใช้ matching หลายขั้น (multi-section) แต่ทุกครั้งต้องยืนยันด้วยกราฟ SWR–ความถี่ของวงจรจริง'),
         ],
       },
     ],
   },
   // ============================================================
   {
-    id: 'b11', num: '12', title: 'สรุปและรูปแบบการทำโจทย์', titleTh: 'ทักษะที่ต้องทำได้',
+    id: 'b11', num: '11', title: 'สรุปและรูปแบบการทำโจทย์', titleTh: 'ทักษะที่ต้องทำได้',
     intro: 'บทสุดท้ายเปรียบเทียบสองวิธี matching และสรุปเป็นแผนผังเดียวที่ใช้ตอบโจทย์ Smith Chart ได้เกือบทุกข้อ',
     sections: [
       {
@@ -1177,6 +1429,116 @@ export const BASICS: Chapter[] = [
           { kind: 'lab', label: 'ฝึกทักษะ 4: สาย 0.15 λ ต่อโหลด 100 − j50 Ω (ใช้ Probe)', circuit: () => buildCircuit(100e6, 75, [['tline', 'series', { Z0: 75, len: 0.15, vf: 0.66, lossDb: 0 }], ['load', 'series', { R: 100, X: -50 }]]) },
           { kind: 'lab', label: 'ฝึกทักษะ 5: หม้อแปลง λ/4 ของ Example 7-7', circuit: () => buildCircuit(100e6, 75, [['qwt', 'series', { Zt: Number(ex77.Zt.toFixed(2)) }], ['tline', 'series', { Z0: 75, len: Number(ex77.dLambda.toFixed(4)), vf: 0.66, lossDb: 0 }], ['load', 'series', { R: 100, X: -50 }]]) },
           { kind: 'lab', label: 'ฝึกทักษะ 6: สตับของ Example 7-8', circuit: () => buildCircuit(10e6, 300, [['stub_short', 'shunt', { Z0: 300, len: Number(ex78.lLambda.toFixed(4)) }], ['tline', 'series', { Z0: 300, len: Number(ex78.dLambda.toFixed(4)), vf: 1, lossDb: 0 }], ['load', 'series', { R: 450, X: -600 }]]), showY: true },
+        ],
+      },
+      {
+        id: 'mistakes', title: 'ข้อผิดพลาดที่พบบ่อย',
+        lines: [
+          T('เก้าข้อนี้คือที่มาของคำตอบผิดเกือบทั้งหมด ทั้งในการบ้านและในงานจริง ให้ไล่อ่านทวนก่อนสรุปคำตอบทุกครั้ง'),
+          K('1. ลืม normalize                    → พล็อต Z จริงลงกราฟตรง ๆ แทน z = Z/Z₀\n2. ใช้ Z₀ ผิดค่า                     → หารด้วย 75 Ω ทั้งที่สายเป็น 50 Ω\n3. สลับ inductive กับ capacitive     → +jx อยู่ครึ่งบน, −jx อยู่ครึ่งล่าง\n4. สลับ toward generator กับ toward load → ตามเข็ม / ทวนเข็ม\n5. อ่านระยะโดยไม่ wrap ที่ 0.5 λ     → ค่าที่เกิน 0.5 ต้องลบ 0.5 ออก\n6. บวก shunt admittance บนกริดอิมพีแดนซ์ → ต้องหมุนไปที่กริด y ก่อนบวก\n7. เปลี่ยนความถี่แล้วยังใช้ความยาวไฟฟ้าเดิม → ความยาวจริงคงที่ แต่ l/λ เปลี่ยน\n8. ลืมว่า single stub มีสองคำตอบเสมอ → เป็นการ "เลือก" ไม่ใช่มีทางเดียว\n9. ลืมเงื่อนไขของกฎแต่ละข้อ          → lossless, passive, Z₀ จริงบวก, สายสม่ำเสมอ'),
+          W('ข้อ 1 กับข้อ 2 อันตรายที่สุด เพราะกราฟยังอ่านออกมาเป็นตัวเลขสวย ๆ ได้ตามปกติ ผิดโดยไม่มีสัญญาณเตือน'),
+          T(`ตารางด้านล่างใช้โหลดประจำคอร์ส Z_L = ${fz(APP_ZL, 0)} Ω บนสาย ${APP_Z0} Ω (z_L = ${fz(zApp, 1)}, y_L = ${fz(yApp, 0)}, SWR = ${n(swrApp, 3)}) — คำนวณโดยแอปทั้งหมด`),
+          N(`ข้อ 6 เห็นชัดที่สุดกับโหลดนี้: y_L = ${fz(yApp, 0)} อยู่บนวงกลม g = 1 อยู่แล้ว บวก shunt b = +1 บนกริด y จะได้ y = ${fz(C(yApp.re, yApp.im + 1), 0)} คือแมตช์พอดี แต่ถ้าเผลอบวก j1 ลงบนกริด z จะได้ ${fz(C(zApp.re, zApp.im + 1), 1)} ซึ่งไม่แมตช์`),
+          N('ทวนแต่ละข้อได้ที่: ข้อ 1–2 บทที่ 2.3 · ข้อ 3 บทที่ 3.3 · ข้อ 4 บทที่ 5.2 · ข้อ 5 บทที่ 5.3 · ข้อ 6 บทที่ 6.3 · ข้อ 7 บทที่ 10.1 · ข้อ 8 บทที่ 9.3 · ข้อ 9 บทที่ 4.4'),
+        ],
+        figures: [
+          { kind: 'table', title: 'ทำผิดแล้วได้อะไร เทียบกับที่ถูกต้อง (คำนวณโดยแอป)',
+            head: ['ข้อผิดพลาด', 'ผลที่ได้ถ้าทำผิด', 'ที่ถูกต้อง'],
+            rows: [
+              ['1. ลืม normalize', `พล็อต ${fz(APP_ZL, 0)} เป็น z → SWR = ${n(swrFromGamma(gammaFromz(APP_ZL)), 1)}`, `z = ${fz(zApp, 1)} → SWR = ${n(swrApp, 3)}`],
+              ['2. ใช้ Z₀ = 75 Ω แทน 50 Ω', `z = ${fz(normalize(APP_ZL, 75), 3)} → SWR = ${n(swrFromGamma(gammaFromZ(APP_ZL, 75)), 2)}`, `z = ${fz(zApp, 1)} → SWR = ${n(swrApp, 3)}`],
+              ['3. สลับเครื่องหมาย x', `${fz(C(zApp.re, -zApp.im), 1)} → y = ${fz(admittance(C(zApp.re, -zApp.im)), 0)}`, `${fz(zApp, 1)} → y = ${fz(yApp, 0)}`],
+              ['4. หมุนผิดทิศ 0.1 λ', `ทวนเข็ม (toward load) → z = ${fz(zFromGamma(rotateTowardGenerator(gApp, -0.1)), 3)}`, `ตามเข็ม (toward generator) → z = ${fz(zFromGamma(rotateTowardGenerator(gApp, 0.1)), 3)}`],
+              ['5. ไม่ wrap ที่ 0.5 λ', `${n(wtgZApp, 4)} + 0.45 = ${n(wtgZApp + 0.45, 4)} λ (ไม่มีบนสเกล)`, `${n((wtgZApp + 0.45) % 0.5, 4)} λ → z = ${fz(zFromGamma(rotateTowardGenerator(gApp, 0.45)), 3)}`],
+              ['6. บวก shunt b บนกริด z', `z + j1 = ${fz(C(zApp.re, zApp.im + 1), 2)} (ยังไม่แมตช์)`, `y + j1 = ${fz(C(yApp.re, yApp.im + 1), 0)} → z = ${fz(admittance(C(yApp.re, yApp.im + 1)), 0)}`],
+              ['7. ไม่คิดความยาวไฟฟ้าใหม่', 'คิดว่ายังได้ SWR = 1.00 ที่ 12 MHz', `จริง ๆ d = ${n(ex78AtFreq(12).d, 3)} λ → SWR = ${n(ex78AtFreq(12).swr, 2)}`],
+            ],
+            caption: 'ทุกแถวใช้โหลดเดียวกัน ยกเว้นแถว 7 ที่ใช้วงจร Example 7-8' },
+          { kind: 'table', title: 'ข้อ 8 — สตับเดี่ยวของ Example 7-8 มีสองคำตอบ และทั้งคู่ให้ SWR = 1 (คำนวณโดยแอป)',
+            head: ['คำตอบ', 'd (λ)', 'y ที่ตำแหน่งสตับ', 'b ของสตับ', 'l_s ปลายลัด (λ)'],
+            rows: solveSingleStub(EX78.ZL, EX78.Z0, 'short').map((s, i) => [`ที่ ${i + 1}`, n(s.dLambda, 4), fz(s.yAtStub, 3), n(s.bStub, 3), n(s.lLambda, 4)]),
+            caption: 'หนังสือหยิบคำตอบแรกมาใช้ แต่คำตอบที่สองก็แมตช์ได้เท่ากัน · เลือกจากความยาวสายที่ทำได้จริงและจาก bandwidth ที่กวาดความถี่แล้ว' },
+          { kind: 'chart', title: 'ข้อ 3 และข้อ 6 บนกราฟใบเดียวกัน (คำนวณโดยแอป)', showY: true, scale: false,
+            points: [
+              { z: zApp, label: `ถูก: z_L = ${fz(zApp, 1)}`, cls: 'load' },
+              { z: C(zApp.re, -zApp.im), label: `ผิดข้อ 3: ${fz(C(zApp.re, -zApp.im), 1)}`, cls: 'mid' },
+              { z: C(zApp.re, zApp.im + 1), label: `ผิดข้อ 6: ${fz(C(zApp.re, zApp.im + 1), 1)}`, cls: 'in' },
+              { z: admittance(C(yApp.re, yApp.im + 1)), label: `ถูกข้อ 6: z = ${fz(admittance(C(yApp.re, yApp.im + 1)), 0)}`, cls: 'y' },
+            ],
+            gCircles: [1], swr: [swrApp],
+            caption: 'จุดสีแดงคือคำตอบที่ถูก · จุดผิดข้อ 3 อยู่คนละครึ่งกราฟ · จุดผิดข้อ 6 หลุดออกนอกวงกลม SWR เดิม ส่วนที่ถูกต้องลงกลางกราฟพอดี' },
+        ],
+      },
+      {
+        id: 'vna', title: 'จากกราฟสู่การวัดจริง: ระนาบอ้างอิง สายวัด และการคาลิเบรต',
+        lines: [
+          T('ทั้งคอร์สนี้เป็นจุดบนกระดาษ หัวข้อสุดท้ายเชื่อมมันเข้ากับเครื่องมือจริง เพราะเครื่องวัดที่ใช้กันทุกวันนี้แสดงผลเป็น Smith Chart ใบเดียวกันนี้ตรง ๆ'),
+          T('VNA (vector network analyzer) ไม่ได้วัด Z โดยตรง มันวัดคลื่นสะท้อนแล้วรายงานเป็น Γ ซึ่งบนหน้าจอเรียกว่า S₁₁ จากนั้นจึงคำนวณ Z ให้ดู'),
+          M('S_{11} = \\Gamma = \\frac{Z - Z_0}{Z + Z_0} \\;\\Rightarrow\\; Z = Z_0\\,\\frac{1+\\Gamma}{1-\\Gamma}'),
+          T('คำถามที่ต้องถามทุกครั้งคือ "Γ ที่ระนาบไหน" เพราะค่าที่วัดได้เป็นของระนาบอ้างอิง (reference plane) เสมอ ซึ่งคือระนาบที่คาลิเบรตไว้ ไม่ใช่ระนาบที่โหลดอยู่ ถ้าคาลิเบรตไว้ที่หัวต่อของเครื่อง สายวัดทั้งเส้นจะถูกนับรวมเป็นส่วนหนึ่งของสิ่งที่ถูกวัด'),
+          T(`ทำเป็นตัวเลขด้วยโหลดประจำคอร์ส Z_L = ${fz(APP_ZL, 0)} Ω บนระบบ ${APP_Z0} Ω ต่อผ่านสายวัดยาว ${n(VNA_LEN_M, 2)} m ที่มี velocity factor ${n(VNA_VF, 2)} วัดที่ ${n(VNA_F / 1e6, 0)} MHz (ความยาวสาย velocity factor และความถี่ เป็นค่าสมมุติ ที่เหลือแอปคำนวณให้ทั้งหมด)`),
+          M(`\\lambda = \\frac{vf \\cdot c}{f} = ${n(VNA_LAM, 4)}\\ \\text{m} \\;\\Rightarrow\\; l = \\frac{${n(VNA_LEN_M, 2)}}{${n(VNA_LAM, 4)}} = ${n(VNA_LEN, 4)}\\lambda`),
+          T('สายเส้นนี้จึงหมุนจุดไปตามวงกลม SWR เป็นมุม'),
+          M(`2\\beta l = 2 \\times 360^\\circ \\times ${n(VNA_LEN, 4)} = ${n(720 * VNA_LEN, 1)}^\\circ`),
+          T('ผลคือโหลดตัวเดิม ที่ไม่ได้ถูกแตะเลย ให้ค่าอ่านคนละตัวเลขที่สองระนาบ'),
+          R(`Z_{\\text{ที่โหลด}} = ${tc(APP_ZL, 0)}\\,\\Omega \\qquad Z_{\\text{ที่หัวต่อเครื่อง}} = ${tc(ZVna0, 2)}\\,\\Omega`),
+          N(`สายเส้นนี้ยาวเกือบ λ/4 พอดี (${n(VNA_LEN, 4)} λ) ค่าที่อ่านได้จึงเกือบเท่ากับ Z₀²/Z_L = ${fz(ZQuarter, 0)} Ω ซึ่งก็คือจุด "ตรงข้าม" ของหัวข้อ 6.4 นั่นเอง · ถ้าไม่รู้ว่ามีสายคั่นอยู่ จะสรุปผิดทันทีว่าโหลดเป็น capacitive ทั้งที่ของจริงเป็น inductive`),
+          W(`SWR อย่างเดียวบอกไม่ได้ว่ากำลังดูระนาบไหน — บนสายไร้การสูญเสีย SWR ที่หัวต่อเครื่องกับที่โหลดเท่ากันเป๊ะ (${n(swrFromGamma(gVna0), 3)} ทั้งคู่) return loss ก็เท่ากัน สิ่งที่เปลี่ยนมีอย่างเดียวคือมุมของ Γ`),
+          T('คาลิเบรตคือการย้ายระนาบอ้างอิง ไม่ใช่การ "ทำให้เครื่องแม่นขึ้น" เฉย ๆ เมื่อทำ SOL (short-open-load) ที่ปลายสายวัด เครื่องจะรู้จักสายเส้นนั้นแล้วหักผลของมันออก ผลบนกราฟคือหมุนจุดกลับไปทาง load เป็นมุมเท่าเดิม'),
+          M(`\\Gamma_{\\text{ที่โหลด}} = \\Gamma_{\\text{ที่วัดได้}}\\;e^{+j2\\beta l} \\qquad (${n(720 * VNA_LEN, 1)}^\\circ \\text{ ทวนเข็ม})`),
+          R(`${tc(ZVna0, 2)} \\;\\longrightarrow\\; ${tc(ZVnaBack, 1)}\\,\\Omega \\qquad \\text{กลับมาเท่าโหลดเดิมพอดี}`),
+          N(`ฟังก์ชัน port extension หรือ de-embedding ในเครื่องรุ่นใหม่ทำสิ่งเดียวกันโดยไม่ต้องต่อมาตรฐาน คือหมุนกลับให้ตามความยาวที่เราป้อน · ความละเอียดที่ต้องการ: ที่ ${n(VNA_F / 1e6, 0)} MHz ระนาบอ้างอิงที่คลาดไป 1 mm ทำให้มุมของ Γ เพี้ยนไป ${n(720 / (VNA_LAM * 1000), 3)}° และตัวเลขนี้โตขึ้นตามความถี่ จึงต้องใช้ cal kit ที่ระบุ offset ของหัวต่อไว้จริง ๆ`),
+          T('สายที่มีการสูญเสียทำสองอย่างพร้อมกัน คือหมุน และดึงจุดเข้าหาศูนย์กลาง เส้นทางจึงเป็นเกลียวแทนที่จะเป็นวงกลม'),
+          M('\\Gamma_{\\text{ที่วัดได้}} = \\Gamma_L\\,e^{-2\\alpha l}\\,e^{-j2\\beta l}'),
+          T(`สายในตัวอย่างนี้สั้นมาก การสูญเสียจึงแทบไม่มีผล: ${n(VNA_LOSS_PER_M, 2)} dB/m × ${n(VNA_LEN_M, 2)} m = ${n(VNA_LOSS, 3)} dB เที่ยวเดียว ทำให้ SWR ที่อ่านได้ลดจาก ${n(swrApp, 3)} เหลือ ${n(swrFromGamma(vnaG(VNA_LOSS)), 3)} เท่านั้น แต่ถ้าเป็นสายฟีดยาว ๆ หรือความถี่สูงขึ้น ตัวเลขจะเริ่มหลอกอย่างชัดเจน`),
+          R(`\\text{loss } ${n(VNA_BIGLOSS, 1)}\\ \\text{dB} \\;\\Rightarrow\\; SWR_{\\text{ที่เครื่อง}} = ${n(swrFromGamma(vnaG(VNA_BIGLOSS)), 3)} \\quad \\text{แต่ที่โหลดจริงยังเป็น } ${n(swrApp, 3)}`),
+          T('มีความสัมพันธ์ที่ใช้ตรวจในหัวได้ทันที เพราะคลื่นเดินผ่านสายสองเที่ยว return loss ที่วัดได้จึงดูดีขึ้นเป็นสองเท่าของการสูญเสียในสาย'),
+          M('RL_{\\text{วัดได้}} = RL_{\\text{จริง}} + 2L_{\\text{สาย}}'),
+          R(`${n(returnLossDb(gApp), 2)} + 2 \\times ${n(VNA_BIGLOSS, 1)} = ${n(returnLossDb(vnaG(VNA_BIGLOSS)), 2)}\\ \\text{dB} \\qquad \\text{(ตรงกับที่แอปคำนวณ)}`),
+          W('อาการคลาสสิกในสนาม: เสาอากาศเสื่อมหรือสายฟีดเปียกน้ำ แต่ SWR ที่หน้าเครื่องกลับ "ดีขึ้น" — ไม่ใช่เพราะเสาดีขึ้น แต่เพราะสายกินกำลังสะท้อนไปเสียก่อน · เทียบกับเกลียวเข้าศูนย์กลางในหัวข้อ 4.4'),
+          N('สรุปสามข้อ: (1) ค่าที่ VNA อ่านคือ Γ ที่ระนาบอ้างอิง ไม่ใช่ที่โหลด (2) สายที่ต่อเพิ่มหมุนจุดตามเข็มบนวงกลม SWR เป็นมุม 2βl (3) คาลิเบรตคือการหมุนกลับ ส่วนการสูญเสียคือรัศมีที่หายไป ซึ่งการคาลิเบรตที่ปลายสายจะหักออกให้ด้วยเช่นกัน'),
+        ],
+        figures: [
+          { kind: 'chart', title: `สายวัด ${n(VNA_LEN_M, 2)} m (= ${n(VNA_LEN, 4)} λ) พาจุดไปไหน และคาลิเบรตพากลับมาอย่างไร`, scale: true, fine: false,
+            points: [
+              { z: zApp, label: `ระนาบที่โหลด: ${fz(APP_ZL, 0)} Ω`, cls: 'load' },
+              { z: zVna0, label: `ระนาบที่เครื่อง: ${fz(ZVna0, 1)} Ω`, cls: 'in' },
+            ],
+            curves: [
+              { zs: vnaPath(0), cls: 'net', arrow: true, label: 'ต่อสายวัด → ตามเข็ม' },
+              { zs: vnaPath(0).slice().reverse(), cls: 'y', dashed: true, arrow: true, label: 'คาลิเบรต → ทวนเข็ม' },
+            ],
+            swr: [swrApp],
+            caption: `สองจุดนี้คือโหลดตัวเดียวกัน ต่างกันแค่ระนาบอ้างอิง · บนสเกลรอบนอกจุดเลื่อนจาก ${n(wtgZApp, 4)} λ ไป ${n(wtgFromGamma(gVna0), 4)} λ คือ ${n(VNA_LEN, 4)} λ พอดีตามความยาวสาย · วงกลม SWR วงเดียวกันทั้งคู่ เพราะสายไร้การสูญเสียไม่เปลี่ยนรัศมี` },
+          { kind: 'table', title: 'โหลดตัวเดียวกัน อ่านได้สองแบบ เพราะระนาบอ้างอิงคนละที่ (สายไร้การสูญเสีย — คำนวณโดยแอป)',
+            head: ['ระนาบอ้างอิง', 'Z ที่อ่านได้ (Ω)', 'z', '|Γ|', 'มุมของ Γ', 'สเกล (λ)', 'SWR', 'return loss (dB)'],
+            rows: [
+              ['ที่โหลด (คาลิเบรตที่ปลายสายแล้ว)', fz(APP_ZL, 1), fz(zApp, 2), n(abs(gApp), 4), `${n(deg(arg(gApp)), 1)}°`, n(wtgZApp, 4), n(swrApp, 3), n(returnLossDb(gApp), 2)],
+              [`ที่หัวต่อเครื่อง (สาย ${n(VNA_LEN_M, 2)} m อยู่ในระบบ)`, fz(ZVna0, 1), fz(zVna0, 2), n(abs(gVna0), 4), `${n(deg(arg(gVna0)), 1)}°`, n(wtgFromGamma(gVna0), 4), n(swrFromGamma(gVna0), 3), n(returnLossDb(gVna0), 2)],
+            ],
+            caption: `|Γ| SWR และ return loss เท่ากันทุกตัว ต่างกันเฉพาะมุม ${n(deg(arg(gApp)) - deg(arg(gVna0)), 1)}° ซึ่งเท่ากับ 2βl ของสายเส้นนี้พอดี · นี่คือเหตุผลที่ SWR meter บอกไม่ได้ว่าโหลดเป็นอะไร บอกได้แค่ว่าสะท้อนมากแค่ไหน` },
+          { kind: 'chart', title: `สายเส้นเดียวกันแต่มีการสูญเสีย ${n(VNA_BIGLOSS, 1)} dB (ค่าสมมุติ): หมุนด้วย เข้าศูนย์กลางด้วย`, scale: false, fine: false,
+            points: [
+              { z: zApp, label: `ที่โหลด SWR = ${n(swrApp, 2)}`, cls: 'load' },
+              { z: zVna0, label: 'ไร้การสูญเสีย', cls: 'in' },
+              { z: zVnaL, label: `สูญเสีย ${n(VNA_BIGLOSS, 1)} dB → SWR = ${n(swrFromGamma(vnaG(VNA_BIGLOSS)), 2)}`, cls: 'mid' },
+            ],
+            curves: [
+              { zs: vnaPath(0), cls: 'net', dashed: true },
+              { zs: vnaPath(VNA_BIGLOSS), cls: 'mid', arrow: true },
+            ],
+            swr: [swrApp, swrFromGamma(vnaG(VNA_BIGLOSS))],
+            caption: `เส้นประ = สายไร้การสูญเสีย เดินอยู่บนวงกลมเดิม · เส้นทึบ = สายที่มีการสูญเสีย รัศมีหดลงระหว่างทาง · วงกลมสองวงคือ SWR ที่โหลดและ SWR ที่เครื่องอ่านได้ ซึ่งต่ำกว่าความจริง` },
+          { kind: 'table', title: `ค่าที่เครื่องอ่านได้ที่ปลายสาย ${n(VNA_LEN, 4)} λ เมื่อการสูญเสียของสายต่างกัน (ค่า loss เป็นค่าสมมุติ ที่เหลือคำนวณโดยแอป)`,
+            head: ['loss ของสาย (dB เที่ยวเดียว)', 'Z ที่อ่านได้ (Ω)', '|Γ|', 'SWR ที่อ่านได้', 'return loss (dB)', 'มุมของ Γ', 'SWR จริงที่โหลด'],
+            rows: VNA_LOSSES.map((L) => [n(L, 3), fz(vnaZ(L), 2), n(abs(vnaG(L)), 4), n(swrFromGamma(vnaG(L)), 3), n(returnLossDb(vnaG(L)), 2), `${n(deg(arg(vnaG(L))), 1)}°`, n(swrApp, 3)]),
+            caption: `คอลัมน์มุมของ Γ เท่ากันทุกแถว เพราะการสูญเสียลดแต่รัศมี ไม่หมุน · ยิ่ง loss มาก SWR ที่เครื่องยิ่งต่ำและ return loss ยิ่งดูดี ทั้งที่โหลดไม่ได้เปลี่ยนเลย · แถวสุดท้ายอ่านได้ ${n(swrFromGamma(vnaG(VNA_BIGLOSS)), 2)} แทนที่จะเป็น ${n(swrApp, 2)}` },
+          { kind: 'lab', label: `ทดลอง: โหลด ${fz(APP_ZL, 0)} Ω ต่อผ่านสายวัด ${n(VNA_LEN, 3)} λ (ไร้การสูญเสีย)`,
+            circuit: () => buildCircuit(VNA_F, APP_Z0, [['tline', 'series', { Z0: APP_Z0, len: Number(VNA_LEN.toFixed(3)), vf: VNA_VF, lossDb: 0 }], ['load', 'series', { R: APP_ZL.re, X: APP_ZL.im }]]),
+            note: 'จุดโหลดคือระนาบที่โหลด จุด input คือระนาบที่เครื่อง · ลองเลื่อนความยาวสายแล้วดูจุด input วิ่งรอบวงกลม SWR ขณะที่จุดโหลดอยู่กับที่ — นั่นคือสิ่งที่การคาลิเบรตหักออกให้' },
+          { kind: 'lab', label: `ทดลอง: สายเส้นเดิมแต่ตั้ง loss = ${n(VNA_BIGLOSS, 1)} dB`,
+            circuit: () => buildCircuit(VNA_F, APP_Z0, [['tline', 'series', { Z0: APP_Z0, len: Number(VNA_LEN.toFixed(3)), vf: VNA_VF, lossDb: VNA_BIGLOSS }], ['load', 'series', { R: APP_ZL.re, X: APP_ZL.im }]]),
+            note: `SWR ที่ input ควรอ่านได้ราว ${n(swrFromGamma(vnaG(VNA_BIGLOSS)), 2)} ทั้งที่ที่โหลดยังเป็น ${n(swrApp, 2)} · ลด loss กลับเป็น 0 แล้วดูว่า SWR ทั้งสองฝั่งกลับมาเท่ากัน` },
         ],
       },
     ],
