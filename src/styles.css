@@ -426,6 +426,15 @@ h1, h2, h3 { margin: 0; }
 
 /* ---------- solution (เฉลย) ---------- */
 .sol-row { border-top: 1px dashed #fcd34d; padding-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+
+/* the answer circuit is held back until the walkthrough is done, the circuit is right, or the user asks */
+.sol-hidden { border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; background: #fbfdff; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.sol-hidden-head { font-weight: 800; color: #475569; }
+.sol-hidden p { margin: 0; font-size: 12.5px; line-height: 1.7; color: #475569; }
+.sol-hidden-note { font-size: 11.5px; color: #64748b; }
+.sol-reveal-why { font-size: 11.5px; color: #0f766e; font-weight: 700; margin-bottom: 4px; }
+.sol-derive-inline { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
+.sol-derive-inline > summary { cursor: pointer; font-weight: 800; font-size: 12.5px; color: #334155; }
 .sol-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .sol-status { font-size: 12px; color: #b45309; }
 .sol-status.ok { color: var(--ok-fg); font-weight: 600; }

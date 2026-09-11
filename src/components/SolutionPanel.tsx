@@ -8,20 +8,22 @@ import { CircuitSchematic } from './CircuitSchematic';
 import { MiniSmith } from './MiniSmith';
 import { solveCircuit } from '../engine/solver';
 import { smithMethodSteps } from '../engine/smithMethod';
+import type { ExplainStep } from '../engine/explain';
 
 const fmtT = (v: number | undefined, key: string) => (v === undefined ? '—' : fmtNum(v, key === 'len' ? 3 : 2));
 
-const TargetTable: React.FC<{ targets: TargetValue[]; compact?: boolean }> = ({ targets, compact }) => (
+/** `hideAnswer` keeps the checklist — what is needed, what you have, right or wrong — but not the number to copy. */
+const TargetTable: React.FC<{ targets: TargetValue[]; compact?: boolean; hideAnswer?: boolean }> = ({ targets, compact, hideAnswer }) => (
   <table className={`sol-table ${compact ? 'compact' : ''}`}>
     <thead>
-      <tr><th>อุปกรณ์</th><th>ค่า</th><th>เฉลย</th><th>ของคุณ</th><th></th></tr>
+      <tr><th>อุปกรณ์</th><th>ค่า</th>{!hideAnswer && <th>เฉลย</th>}<th>ของคุณ</th><th></th></tr>
     </thead>
     <tbody>
       {targets.map((t, i) => (
         <tr key={i} className={t.ok ? 'ok' : t.current === undefined ? 'missing' : 'bad'}>
           <td className="mono">{t.elementLabel}</td>
           <td>{t.label}</td>
-          <td className="mono">{fmtT(t.value, t.key)} {t.unit}</td>
+          {!hideAnswer && <td className="mono">{fmtT(t.value, t.key)} {t.unit}</td>}
           <td className="mono">{t.current === undefined ? 'ยังไม่มี' : `${fmtT(t.current, t.key)} ${t.unit}`}</td>
           <td className="mark">{t.ok ? '✓' : '✗'}</td>
         </tr>
@@ -62,10 +64,10 @@ export const SolutionActions: React.FC<{ lesson: Lesson; allOk: boolean }> = ({ 
 };
 
 /** Smith-chart walkthrough stepper (drives the overlay on the main Smith chart). */
-export const SmithWalk: React.FC<{ lesson: Lesson; compact?: boolean }> = ({ lesson, compact }) => {
+export const SmithWalk: React.FC<{ lesson: Lesson; compact?: boolean; steps?: ExplainStep[] }> = ({ lesson, compact, steps }) => {
   const state = useAppState();
   const dispatch = useDispatch();
-  const walk = lesson.solution ? smithMethodSteps(lesson, lesson.solution()) : [];
+  const walk = steps ?? (lesson.solution ? smithMethodSteps(lesson, lesson.solution()) : []);
   if (walk.length === 0) return null;
   const active = state.solutionStep !== null;
   const idx = active ? Math.min(state.solutionStep!, walk.length - 1) : -1;
@@ -119,7 +121,16 @@ export const SmithWalk: React.FC<{ lesson: Lesson; compact?: boolean }> = ({ les
 export const SolutionRow: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
   const state = useAppState();
   const info = buildSolution(lesson, state.circuit);
+  // The answer circuit is the end of the story, so it waits: walk the chart first, or finish the
+  // circuit yourself, or say outright that you want to see it. Peeking resets with the lesson.
+  const [peek, setPeek] = React.useState(false);
+  React.useEffect(() => setPeek(false), [lesson.id]);
+  const walk = React.useMemo(() => (lesson.solution ? smithMethodSteps(lesson, lesson.solution()) : []), [lesson]);
   if (!info) return <div className="sol-row"><span className="muted">บทเรียนนี้ไม่มีเฉลยตายตัว</span></div>;
+  const walkAt = state.solutionStep === null ? -1 : Math.min(state.solutionStep, walk.length - 1);
+  const walkDone = walk.length > 0 && walkAt >= walk.length - 1;
+  const show = peek || info.allOk || walkDone;
+  const why = info.allOk ? 'วงจรของคุณตรงกับเฉลยแล้ว' : walkDone ? 'ไล่ครบทุกขั้นบนกราฟแล้ว' : 'คุณกดขอดูเอง';
   return (
     <div className="sol-row">
       <div className="sol-head">
@@ -127,14 +138,34 @@ export const SolutionRow: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
         <span className={`sol-status ${info.allOk ? 'ok' : ''}`}>{info.allOk ? '✓ ตรงกับเฉลยทุกค่าแล้ว' : `${info.targets.filter((t) => t.ok).length}/${info.targets.length} ค่าตรงเฉลย${info.structureOk ? '' : ' · โครงวงจรยังไม่ตรง'}`}</span>
         {state.lastSolutionStep && <span className="sol-last">ล่าสุด: {state.lastSolutionStep}</span>}
       </div>
-      <div className="sol-grid">
-        <div className="sol-circuit">
-          <CircuitSchematic circuit={info.circuit} result={solveCircuit(info.circuit)} status={info.solutionStatus} title="วงจรเฉลย (✓ = ค่าของคุณตรงแล้ว, ✗ = ยังไม่ตรง/ยังไม่มี)" maxHeight={150} />
+      {show ? (
+        <>
+          <div className="sol-reveal-why">เปิดวงจรเฉลยแล้ว เพราะ{why}</div>
+          <div className="sol-grid">
+            <div className="sol-circuit">
+              <CircuitSchematic circuit={info.circuit} result={solveCircuit(info.circuit)} status={info.solutionStatus} title="วงจรเฉลย (✓ = ค่าของคุณตรงแล้ว, ✗ = ยังไม่ตรง/ยังไม่มี)" maxHeight={150} />
+            </div>
+            <TargetTable targets={info.targets} compact />
+          </div>
+          <details className="sol-derive-inline" open>
+            <summary>📖 คำอธิบายละเอียดของวงจรนี้</summary>
+            <StepLines lines={info.steps} />
+          </details>
+        </>
+      ) : (
+        <div className="sol-hidden">
+          <div className="sol-hidden-head">🔒 ยังไม่แสดงวงจรเฉลย</div>
+          <p>
+            วงจรคือ “คำตอบ” ของบทนี้ จึงเก็บไว้ทีหลัง · ไล่ดูวิธีทำบนกราฟให้ครบทั้ง {walk.length} ขั้นก่อน
+            {walkAt >= 0 ? ` (ตอนนี้อยู่ขั้นที่ ${walkAt + 1})` : ''} แล้ววงจรกับค่าทุกตัวจะแสดงพร้อมคำอธิบายละเอียด
+          </p>
+          <TargetTable targets={info.targets} compact hideAnswer />
+          <div className="sol-hidden-note">ตารางนี้บอกได้ว่าค่าไหนยังไม่ตรง โดยยังไม่บอกตัวเลขเฉลย</div>
+          <button className="btn small" onClick={() => setPeek(true)}>👁 ข้ามไปดูวงจรเฉลยเลย</button>
         </div>
-        <TargetTable targets={info.targets} compact />
-      </div>
+      )}
       <SolutionActions lesson={lesson} allOk={info.allOk} />
-      <SmithWalk lesson={lesson} compact />
+      <SmithWalk lesson={lesson} compact steps={walk} />
     </div>
   );
 };
