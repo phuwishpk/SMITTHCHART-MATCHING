@@ -50,7 +50,7 @@ h1, h2, h3 { margin: 0; }
 .seg.small button.on { background: #fff; color: var(--accent); font-weight: 600; box-shadow: inset 0 0 0 1px var(--accent); }
 
 /* ---------- layout ---------- */
-.main { display: grid; grid-template-columns: 272px minmax(0, 1fr) 470px; gap: 10px; padding: 10px; min-height: 0; }
+.main { display: grid; grid-template-columns: 264px minmax(0, 1fr) 600px; gap: 10px; padding: 10px; min-height: 0; }
 .col-left, .col-center, .col-right { min-height: 0; display: flex; flex-direction: column; gap: 10px; }
 .col-left { overflow: hidden; }
 .palette { display: flex; flex-direction: column; flex: 0 0 auto; max-height: 52%; }
@@ -193,7 +193,8 @@ h1, h2, h3 { margin: 0; }
 
 /* ---------- smith chart ---------- */
 .smith-wrap { display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: auto; }
-.smith-svg-wrap { position: relative; padding: 4px; flex: 1 1 auto; min-height: 340px; display: flex; flex-direction: column; align-items: center; }
+.smith-svg-wrap { position: relative; padding: 4px; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; }
+.smith-svg-wrap > .smith-svg { width: 100%; height: auto; aspect-ratio: 1 / 1; flex: 0 0 auto; }
 .smith-svg { width: 100%; height: 100%; flex: 1; min-height: 0; display: block; }
 .legend { flex-shrink: 0; }
 .stats { flex-shrink: 0; }
@@ -272,6 +273,24 @@ h1, h2, h3 { margin: 0; }
 .smith-svg .ptlabel.mid-net { fill: #b45309; }
 .smith-svg .ptlabel.probe { fill: var(--probe); }
 .hover-box { position: absolute; top: 10px; left: 10px; background: rgba(255, 255, 255, 0.94); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; font-size: 11.5px; font-family: var(--mono); pointer-events: none; line-height: 1.4; }
+
+/* the readings of one plotted point, pinned by clicking it */
+.pick-box { position: absolute; top: 8px; right: 8px; z-index: 3; background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--border); border-left: 4px solid var(--muted); border-radius: 8px; padding: 4px 7px 5px;
+  font-size: 10px; font-family: var(--mono); line-height: 1.34; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+  min-width: 168px; max-width: 46%; }
+.pick-box.load { border-left-color: var(--load); }
+.pick-box.in { border-left-color: var(--in); }
+.pick-box.mid-net, .pick-box.mid-load { border-left-color: var(--mid); }
+.pick-box.probe { border-left-color: #a855f7; }
+.pick-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 3px;
+  font-family: var(--sans); font-size: 10.5px; }
+.pick-head .mini { padding: 0 5px; line-height: 1.4; }
+.pick-row { display: flex; justify-content: space-between; gap: 10px; }
+.pick-row .k { color: var(--muted); }
+.pick-row .v { font-weight: 700; color: #0f172a; }
+.smith-svg .pt-hit { fill: transparent; cursor: pointer; }
+.smith-svg .pick-ring { fill: none; stroke: #0f172a; stroke-width: 2; stroke-dasharray: 4 3; }
 .legend { display: flex; gap: 12px; justify-content: center; font-size: 11px; color: var(--muted); padding: 0 6px 4px; flex-wrap: wrap; }
 .legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
 .legend .dot.load { background: var(--load); }
@@ -350,8 +369,11 @@ h1, h2, h3 { margin: 0; }
 .card small { font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
 
 /* ---------- responsive ---------- */
+@media (max-width: 1560px) and (min-width: 1280.02px) {
+  .main { grid-template-columns: 252px minmax(0, 1fr) 520px; }
+}
 @media (max-width: 1280px) and (min-width: 1080.02px) {
-  .main { grid-template-columns: 250px minmax(0, 1fr) 400px; }
+  .main { grid-template-columns: 234px minmax(0, 1fr) 452px; }
 }
 @media (max-width: 1080px) {
   .app { height: auto; min-height: 100vh; }

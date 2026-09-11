@@ -4,7 +4,7 @@ import { Complex, abs, arg, deg, fmtNum, isFiniteC } from '../engine/complex';
 import { ELEMENT_SPECS } from '../engine/circuit';
 import { rCircle, xCircle, gCircle, bCircle, toSvg, fromSvg, pathToPoints, angleForWtg } from '../engine/smith';
 import { VB, CX, CY, R, RING, circleSvg, DetailedGrid, OuterScales, RadialScales, ReadOff } from './SmithGrid';
-import { zFromGamma, admittance, swrFromGamma, wtgFromGamma, gammaFromz, returnLossDb } from '../engine/rf';
+import { zFromGamma, admittance, swrFromGamma, wtgFromGamma, gammaFromz, returnLossDb, readOff } from '../engine/rf';
 import { probeOnLine } from '../engine/solver';
 import { Highlight } from '../engine/explain';
 import { MaxButton } from './MaxButton';
@@ -55,6 +55,9 @@ export const SmithChart: React.FC = () => {
     return { g: result.gammaIn, cls: 'in' as const, label: result.hasNetwork ? 'z_in' : 'z_L' };
   }, [hl.readout, result, walkStep]);
   const chartSvgRef = useRef<SVGSVGElement>(null);
+  // A plotted point can be clicked to pin its full set of readings: the chart is an instrument, and
+  // this is reading the instrument at that point rather than at wherever the mouse happens to be.
+  const [picked, setPicked] = useState<string | null>(null);
   const showStrip = state.showRadial || !!hl.readout;
 
   // The explanation walks from the load (highest stage index) down to the input (0).
@@ -382,9 +385,19 @@ export const SmithChart: React.FC = () => {
               const isHl = (hl.point === 'load' && pt.key === 'load') || (hl.point === 'in' && pt.key === 'in') || (hl.point === 'load' && !result.hasNetwork && pt.key === 'in') || (typeof hl.point === 'number' && pt.key === `s${hl.point}`) || (typeof hl.point === 'number' && hl.point === 0 && pt.key === 'in') || (typeof hl.point === 'number' && hl.point === result.loadStart && pt.key === 'load');
               const show = pt.cls === 'load' || pt.cls === 'in' || pt.cls === 'mid-net';
               return (
-                <g key={pt.key} className={`ptg ${pt.cls} ${isHl ? 'hl' : ''} ${pending(pt.idx) ? 'pending' : ''}`}>
+                <g key={pt.key} className={`ptg ${pt.cls} ${isHl ? 'hl' : ''} ${picked === pt.key ? 'picked' : ''} ${pending(pt.idx) ? 'pending' : ''}`}>
                   {isHl && <circle cx={p.x} cy={p.y} r={pt.r + 8} className="pulse" />}
-                  <circle cx={p.x} cy={p.y} r={pt.r} className={`pt ${pt.cls}`}>
+                  {picked === pt.key && <circle cx={p.x} cy={p.y} r={pt.r + 7} className="pick-ring" />}
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={Math.max(pt.r + 9, 14)}
+                    className="pt-hit"
+                    onClick={(e) => { e.stopPropagation(); setPicked((k) => (k === pt.key ? null : pt.key)); }}
+                  >
+                    <title>{`กดเพื่ออ่านค่าของจุดนี้ — ${pt.label}`}</title>
+                  </circle>
+                  <circle cx={p.x} cy={p.y} r={pt.r} className={`pt ${pt.cls}`} pointerEvents="none">
                     <title>{`${pt.label}\nz = ${fmtz(pt.z)}\n|Γ| = ${fmtNum(abs(pt.g), 3)}  SWR = ${fmtNum(swrFromGamma(pt.g), 2)}`}</title>
                   </circle>
                   {show && (
@@ -397,6 +410,36 @@ export const SmithChart: React.FC = () => {
             })}
           </g>
         </svg>
+        {(() => {
+          const pt = picked ? pts.find((q) => q.key === picked) : undefined;
+          if (!pt || !isFiniteC(pt.g) || abs(pt.g) > 1.0001) return null;
+          const ro = readOff(pt.g);
+          const y = admittance(pt.z);
+          const wG = wtgFromGamma(pt.g);
+          const wL = ((0.5 - wG) % 0.5 + 0.5) % 0.5;
+          const row = (k: string, v: string) => (
+            <div className="pick-row"><span className="k">{k}</span><span className="v">{v}</span></div>
+          );
+          return (
+            <div className={`pick-box ${pt.cls}`}>
+              <div className="pick-head">
+                <b>อ่านค่าที่จุดนี้ · {pt.label}</b>
+                <button className="mini" onClick={() => setPicked(null)} title="ปิด">✕</button>
+              </div>
+              {row('z', fmtz(pt.z, 4))}
+              {row('Z', isFiniteC(pt.z) ? `${fmtNum(pt.z.re * Z0, 2)} ${pt.z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(pt.z.im) * Z0, 2)} Ω` : '∞')}
+              {row('y', fmtz(y, 4))}
+              {row('Y', isFiniteC(y) ? `${fmtNum((y.re / Z0) * 1e3, 3)} ${y.im < 0 ? '−' : '+'} j${fmtNum((Math.abs(y.im) / Z0) * 1e3, 3)} mS` : '∞')}
+              {row('Γ', `${fmtNum(ro.mag, 4)} ∠${fmtNum(deg(arg(pt.g)), 2)}°`)}
+              {row('SWR', Number.isFinite(ro.swr) ? fmtNum(ro.swr, 3) : '∞')}
+              {row('Return loss', Number.isFinite(ro.rlDb) ? `${fmtNum(ro.rlDb, 2)} dB` : '∞')}
+              {row('กำลังสะท้อน', `${fmtNum(ro.reflPct, 2)} %`)}
+              {row('Mismatch loss', Number.isFinite(ro.mismatchDb) ? `${fmtNum(ro.mismatchDb, 3)} dB` : '∞')}
+              {row('→ generator', `${fmtNum(wG, 4)} λ`)}
+              {row('→ load', `${fmtNum(wL, 4)} λ`)}
+            </div>
+          );
+        })()}
         {hover && hoverZ && hoverY && (
           <div className="hover-box">
             <div>z = {fmtz(hoverZ, 4)}</div>
