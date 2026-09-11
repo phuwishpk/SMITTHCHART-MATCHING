@@ -273,21 +273,64 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
       lines.push({ kind: 'result', tex: `Z_L \\approx ${tc(ZL)}${ohm}` });
       if (Ys.length > 1 && Math.abs(Ytot.im) < 1e-4 * Math.max(1, abs(Ytot))) lines.push({ kind: 'note', text: 'B ≈ 0 → Parallel resonance: อิมพีแดนซ์เหลือแต่ส่วนจริง (สูงสุด)' });
     } else {
-      lines.push({ kind: 'text', text: `เริ่มจากปลายวงจรซึ่งเป็น ${res.termination === 'short' ? 'ลัดวงจร (Z = 0)' : 'ปลายเปิด (Z = ∞)'} แล้วเพิ่มอุปกรณ์ทีละตัวย้อนกลับมาที่แหล่งจ่าย` });
+      lines.push({ kind: 'text', text: `ไล่ครบทุกตัวแล้ว ค่าที่มองเห็นจากด้านแหล่งจ่ายของกลุ่มโหลดคือ` });
+      lines.push({ kind: 'result', tex: `Z_L \\approx ${tc(ZL)}${ohm}` });
+      lines.push({ kind: 'note', text: 'ตัวเลขนี้คือ "โหลดรวม" ที่จะเอาไปพล็อตบนกราฟในขั้นต่อไป' });
+    }
+    // The ladder used to be done inside one card, which is the densest thing in the app and the
+    // opposite of step by step. Any load group with more than one part is now walked a rung at a
+    // time first: the running impedance changes once per element and the chart point moves with it.
+    if (loadStages.length > 1) {
+      const startZ = loadStages[0].Zbefore;
+      push({
+        short: 'เริ่มปลายสาย',
+        title: `เริ่มไล่จากปลายวงจร (${res.termination === 'short' ? 'ลัดวงจร' : 'ปลายเปิด'})`,
+        tag: 'combine',
+        lines: [
+          { kind: 'text', text: seriesOnlyLoad
+            ? `กลุ่มโหลดนี้ต่ออนุกรมกันทั้งหมด จะบวกรวดเดียวก็ได้ แต่ขอไล่ทีละตัวจากปลายสุดของวงจรย้อนกลับมาหาแหล่งจ่าย เพื่อให้เห็นว่าค่าที่มองเห็นขยับทีละก้าวอย่างไร`
+            : shuntOnlyLoad
+              ? `กลุ่มโหลดนี้ต่อขนานกันทั้งหมด จึงต้องคิดในโดเมนแอดมิตแตนซ์ · ขอไล่ทีละตัวจากปลายสุดย้อนกลับมาหาแหล่งจ่าย เพื่อให้เห็นค่าที่มองเห็นขยับทีละก้าว`
+              : `วงจรนี้มีทั้งอุปกรณ์อนุกรมและขนานปนกัน จึงคิดแบบขั้นบันได (ladder) คือเริ่มที่ปลายสุดของวงจรแล้วเดินย้อนกลับมาหาแหล่งจ่าย เพิ่มอุปกรณ์ทีละตัว` },
+          { kind: 'math', tex: `Z_{${T('เริ่มต้น')}} = ${isFiniteC(startZ) ? `${tc(startZ)}${ohm}` : '\\infty'}` },
+          { kind: 'note', text: 'กฎมีสองข้อเท่านั้น · อุปกรณ์ที่ต่ออนุกรมบวกกันในโดเมนอิมพีแดนซ์ (Z) เพราะกระแสเท่ากันแล้วแรงดันบวกกัน · อุปกรณ์ที่ต่อขนานบวกกันในโดเมนแอดมิตแตนซ์ (Y) เพราะแรงดันเท่ากันแล้วกระแสบวกกัน' },
+          { kind: 'note', text: `ขั้นถัดไปจะไล่ทีละตัวรวม ${loadStages.length} ตัว ดูค่า Z ที่มองเห็นเปลี่ยนไปทีละก้าว` },
+        ],
+        highlight: { point: loadStages[0].index },
+      });
       for (const s of loadStages) {
         const spec = ELEMENT_SPECS[s.el.type];
+        const zAfterNorm = { re: s.Zafter.re / Z0, im: s.Zafter.im / Z0 };
+        const stepLines: StepLine[] = [];
         if (s.kind === 'series') {
-          lines.push({ kind: 'text', text: `${spec.name} อนุกรม: บวกอิมพีแดนซ์` });
-          lines.push({ kind: 'math', tex: `Z = ${tc(s.Zbefore)} + (${tc(s.Zel!)}) = ${tc(s.Zafter)}${ohm}` });
+          stepLines.push({ kind: 'text', text: `${spec.name} ต่ออนุกรม จึงบวกอิมพีแดนซ์ของมันเข้ากับค่าที่มองเห็นอยู่เดิมได้ตรง ๆ` });
+          stepLines.push({ kind: 'math', tex: `Z_{${T('ใหม่')}} = Z_{${T('เดิม')}} + Z_{${spec.symbol}} = ${tc(s.Zbefore)} + (${tc(s.Zel!)})` });
+          stepLines.push({ kind: 'result', tex: `Z = ${tc(s.Zafter)}${ohm} \\quad\\Rightarrow\\quad z = ${tc(zAfterNorm, 3)}` });
+          const dx = (s.Zel?.im ?? 0);
+          if (Math.abs(dx) > 1e-9) {
+            stepLines.push({ kind: 'note', text: `บนกราฟ: r ไม่เปลี่ยน จุดจึงไถลไปตามวงกลม r คงที่ ${dx > 0 ? 'ขึ้นไปทางครึ่งบน (ตามเข็ม) เพราะรีแอกแตนซ์ที่เพิ่มเป็นค่าบวก' : 'ลงไปทางครึ่งล่าง (ทวนเข็ม) เพราะรีแอกแตนซ์ที่เพิ่มเป็นค่าลบ'}` });
+          } else {
+            stepLines.push({ kind: 'note', text: 'บนกราฟ: ตัวต้านทานเพิ่มแต่ส่วนจริง จุดจึงไถลไปตามเส้นโค้ง x คงที่ ไปทางขวา (r มากขึ้น)' });
+          }
         } else {
           const Yb = admittance(s.Zbefore);
-          lines.push({ kind: 'text', text: `${spec.name} ขนาน: แปลงเป็น admittance แล้วบวก susceptance` });
-          lines.push({ kind: 'math', tex: `Y = \\frac{1}{Z} = ${tc(Yb, 4)}\\ ${T('S')}` });
-          lines.push({ kind: 'math', tex: `Y' = Y + (${tc(s.Yel!, 4)}) = ${tc(admittance(s.Zafter), 4)}\\ ${T('S')}` });
-          lines.push({ kind: 'math', tex: `Z' = \\frac{1}{Y'} = ${tc(s.Zafter)}${ohm}` });
+          const Ya = admittance(s.Zafter);
+          stepLines.push({ kind: 'text', text: `${spec.name} ต่อขนาน จะบวกกันตรง ๆ ในโดเมนอิมพีแดนซ์ไม่ได้ ต้องกลับเป็นแอดมิตแตนซ์ก่อน เพราะของที่ต่อขนานกันมีแรงดันเท่ากัน กระแสจึงบวกกัน และ Y คือกระแสต่อแรงดันพอดี` });
+          stepLines.push({ kind: 'math', tex: `Y_{${T('เดิม')}} = \\frac{1}{Z_{${T('เดิม')}}} = \\frac{1}{${tc(s.Zbefore)}} = ${tc(Yb, 4)}\\ ${T('S')}` });
+          stepLines.push({ kind: 'math', tex: `Y_{${T('ใหม่')}} = Y_{${T('เดิม')}} + Y_{${spec.symbol}} = ${tc(Yb, 4)} + (${tc(s.Yel!, 4)}) = ${tc(Ya, 4)}\\ ${T('S')}` });
+          stepLines.push({ kind: 'math', tex: `Z = \\frac{1}{Y_{${T('ใหม่')}}} = ${tc(s.Zafter)}${ohm}` });
+          stepLines.push({ kind: 'result', tex: `Z = ${tc(s.Zafter)}${ohm} \\quad\\Rightarrow\\quad z = ${tc(zAfterNorm, 3)}` });
+          const db = (s.Yel?.im ?? 0);
+          stepLines.push({ kind: 'note', text: `บนกราฟ: g ไม่เปลี่ยน จุดจึงไถลไปตามวงกลม g คงที่ของกริด Y ${db > 0 ? '(ค่าบวก จึงไปตามเข็ม)' : '(ค่าลบ จึงไปทวนเข็ม)'}` });
         }
+        push({
+          short: `+ ${spec.symbol}${s.kind === 'shunt' ? '↓' : ''}`,
+          title: `เพิ่ม ${spec.name} ${s.kind === 'shunt' ? 'แบบขนาน' : 'แบบอนุกรม'} เข้าไป`,
+          tag: 'combine',
+          lines: stepLines,
+          highlight: { elementId: s.el.id, point: s.index, showY: s.kind === 'shunt', paths: s.path.length > 1 ? [s.path] : undefined },
+        });
       }
-      lines.push({ kind: 'result', tex: `Z_L \\approx ${tc(ZL)}${ohm}` });
     }
     push({ short: 'Z_L', title: 'รวมเป็น Load Impedance Z_L', tag: 'combine', lines, highlight: { point: 'load' } });
   }
