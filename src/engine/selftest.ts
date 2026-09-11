@@ -452,6 +452,34 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
       }
   check('basics figures are all finite', badFig.length === 0, [...new Set(badFig)].join(' '));
 
+  // The highlighter is only worth anything while it is rare and while every mark closes. A line
+  // with an odd number of ** would print the asterisks; a section with half its text highlighted
+  // highlights nothing.
+  {
+    const bad: string[] = [];
+    let marked = 0;
+    for (const ch of [...BASICS, ...COURSE])
+      for (const sec of ch.sections) {
+        let secMarks = 0;
+        for (const l of sec.lines) {
+          const txt = (l as { text?: string }).text;
+          if (!txt) continue;
+          const n = (txt.match(/\*\*/g) ?? []).length;
+          if (n % 2 !== 0) bad.push(`${ch.num || ch.id}/${sec.id}: ** ไม่ปิด`);
+          if (/\*\*\s*\*\*/.test(txt)) bad.push(`${ch.num || ch.id}/${sec.id}: ไฮไลต์ว่าง`);
+          secMarks += n / 2;
+        }
+        for (const fg of sec.figures ?? []) {
+          const cap = (fg as { caption?: string }).caption;
+          if (cap && ((cap.match(/\*\*/g) ?? []).length % 2 !== 0)) bad.push(`${ch.num || ch.id}/${sec.id}: caption ** ไม่ปิด`);
+        }
+        if (secMarks > 3) bad.push(`${ch.num || ch.id}/${sec.id}: ไฮไลต์ ${secMarks} จุดในหัวข้อเดียว`);
+        marked += secMarks;
+      }
+    check('highlights are balanced and stay rare', bad.length === 0, [...new Set(bad)].slice(0, 5).join(' | '));
+    console.log(`   highlighted phrases: ${marked}`);
+  }
+
   // Honesty rule: a point may only be LABELLED as matched if it really is matched, and a
   // point drawn in the 'in' (achieved) colour may not be called a target that is still to be
   // reached. Anything aimed at but not yet reached must use cls 'goal', which draws a hollow ring.

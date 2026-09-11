@@ -331,6 +331,13 @@ h1, h2, h3 { margin: 0; }
 .step-card.tag-match .step-title { color: var(--ok-fg); }
 .step-body { display: flex; flex-direction: column; gap: 6px; }
 .ex-text { margin: 0; }
+/* the highlighter stroke on a load-bearing phrase: a wash of colour under the words, not a
+   shouted bold, so a page with several of them still reads as prose */
+mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inherit; padding: 0 1px;
+  border-radius: 2px; font-weight: 700; }
+.ex-note mark.key { background: linear-gradient(transparent 55%, #bae6fd 55%); }
+.ex-warn mark.key { background: linear-gradient(transparent 55%, #fecaca 55%); }
+.cfig figcaption mark.key, .csec-lines mark.key { background: linear-gradient(transparent 58%, #fde68a 58%); }
 .ex-math { padding: 2px 0; overflow-x: auto; }
 .ex-math .katex-display { margin: 4px 0; }
 .ex-result { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 4px 8px; overflow-x: auto; }

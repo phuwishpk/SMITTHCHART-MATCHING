@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SmithFull, SmithFullProps } from './SmithFull';
+import { Marked } from './StepLines';
 
 export interface QuizFigure {
   question: string;
@@ -40,10 +41,10 @@ export const CourseQuiz: React.FC<QuizFigure> = ({ question, choices, answer, ex
           </button>
         ))}
       </div>
-      {!done && hint && <div className="quiz-hint">💡 {hint}</div>}
+      {!done && hint && <div className="quiz-hint">💡 <Marked text={hint} /></div>}
       {done && (
         <div className="quiz-explain">
-          <b>{right ? '✓ ถูกต้อง' : '✗ ยังไม่ใช่'}</b> — {explain}
+          <b>{right ? '✓ ถูกต้อง' : '✗ ยังไม่ใช่'}</b> — <Marked text={explain} />
           {!right && <button className="btn small quiz-retry" onClick={() => setPicked(null)}>ลองใหม่</button>}
         </div>
       )}

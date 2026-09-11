@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppState, useDispatch } from '../state/store';
 import { COURSE, Figure } from '../engine/course';
 import { BASICS } from '../engine/basics';
-import { StepLines } from './StepLines';
+import { StepLines, Marked } from './StepLines';
 import { MiniPlot } from './MiniPlot';
 import { SmithFigure } from './SmithFigure';
 import { SmithFull } from './SmithFull';
@@ -67,14 +67,14 @@ const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
       return (
         <figure className="cfig">
           <MiniPlot title={fig.title} xLabel={fig.xLabel} yLabel={fig.yLabel} xMin={fig.xMin} xMax={fig.xMax} yMin={fig.yMin} yMax={fig.yMax} series={fig.series} xTicks={fig.xTicks} yTicks={fig.yTicks} markers={fig.markers} />
-          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+          {fig.caption && <figcaption><Marked text={fig.caption} /></figcaption>}
         </figure>
       );
     case 'smith':
       return (
         <figure className="cfig smith">
           <SmithFigure title={fig.title} points={fig.points} curves={fig.curves} swr={fig.swr} showY={fig.showY} rCircles={fig.rCircles} xCircles={fig.xCircles} gCircles={fig.gCircles} bCircles={fig.bCircles} regions={fig.regions} labels={fig.labels} />
-          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+          {fig.caption && <figcaption><Marked text={fig.caption} /></figcaption>}
         </figure>
       );
     case 'quiz':
@@ -108,21 +108,21 @@ const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
             bCircles={fig.bCircles}
             labels={fig.labels}
           />
-          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+          {fig.caption && <figcaption><Marked text={fig.caption} /></figcaption>}
         </figure>
       );
     case 'circuit':
       return (
         <figure className="cfig circuit">
           <CircuitSchematic circuit={fig.circuit} result={solveCircuit(fig.circuit)} title={fig.title} maxHeight={150} />
-          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+          {fig.caption && <figcaption><Marked text={fig.caption} /></figcaption>}
         </figure>
       );
     case 'wave':
       return (
         <figure className="cfig">
           <WaveFigure title={fig.title} gammaMag={fig.gammaMag} gammaDeg={fig.gammaDeg} len={fig.len} />
-          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+          {fig.caption && <figcaption><Marked text={fig.caption} /></figcaption>}
         </figure>
       );
     case 'table':
@@ -135,7 +135,7 @@ const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
               <tbody>{fig.rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c}</td>)}</tr>)}</tbody>
             </table>
           </div>
-          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+          {fig.caption && <figcaption><Marked text={fig.caption} /></figcaption>}
         </figure>
       );
     case 'lcases':
@@ -143,7 +143,7 @@ const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
         <figure className="cfig wide">
           <div className="cfig-title">{fig.title}</div>
           <LCases table={fig.table} f0={fig.f0} Z0={fig.Z0} />
-          {fig.caption && <figcaption>{fig.caption}</figcaption>}
+          {fig.caption && <figcaption><Marked text={fig.caption} /></figcaption>}
         </figure>
       );
     case 'lab':
