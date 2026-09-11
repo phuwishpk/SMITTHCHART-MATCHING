@@ -94,7 +94,7 @@ export const SmithWalk: React.FC<{ lesson: Lesson; compact?: boolean }> = ({ les
         {walk.map((st, i) => (
           <React.Fragment key={st.id}>
             <button className={`chip step-chip tag-${st.tag} ${i === idx ? 'on' : ''} ${i < idx ? 'done' : ''}`} onClick={() => { dispatch({ type: 'solution_walk', i }); dispatch({ type: 'modal', modal: 'none' }); }}>
-              <span className="n">{i + 1}</span> {st.short}
+              <span className="n">{i + 1}</span> {st.tag === 'match' && i <= idx ? '✓ ' : ''}{st.short}
             </button>
             {i < walk.length - 1 && <span className="arrow">→</span>}
           </React.Fragment>

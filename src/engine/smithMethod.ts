@@ -129,7 +129,8 @@ export const smithMethodSteps = (lesson: Lesson, sol: Circuit): ExplainStep[] =>
   // ---------- final ----------
   const gin = res.gammaIn;
   if (res.matched) {
-    push('✓ ศูนย์กลาง', '✓ MATCHED — จุดถึงศูนย์กลาง', [
+    // no tick in the chip label: the walkthrough must not show a match before the reader reaches it
+    push('ศูนย์กลาง', '✓ MATCHED — จุดถึงศูนย์กลาง', [
       R(`z_{in} = ${tc(res.zin, 3)} \\approx 1 + j0,\\quad SWR = ${tn(res.swrIn, 2)}`),
       N('ไม่มีคลื่นสะท้อน กำลังส่งไปโหลดทั้งหมด'),
     ], { center: true, points: [{ g: gin, label: 'z_in', cls: 'in' }], readout: { g: gin, from: 'in', label: 'z_in' } }, 'match');

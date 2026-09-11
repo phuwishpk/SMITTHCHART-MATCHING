@@ -37,7 +37,7 @@ const Card: React.FC<{ c: MatchCandidate; best: boolean; mode: MatchMode }> = ({
           </ul>
         </div>
         <div className="mt-right">
-          <MiniSmith result={res} showY={c.circuit.elements.some((e) => e.orient === 'shunt')} caption="หลังใส่วงจร" />
+          <MiniSmith result={res} showY={c.circuit.elements.some((e) => e.orient === 'shunt')} caption="ถ้าใช้วงจรนี้" predicted />
           <ul className="mt-notes">
             {c.notes.map((n, i) => (
               <li key={i}>{n}</li>

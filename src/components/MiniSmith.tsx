@@ -11,7 +11,7 @@ const CY = 120;
 const R = 104;
 
 /** Small static Smith chart: r/x grid (coarse), SWR circles, network path, load/in points. */
-export const MiniSmith: React.FC<{ result: SolveResult; showY?: boolean; caption?: string }> = ({ result, showY, caption }) => {
+export const MiniSmith: React.FC<{ result: SolveResult; showY?: boolean; caption?: string; predicted?: boolean }> = ({ result, showY, caption, predicted }) => {
   const c = (cc: { cx: number; cy: number; r: number }) => {
     const p = toSvg({ re: cc.cx, im: cc.cy }, CX, CY, R);
     return { cx: p.x, cy: p.y, r: cc.r * R };
@@ -54,7 +54,9 @@ export const MiniSmith: React.FC<{ result: SolveResult; showY?: boolean; caption
       <div className="mini-caption">
         {caption && <b>{caption} · </b>}
         z_in = {isFiniteC(result.zin) ? `${fmtNum(result.zin.re, 2)} ${result.zin.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(result.zin.im), 2)}` : '∞'} · SWR {Number.isFinite(result.swrIn) ? fmtNum(result.swrIn, 2) : '∞'}
-        {result.matched && <span className="mini-ok"> ✓ MATCHED</span>}
+        {result.matched && (predicted
+          ? <span className="mini-pred"> → ถ้าใส่วงจรนี้จึงจะแมตช์</span>
+          : <span className="mini-ok"> ✓ MATCHED</span>)}
       </div>
     </div>
   );

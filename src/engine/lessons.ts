@@ -214,7 +214,7 @@ export const LESSONS: Lesson[] = [
     steps: [
       { text: 'คลิกสตับ แล้วเลื่อนสไลเดอร์ "ตำแหน่งสตับ d" จนจุดหลังสาย (สีส้ม) อยู่บนวงกลม g = 1 (เปิดกราฟ Y ช่วยดู)', hint: 'คำตอบมี 2 ค่า: d ≈ 0.110 λ หรือ 0.260 λ', check: (_c, r) => { const s = r.stages.find((st) => st.kind === 'line'); if (!s) return false; const y = admittance(s.zafter); return Number.isFinite(y.re) && near(y.re, 1, 0.05); } },
       { text: 'เลื่อน "ความยาวสตับ l" จน b ของสตับหักล้าง b ของสาย → จุดเข้าศูนย์กลาง', hint: 'สำหรับ d = 0.110 λ ต้องการ l ≈ 0.095 λ', check: (_c, r) => matched(r) },
-      { text: 'อ่านสรุป ✓ MATCHED แล้วลองเปลี่ยนความถี่เล็กน้อย ดูว่า match หลุดเร็วแค่ไหน (bandwidth)', check: (_c, r) => matched(r) },
+      { text: 'เมื่อวงจรถูกต้องแล้ว แถบสรุปจะเปลี่ยนจาก NOT MATCHED เป็น ✓ MATCHED · จากนั้นลองเปลี่ยนความถี่เล็กน้อย ดูว่าหลุดเร็วแค่ไหน (bandwidth)', check: (_c, r) => matched(r) },
     ],
     solution: () => buildCircuit(2e9, 50, [['stub_short', 'shunt', { Z0: 50, len: 0.095 }], ['tline', 'series', { Z0: 50, len: 0.11, vf: 0.66, lossDb: 0 }], ['load', 'series', { R: 60, X: -80 }]]),
   },

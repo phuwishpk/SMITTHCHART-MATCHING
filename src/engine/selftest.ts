@@ -431,6 +431,32 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
         if (fg.kind === 'wave' && !Number.isFinite(fg.gammaMag)) badFig.push(`${ch.id}/${sec.id}/wave`);
       }
   check('basics figures are all finite', badFig.length === 0, [...new Set(badFig)].join(' '));
+
+  // Honesty rule: a point may only be LABELLED as matched if it really is matched, and a
+  // point drawn in the 'in' (achieved) colour may not be called a target that is still to be
+  // reached. Anything aimed at but not yet reached must use cls 'goal', which draws a hollow ring.
+  {
+    const liar: string[] = [];
+    const claimsMatch = (t: string) => /แมตช์|matched|MATCHED/.test(t);
+    const claimsPending = (t: string) => /เป้าหมาย|ยังไปไม่ถึง|ต้องไปให้ถึง/.test(t);
+    const atCentre = (z: { re: number; im: number }) => {
+      const g = gZ(z, 1);
+      return Number.isFinite(g.re) && Number.isFinite(g.im) && Math.hypot(g.re, g.im) <= 0.02;
+    };
+    for (const ch of [...BASICS, ...COURSE])
+      for (const sec of ch.sections)
+        for (const fg of sec.figures ?? []) {
+          const pts = fg.kind === 'smith' || fg.kind === 'chart' ? (fg.points ?? [])
+            : fg.kind === 'quiz' ? (fg.chart?.points ?? []) : [];
+          for (const p of pts) {
+            const lb = p.label ?? '';
+            if (claimsMatch(lb) && !atCentre(p.z)) liar.push(`${ch.num || ch.id}/${sec.id}: "${lb}" ไม่ได้อยู่กลางกราฟ`);
+            if (claimsPending(lb) && p.cls !== 'goal') liar.push(`${ch.num || ch.id}/${sec.id}: "${lb}" เป็นเป้าหมาย แต่วาดเป็นผลลัพธ์`);
+            if (p.cls === 'goal' && !claimsPending(lb)) liar.push(`${ch.num || ch.id}/${sec.id}: จุด goal ต้องบอกว่ายังไปไม่ถึง`);
+          }
+        }
+    check('no figure claims a match it has not reached', liar.length === 0, [...new Set(liar)].slice(0, 4).join(' | '));
+  }
   // section titles no longer carry their own numbers: the app numbers them by position,
   // so every "บทที่ N.M" / "หัวข้อ N.M" in the prose must resolve to a real section
   {

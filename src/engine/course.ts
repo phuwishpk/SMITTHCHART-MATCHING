@@ -16,6 +16,7 @@ import type { SmithPoint, SmithCurve } from '../components/SmithFigure';
 import { GLOSSARY, GROUP_LABEL } from './glossary';
 
 export type Figure =
+  | { kind: 'stub-reactance' }
   | { kind: 'plot'; title: string; xLabel: string; yLabel: string; xMin: number; xMax: number; yMin?: number; yMax?: number; series: PlotSeries[]; xTicks?: number[]; yTicks?: number[]; markers?: { x: number; y: number; text: string; color?: string }[]; caption?: string }
   | { kind: 'smith'; title: string; points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean; rCircles?: number[]; xCircles?: number[]; gCircles?: number[]; bCircles?: number[]; regions?: boolean; labels?: { z: Complex; text: string }[]; caption?: string }
   | { kind: 'chart'; title: string; points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean;

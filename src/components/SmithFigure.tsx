@@ -6,7 +6,8 @@ import { gammaFromz } from '../engine/rf';
 export interface SmithPoint {
   z: Complex;
   label?: string;
-  cls?: 'load' | 'in' | 'mid' | 'y' | 'stub';
+  /** 'goal' is a target that has NOT been reached yet — drawn as a hollow ring, never as a result */
+  cls?: 'load' | 'in' | 'mid' | 'y' | 'stub' | 'goal';
 }
 export interface SmithCurve {
   zs: Complex[];

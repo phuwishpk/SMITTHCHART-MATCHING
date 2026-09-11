@@ -12,6 +12,7 @@ import { ReflectionIntro } from './ReflectionIntro';
 import { LinePositionIntro } from './LinePositionIntro';
 import { AdmittanceIntro, ShuntAdmittanceIntro } from './AdmittanceIntro';
 import { SwrCircleIntro, DistanceIntro } from './SwrDistanceIntro';
+import { StubReactanceIntro } from './StubReactanceIntro';
 import { CircuitSchematic } from './CircuitSchematic';
 import { solveCircuit, solveSweep, sweepMaxSwr } from '../engine/solver';
 import { solveLCases } from '../engine/matching';
@@ -59,6 +60,8 @@ const LCases: React.FC<{ table: AntennaPoint[]; f0: number; Z0: number }> = ({ t
 const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
   const dispatch = useDispatch();
   switch (fig.kind) {
+    case 'stub-reactance':
+      return <div className="cfig wide stub-figure"><StubReactanceIntro /></div>;
     case 'plot':
       return (
         <figure className="cfig">
