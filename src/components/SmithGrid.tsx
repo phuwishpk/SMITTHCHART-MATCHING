@@ -475,6 +475,31 @@ export const RadialScales: React.FC<{
 });
 
 /**
+ * The line a reader draws with a ruler: out from the centre, through the plotted point, on until it
+ * hits the printed rings — which is how a reading is taken off the wavelength and angle scales.
+ * Dots mark where it crosses each ring, so the eye lands on the number instead of hunting for it.
+ */
+export const ScaleRay: React.FC<{ g: Complex; cls?: string; label?: string }> = React.memo(({ g, cls = '', label }) => {
+  if (!isFiniteC(g)) return null;
+  const m = abs(g);
+  if (!Number.isFinite(m) || m < 1e-9) return null; // dead centre has no angle to read
+  const a = arg(g);
+  const at = (rr: number) => ({ x: CX + rr * R * Math.cos(a), y: CY - rr * R * Math.sin(a) });
+  const tip = at(RING.wtl[1]);
+  const lab = at(0.80);
+  return (
+    <g className={`cf-ray ${cls}`}>
+      <line x1={CX} y1={CY} x2={tip.x} y2={tip.y} className="cf-ray-line" />
+      {[RING.ang[0], RING.wtg[0], RING.wtl[0]].map((rr, i) => {
+        const q = at(rr);
+        return <circle key={i} cx={q.x} cy={q.y} r={5} className="cf-ray-hit" />;
+      })}
+      {label && <text x={lab.x} y={lab.y} textAnchor="middle" className="cf-ray-label">{label}</text>}
+    </g>
+  );
+});
+
+/**
  * The compass transfer drawn on the chart itself: the radius to the plotted
  * point, swung down onto the positive real axis (where r = SWR exactly), then
  * dropped straight down toward the SWR/RL strip printed below the chart.

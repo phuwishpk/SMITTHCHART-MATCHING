@@ -729,6 +729,27 @@ h1, h2, h3 { margin: 0; }
 .smith-full .cf-pt.stub circle { fill: #9333ea; }
 /* a target that has not been reached: a hollow ring, so it can never be mistaken for a result */
 .smith-full .cf-pt.goal circle { fill: none; stroke: var(--in); stroke-width: 3.5; stroke-dasharray: 7 5; }
+/* the two walking directions, kept far apart in colour wherever a figure shows both at once */
+.smith-full .cf-pt.gen circle { fill: #dc2626; }
+.smith-full .cf-pt.ld circle { fill: #1d4ed8; }
+.smith-full .cf-curve.gen { stroke: #dc2626; stroke-width: 5; opacity: 1; }
+.smith-full .cf-curve.ld { stroke: #1d4ed8; stroke-width: 5; opacity: 1; }
+.smith-full .cf-curve-label.gen { fill: #dc2626; }
+.smith-full .cf-curve-label.ld { fill: #1d4ed8; }
+/* the ruler line out to the printed rings */
+.smith-full .cf-ray .cf-ray-line { stroke: #475569; stroke-width: 2.2; stroke-dasharray: 9 6; }
+.smith-full .cf-ray .cf-ray-hit { fill: #475569; stroke: #fff; stroke-width: 1.6; }
+.smith-full .cf-ray .cf-ray-label { font-size: 15px; font-weight: 800; font-family: var(--mono); fill: #334155;
+  paint-order: stroke; stroke: #fff; stroke-width: 5px; stroke-linejoin: round; }
+.smith-full .cf-ray.gen .cf-ray-line { stroke: #dc2626; }
+.smith-full .cf-ray.gen .cf-ray-hit { fill: #dc2626; }
+.smith-full .cf-ray.gen .cf-ray-label { fill: #dc2626; }
+.smith-full .cf-ray.ld .cf-ray-line { stroke: #1d4ed8; }
+.smith-full .cf-ray.ld .cf-ray-hit { fill: #1d4ed8; }
+.smith-full .cf-ray.ld .cf-ray-label { fill: #1d4ed8; }
+.smith-full .cf-ray.load .cf-ray-line { stroke: var(--load); }
+.smith-full .cf-ray.load .cf-ray-hit { fill: var(--load); }
+.smith-full .cf-ray.load .cf-ray-label { fill: var(--load); }
 .smith-full .cf-pt.goal text { fill: #0f766e; }
 .smith-full .cf-pt text { font-size: 14px; font-weight: 700; font-family: var(--mono); fill: #0f172a; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
 .smith-full .cf-swr-label { font-size: 12.5px; font-weight: 700; font-family: var(--mono); fill: var(--load); paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
@@ -812,6 +833,12 @@ h1, h2, h3 { margin: 0; }
 .sf-pt.y circle { fill: var(--teal); }
 .sf-pt.stub circle { fill: #9333ea; }
 .sf-pt.goal circle { fill: none; stroke: var(--in); stroke-width: 2; stroke-dasharray: 3 2.5; }
+.sf-pt.gen circle { fill: #dc2626; }
+.sf-pt.ld circle { fill: #1d4ed8; }
+.sf-curve.gen { stroke: #dc2626; stroke-width: 3; }
+.sf-curve.ld { stroke: #1d4ed8; stroke-width: 3; }
+.sf-curve-label.gen { fill: #dc2626; }
+.sf-curve-label.ld { fill: #1d4ed8; }
 .sf-pt.goal text { fill: #0f766e; }
 .sf-pt text { font-size: 8.5px; font-family: var(--mono); font-weight: 700; fill: #1e293b; paint-order: stroke; stroke: #fff; stroke-width: 2.5px; }
 .sf-label { font-size: 9px; font-weight: 700; fill: #334155; paint-order: stroke; stroke: #fff; stroke-width: 3px; }

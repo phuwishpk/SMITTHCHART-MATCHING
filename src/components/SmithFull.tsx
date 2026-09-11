@@ -2,7 +2,7 @@ import React from 'react';
 import { Complex, abs, isFiniteC, fmtNum } from '../engine/complex';
 import { rCircle, xCircle, gCircle, bCircle, toSvg, pathToPoints } from '../engine/smith';
 import { gammaFromz, swrFromGamma, magFromSwr } from '../engine/rf';
-import { VB, CX, CY, R, circleSvg, DetailedGrid, MinimalGrid, OuterScales, ReadOff, RadialScales } from './SmithGrid';
+import { VB, CX, CY, R, circleSvg, DetailedGrid, MinimalGrid, OuterScales, ReadOff, RadialScales, ScaleRay } from './SmithGrid';
 import { SmithPoint, SmithCurve } from './SmithFigure';
 
 export interface SmithFullProps {
@@ -28,6 +28,8 @@ export interface SmithFullProps {
   lcBar?: boolean;
   /** component symbols dropped on the chart at a given z, the way reference charts annotate the halves */
   glyphs?: { z: Complex; kind: 'L' | 'C' | 'R' }[];
+  /** ruler lines from the centre through a point out to the printed rings, for reading the scales */
+  rays?: { z: Complex; label?: string; cls?: string }[];
   /** draw the compass read-off for this z */
   readout?: Complex;
   /** the SWR / RL / |Γ| strip under the chart — on by default whenever there is a readout to land on */
@@ -60,7 +62,7 @@ const Glyph: React.FC<{ x: number; y: number; kind: 'L' | 'C' | 'R' }> = ({ x, y
  */
 export const SmithFull: React.FC<SmithFullProps> = React.memo(
   ({ title, points, curves, swr, showY = false, scale = true, fine = true, grid = 'full', table = true,
-     halves = false, angles = false, lcBar = false, glyphs, readout, strip = true, rCircles, xCircles, gCircles, bCircles, labels, note }) => {
+     halves = false, angles = false, lcBar = false, glyphs, rays, readout, strip = true, rCircles, xCircles, gCircles, bCircles, labels, note }) => {
     const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
     const clip = `cf${uid}`;
     const chartSvgRef = React.useRef<SVGSVGElement>(null);
@@ -157,6 +159,8 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
                 </g>
               );
             })}
+
+            {rays?.map((ry, i) => <ScaleRay key={`ray${i}`} g={gammaFromz(ry.z)} cls={ry.cls} label={ry.label} />)}
 
             {glyphs?.map((gl, i) => {
               const g = gammaFromz(gl.z);

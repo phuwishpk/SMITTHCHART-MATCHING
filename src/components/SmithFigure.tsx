@@ -7,7 +7,8 @@ export interface SmithPoint {
   z: Complex;
   label?: string;
   /** 'goal' is a target that has NOT been reached yet — drawn as a hollow ring, never as a result */
-  cls?: 'load' | 'in' | 'mid' | 'y' | 'stub' | 'goal';
+  /** 'gen' and 'ld' are the two walking directions, kept in high-contrast colours wherever both appear */
+  cls?: 'load' | 'in' | 'mid' | 'y' | 'stub' | 'goal' | 'gen' | 'ld';
 }
 export interface SmithCurve {
   zs: Complex[];

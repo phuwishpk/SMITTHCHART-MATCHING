@@ -21,12 +21,14 @@ export type Figure =
   | { kind: 'smith'; title: string; points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean; rCircles?: number[]; xCircles?: number[]; gCircles?: number[]; bCircles?: number[]; regions?: boolean; labels?: { z: Complex; text: string }[]; caption?: string }
   | { kind: 'chart'; title: string; points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean;
       scale?: boolean; fine?: boolean; grid?: 'full' | 'light' | 'none'; table?: boolean;
-      halves?: boolean; angles?: boolean; lcBar?: boolean; glyphs?: { z: Complex; kind: 'L' | 'C' | 'R' }[]; readout?: Complex; rCircles?: number[]; xCircles?: number[];
+      halves?: boolean; angles?: boolean; lcBar?: boolean; glyphs?: { z: Complex; kind: 'L' | 'C' | 'R' }[];
+      rays?: { z: Complex; label?: string; cls?: string }[]; readout?: Complex; rCircles?: number[]; xCircles?: number[];
       gCircles?: number[]; bCircles?: number[]; labels?: { z: Complex; text: string }[]; caption?: string }
   | { kind: 'quiz'; question: string; choices: string[]; answer: number; explain: string; hint?: string;
       chart?: { points?: SmithPoint[]; curves?: SmithCurve[]; swr?: number[]; showY?: boolean; scale?: boolean;
                 fine?: boolean; grid?: 'full' | 'light' | 'none'; table?: boolean; halves?: boolean; angles?: boolean;
                 lcBar?: boolean; glyphs?: { z: Complex; kind: 'L' | 'C' | 'R' }[];
+                rays?: { z: Complex; label?: string; cls?: string }[];
                 readout?: Complex; rCircles?: number[]; xCircles?: number[]; gCircles?: number[];
                 bCircles?: number[]; labels?: { z: Complex; text: string }[] } }
   | { kind: 'circuit'; title: string; circuit: Circuit; caption?: string }
