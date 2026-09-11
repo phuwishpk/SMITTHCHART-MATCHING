@@ -218,14 +218,22 @@ export const Inspector: React.FC = () => {
                   return (
                     <div className="insp-solve">
                       <div className={`insp-calc ${onG1 ? 'ok' : ''}`}>{onG1 ? '✓ y อยู่บนวงกลม g = 1 แล้ว → ปรับความยาวสตับให้ b หักล้าง' : '→ เลื่อน d จน g = 1 ก่อน'}</div>
-                      <div className="insp-presets">
-                        <span>เฉลย (Single stub):</span>
-                        {sols.map((s, i) => (
-                          <button key={i} className="mini wide" onClick={() => { dispatch({ type: 'param', id: next.id, key: 'len', value: Number(s.dLambda.toFixed(4)) }); setP('len', Number(s.lLambda.toFixed(4))); }}>
-                            d={fmtNum(s.dLambda, 3)}λ, l={fmtNum(s.lLambda, 3)}λ
-                          </button>
-                        ))}
-                      </div>
+                      {/* In the free builder these are a design tool. Inside a guided lesson they are the
+                          answer, so they wait for the same switch the rest of the solution waits for. */}
+                      {state.mode === 'free' || state.showSolution ? (
+                        <div className="insp-presets">
+                          <span>เฉลย (Single stub):</span>
+                          {sols.map((s, i) => (
+                            <button key={i} className="mini wide" onClick={() => { dispatch({ type: 'param', id: next.id, key: 'len', value: Number(s.dLambda.toFixed(4)) }); setP('len', Number(s.lLambda.toFixed(4))); }}>
+                              d={fmtNum(s.dLambda, 3)}λ, l={fmtNum(s.lLambda, 3)}λ
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="insp-presets locked">
+                          <span>🔒 ค่าเฉลยของสตับซ่อนอยู่ — เปิดชิป “เฉลย” ในแถบ Guided Lab ก่อน</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

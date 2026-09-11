@@ -64,7 +64,7 @@ export const SolutionActions: React.FC<{ lesson: Lesson; allOk: boolean }> = ({ 
 };
 
 /** Smith-chart walkthrough stepper (drives the overlay on the main Smith chart). */
-export const SmithWalk: React.FC<{ lesson: Lesson; compact?: boolean; steps?: ExplainStep[] }> = ({ lesson, compact, steps }) => {
+export const SmithWalk: React.FC<{ lesson: Lesson; compact?: boolean; steps?: ExplainStep[]; mask?: boolean }> = ({ lesson, compact, steps, mask }) => {
   const state = useAppState();
   const dispatch = useDispatch();
   const walk = steps ?? (lesson.solution ? smithMethodSteps(lesson, lesson.solution()) : []);
@@ -96,7 +96,7 @@ export const SmithWalk: React.FC<{ lesson: Lesson; compact?: boolean; steps?: Ex
         {walk.map((st, i) => (
           <React.Fragment key={st.id}>
             <button className={`chip step-chip tag-${st.tag} ${i === idx ? 'on' : ''} ${i < idx ? 'done' : ''}`} onClick={() => { dispatch({ type: 'solution_walk', i }); dispatch({ type: 'modal', modal: 'none' }); }}>
-              <span className="n">{i + 1}</span> {st.tag === 'match' && i <= idx ? '✓ ' : ''}{st.short}
+              <span className="n">{i + 1}</span> {st.tag === 'match' && i <= idx ? '✓ ' : ''}{mask && i > idx + 1 ? 'ขั้นถัดไป' : st.short}
             </button>
             {i < walk.length - 1 && <span className="arrow">→</span>}
           </React.Fragment>
@@ -165,7 +165,7 @@ export const SolutionRow: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
         </div>
       )}
       <SolutionActions lesson={lesson} allOk={info.allOk} />
-      <SmithWalk lesson={lesson} compact steps={walk} />
+      <SmithWalk lesson={lesson} compact steps={walk} mask={!show} />
     </div>
   );
 };
