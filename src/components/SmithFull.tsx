@@ -2,7 +2,7 @@ import React from 'react';
 import { Complex, abs, isFiniteC, fmtNum } from '../engine/complex';
 import { rCircle, xCircle, gCircle, bCircle, toSvg, pathToPoints } from '../engine/smith';
 import { gammaFromz, swrFromGamma, magFromSwr } from '../engine/rf';
-import { VB, CX, CY, R, circleSvg, DetailedGrid, MinimalGrid, OuterScales, ReadOff } from './SmithGrid';
+import { VB, CX, CY, R, circleSvg, DetailedGrid, MinimalGrid, OuterScales, ReadOff, RadialScales } from './SmithGrid';
 import { SmithPoint, SmithCurve } from './SmithFigure';
 
 export interface SmithFullProps {
@@ -30,6 +30,8 @@ export interface SmithFullProps {
   glyphs?: { z: Complex; kind: 'L' | 'C' | 'R' }[];
   /** draw the compass read-off for this z */
   readout?: Complex;
+  /** the SWR / RL / |Γ| strip under the chart — on by default whenever there is a readout to land on */
+  strip?: boolean;
   rCircles?: number[];
   xCircles?: number[];
   gCircles?: number[];
@@ -58,7 +60,7 @@ const Glyph: React.FC<{ x: number; y: number; kind: 'L' | 'C' | 'R' }> = ({ x, y
  */
 export const SmithFull: React.FC<SmithFullProps> = React.memo(
   ({ title, points, curves, swr, showY = false, scale = true, fine = true, grid = 'full', table = true,
-     halves = false, angles = false, lcBar = false, glyphs, readout, rCircles, xCircles, gCircles, bCircles, labels, note }) => {
+     halves = false, angles = false, lcBar = false, glyphs, readout, strip = true, rCircles, xCircles, gCircles, bCircles, labels, note }) => {
     const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
     const clip = `cf${uid}`;
     return (
@@ -187,6 +189,16 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
               return <text key={`l${i}`} x={p.x} y={p.y} textAnchor="middle" className="cf-label">{l.text}</text>;
             })}
           </svg>
+        {/* the drop line out of the chart has to land somewhere: this is the strip it points at.
+            It lives inside the same scroller as the chart so the two keep the same width. */}
+        {strip && readout && isFiniteC(gammaFromz(readout)) && abs(gammaFromz(readout)) <= 1.0001 && (
+          <RadialScales
+            gammaIn={gammaFromz(readout)}
+            gammaL={gammaFromz(readout)}
+            hasNetwork={false}
+            readout={{ mag: abs(gammaFromz(readout)), cls: 'in', label: `z = ${fmtNum(readout.re, 2)}${readout.im < 0 ? ' − j' : ' + j'}${fmtNum(Math.abs(readout.im), 2)}` }}
+          />
+        )}
         </div>
         {note && <div className="sf-note">{note}</div>}
         {table && points && points.length > 0 && (

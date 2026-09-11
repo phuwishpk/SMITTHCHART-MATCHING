@@ -1094,6 +1094,8 @@ img, svg, table { max-width: 100%; }
   .smith-full .smith-svg { min-width: 560px; }
   /* a chart with no printed grid has nothing to keep legible — let it shrink instead of scroll */
   .smith-full .smith-svg.plain { min-width: 0; }
+  /* the SWR/RL strip scrolls with the chart it belongs to, at the same floor width */
+  .smith-full .radial-scales { min-width: 560px; padding-left: 0; padding-right: 0; }
 }
 @media (max-width: 620px) {
   .smith-full:has(.smith-svg:not(.plain)) .sf-scrollhint { display: block; }
