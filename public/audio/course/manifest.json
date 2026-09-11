@@ -1,0 +1,15 @@
+{
+  "voice": "TH-KantapongPremiumHD",
+  "items": {
+    "ch6-missing": {
+      "chapter": "ch6",
+      "section": "missing",
+      "title": "Example 7–11 และ Chapter VII",
+      "hash": "75ef952e410b",
+      "files": [
+        "ch6-missing.mp3"
+      ],
+      "chars": 261
+    }
+  }
+}

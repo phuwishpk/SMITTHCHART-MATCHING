@@ -4,6 +4,7 @@ import { COURSE, Figure } from '../engine/course';
 import { BASICS } from '../engine/basics';
 import { StepLines, Marked } from './StepLines';
 import { FoldButton } from './FoldButton';
+import { Narration, useNarration } from './Narration';
 import { MiniPlot } from './MiniPlot';
 import { SmithFigure } from './SmithFigure';
 import { SmithFull } from './SmithFull';
@@ -188,6 +189,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
     [basics, chapter],
   );
   const bodyRef = useRef<HTMLDivElement>(null);
+  const narration = useNarration();
   // Wide layouts scroll inside .course-body; stacked (≤1080px) layouts scroll the page.
   // Scrolling the wrong one silently does nothing, so pick whichever actually scrolls.
   const scrollerOf = (box: HTMLElement): { el: HTMLElement; page: boolean } =>
@@ -352,6 +354,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
         {sections.map((sec, si) => (
           <section key={sec.id} id={`sec-${sec.id}`} className="course-section">
             <h3>{chapter.num && <span className="secnum">{chapter.num}.{si + 1}</span>} {sec.title}</h3>
+            {!basics && <Narration manifest={narration} chapter={chapter.id} section={sec.id} />}
             {basics && chapter.id === 'b0' && sec.id === 'what' && <FiveMinuteIntro />}
             {basics && chapter.id === 'b1' && sec.id === 'mismatch' && <ReflectionIntro />}
             {basics && chapter.id === 'b1' && sec.id === 'along' && <LinePositionIntro />}
