@@ -13,6 +13,7 @@ import { LinePositionIntro } from './LinePositionIntro';
 import { AdmittanceIntro, ShuntAdmittanceIntro } from './AdmittanceIntro';
 import { SwrCircleIntro, DistanceIntro } from './SwrDistanceIntro';
 import { StubReactanceIntro } from './StubReactanceIntro';
+import { FiveMinuteIntro } from './FiveMinuteIntro';
 import { CircuitSchematic } from './CircuitSchematic';
 import { solveCircuit, solveSweep, sweepMaxSwr } from '../engine/solver';
 import { solveLCases } from '../engine/matching';
@@ -177,6 +178,13 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
   const goChapter = (id: string) => dispatch(basics ? { type: 'basics_chapter', id } : { type: 'course_chapter', id });
   const seen = () => dispatch(basics ? { type: 'basics_section_seen' } : { type: 'course_section_seen' });
   const chapter = chapters.find((c) => c.id === wantChapter) ?? chapters[0];
+  // The five-minute introduction is a single guided experience. Its older
+  // reference sections remain in the course data for compatibility, but are
+  // taught later in the chapters where each concept is actually used.
+  const sections = useMemo(
+    () => (basics && chapter.id === 'b0' ? chapter.sections.slice(0, 1) : chapter.sections),
+    [basics, chapter],
+  );
   const bodyRef = useRef<HTMLDivElement>(null);
   // Wide layouts scroll inside .course-body; stacked (≤1080px) layouts scroll the page.
   // Scrolling the wrong one silently does nothing, so pick whichever actually scrolls.
@@ -224,10 +232,10 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wantSection, chapter.id]);
   // ---- which section is the reader looking at? the sidebar follows it ----
-  const [activeSec, setActiveSec] = useState<string>(chapter.sections[0]?.id ?? '');
+  const [activeSec, setActiveSec] = useState<string>(sections[0]?.id ?? '');
   const [navOpen, setNavOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
-  useEffect(() => { setActiveSec(chapter.sections[0]?.id ?? ''); }, [chapter.id, chapter.sections]);
+  useEffect(() => { setActiveSec(sections[0]?.id ?? ''); }, [chapter.id, sections]);
   useEffect(() => {
     const box = bodyRef.current;
     if (!box) return;
@@ -239,15 +247,15 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
       const viewH = sc.page ? window.innerHeight : box.clientHeight;
       // the section whose heading is highest but still above the reading line
       const line = top + Math.min(160, viewH * 0.3);
-      let best = chapter.sections[0]?.id ?? '';
-      for (const sec of chapter.sections) {
+      let best = sections[0]?.id ?? '';
+      for (const sec of sections) {
         const el = box.querySelector(`#sec-${CSS.escape(sec.id)}`) as HTMLElement | null;
         if (!el) continue;
         if (el.getBoundingClientRect().top <= line) best = sec.id;
       }
       // at the very bottom the last section is the one being read
       const atEnd = sc.el.scrollTop + viewH >= sc.el.scrollHeight - 4 && sc.el.scrollTop > 4;
-      if (atEnd && chapter.sections.length) best = chapter.sections[chapter.sections.length - 1].id;
+      if (atEnd && sections.length) best = sections[sections.length - 1].id;
       setActiveSec((prev) => (prev === best ? prev : best));
     };
     const onScroll = () => { if (!raf) raf = window.requestAnimationFrame(pick); };
@@ -260,7 +268,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
       if (raf) cancelAnimationFrame(raf);
       settle.forEach(clearTimeout);
     };
-  }, [chapter.id, chapter.sections]);
+  }, [chapter.id, sections]);
   // keep the active entry visible inside the sidebar's own scroller
   useEffect(() => {
     const nav = navRef.current;
@@ -271,9 +279,9 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
     if (lr.top < nr.top + 4) nav.scrollTo({ top: nav.scrollTop + (lr.top - nr.top) - 12, behavior: 'smooth' });
     else if (lr.bottom > nr.bottom - 4) nav.scrollTo({ top: nav.scrollTop + (lr.bottom - nr.bottom) + 12, behavior: 'smooth' });
   }, [activeSec]);
-  const activeIndex = chapter.sections.findIndex((x) => x.id === activeSec);
-  const progressPct = chapter.sections.length > 1
-    ? Math.round(((Math.max(activeIndex, 0)) / (chapter.sections.length - 1)) * 100)
+  const activeIndex = sections.findIndex((x) => x.id === activeSec);
+  const progressPct = sections.length > 1
+    ? Math.round(((Math.max(activeIndex, 0)) / (sections.length - 1)) * 100)
     : 100;
   const idx = chapters.findIndex((c) => c.id === chapter.id);
   const jump = (secId: string) => { setActiveSec(secId); setNavOpen(false); scrollToSection(secId, { highlight: true }); };
@@ -292,7 +300,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
           <span className="here-ch">{chapter.num ? `${basics ? 'บทที่' : 'Ch.'} ${chapter.num}` : 'บทนำ'}</span>
           <span className="here-sec">
             {activeIndex >= 0 && chapter.num ? `${chapter.num}.${activeIndex + 1} ` : ''}
-            {chapter.sections[activeIndex >= 0 ? activeIndex : 0]?.title ?? chapter.title}
+            {sections[activeIndex >= 0 ? activeIndex : 0]?.title ?? chapter.title}
           </span>
           <span className="here-caret">{navOpen ? '▲' : '▼'}</span>
         </button>
@@ -312,7 +320,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
               </button>
               {c.id === chapter.id && (
                 <ul className="course-sections">
-                  {c.sections.map((s, si) => (
+                  {(basics && c.id === 'b0' ? c.sections.slice(0, 1) : c.sections).map((s, si) => (
                     <li key={s.id} data-sec={s.id} className={s.id === activeSec ? 'active' : ''}>
                       <button onClick={() => jumpAcross(c.id, s.id)}>
                         {c.num && <span className="snum">{c.num}.{si + 1}</span>}
@@ -334,9 +342,10 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
           <div className="course-th">{chapter.titleTh}</div>
           <p className="course-intro">{chapter.intro}</p>
         </header>
-        {chapter.sections.map((sec, si) => (
+        {sections.map((sec, si) => (
           <section key={sec.id} id={`sec-${sec.id}`} className="course-section">
             <h3>{chapter.num && <span className="secnum">{chapter.num}.{si + 1}</span>} {sec.title}</h3>
+            {basics && chapter.id === 'b0' && sec.id === 'what' && <FiveMinuteIntro />}
             {basics && chapter.id === 'b1' && sec.id === 'mismatch' && <ReflectionIntro />}
             {basics && chapter.id === 'b1' && sec.id === 'along' && <LinePositionIntro />}
             {basics && chapter.id === 'b1' && sec.id === 'why' && <LinePositionIntro findReal />}
@@ -344,8 +353,8 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
             {basics && chapter.id === 'b5' && sec.id === 'halflambda' && <DistanceIntro />}
             {basics && chapter.id === 'b6' && sec.id === 'y' && <AdmittanceIntro />}
             {basics && chapter.id === 'b6' && sec.id === 'move' && <ShuntAdmittanceIntro />}
-            <StepLines lines={sec.lines} />
-            {sec.figures && sec.figures.length > 0 && (
+            {!(basics && chapter.id === 'b0') && <StepLines lines={sec.lines} />}
+            {!(basics && chapter.id === 'b0') && sec.figures && sec.figures.length > 0 && (
               <div className="cfigs">
                 {sec.figures.map((fg, i) => (
                   <FigureView key={i} fig={fg} />
