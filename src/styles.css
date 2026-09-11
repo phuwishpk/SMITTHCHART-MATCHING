@@ -31,7 +31,7 @@ h1, h2, h3 { margin: 0; }
 .app { display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr); height: 100vh; min-height: 0; }
 
 /* ---------- header ---------- */
-.header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 8px 16px; background: #0f172a; color: #fff; border-bottom: 3px solid var(--accent); }
+.header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 8px 16px; background: #0f172a; color: #fff; border-bottom: 3px solid var(--accent); position: sticky; top: 0; z-index: 20; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand .logo { font-size: 30px; color: #60a5fa; }
 .brand h1 { font-size: 17px; letter-spacing: 0.12em; font-weight: 700; }
@@ -423,7 +423,28 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
 /* The table of contents folds the same way, and the button to bring it back sits where it was. */
 .app.nav-folded .course { grid-template-columns: minmax(0, 1fr); }
 .app.nav-folded .course-nav { display: none; }
-.course-unfold { align-self: flex-start; margin-bottom: 10px; }
+.course-unfold {
+  align-self: flex-start;
+  margin-bottom: 20px;
+  position: sticky;
+  top: 75px;
+  z-index: 10;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 15px !important;
+  font-weight: 700;
+  padding: 10px 20px 10px 16px !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  margin-left: -28px;
+  border-radius: 0 12px 12px 0 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.course-unfold:hover {
+  background: #1d4ed8;
+  padding-left: 24px !important;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+}
 /* the read-aloud control for one course section */
 .narration { display: flex; align-items: center; gap: 8px; margin: -2px 0 10px; }
 .btn.narrate { border-color: #c7d2fe; background: #eef2ff; color: #3730a3; }
@@ -480,6 +501,7 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
   .app:not(.max) .inspector { overflow: visible; min-height: 0; }
   .app:not(.max) .col-center { min-height: 440px; }
   .app:not(.max) .col-right { overflow: visible; }
+  .app:not(.max) .course-body { overflow: visible; }
   .app:not(.max) .smith-svg { height: auto; }
   .app:not(.max) .bottom { height: 380px; }
   .app.max { height: 100vh; }
@@ -698,10 +720,11 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
 /* ---------- course view ---------- */
 .app.view-course { grid-template-rows: auto 1fr; }
 .course { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 10px; padding: 10px; min-height: 0; }
-.course-nav { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: auto; display: flex; flex-direction: column;
-  /* below 880px tall the whole page scrolls, so the nav must stick instead of
-     stretching to the body's height and sliding away with it */
-  align-self: start; position: sticky; top: 8px; max-height: min(100%, calc(100vh - 24px)); }
+.course-nav {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  overflow: auto; display: flex; flex-direction: column;
+  align-self: start; position: sticky; top: 70px; max-height: calc(100vh - 85px);
+}
 .course-here { display: none; }
 .course-progress { height: 3px; background: #e2e8f0; border-radius: 2px; overflow: hidden; }
 .course-progress i { display: block; height: 100%; background: var(--accent); transition: width 0.25s ease; }
@@ -912,14 +935,37 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
 .lc-table tr.infeasible td { color: #94a3b8; }
 @media (max-width: 1080px) {
   .course { grid-template-columns: minmax(0, 1fr); }
-  .course-here { display: block; position: sticky; top: 0; z-index: 6; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08); }
-  .course-here-btn { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: none; padding: 7px 10px; text-align: left; font-family: inherit; color: var(--text); }
-  .course-here-btn .here-ch { flex: 0 0 auto; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 1px 8px; font-size: 11.5px; font-weight: 700; }
-  .course-here-btn .here-sec { flex: 1 1 auto; min-width: 0; font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .course-here-btn .here-caret { flex: 0 0 auto; color: var(--muted); font-size: 11px; }
+  .course-unfold { display: none !important; }
+  .course-body { overflow: visible; }
+  .course-here {
+    display: block;
+    position: sticky;
+    top: 55px;
+    z-index: 6;
+    background: #fff;
+    margin: -10px -10px 15px -10px;
+    border-bottom: 2px solid var(--accent);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  }
+  .course-here-btn {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    border: 0; background: none; padding: 12px 18px;
+    text-align: left; font-family: inherit; color: var(--text);
+  }
+  .course-here-btn .here-ch {
+    flex: 0 0 auto; background: var(--accent); color: #fff;
+    border-radius: 6px; padding: 3px 10px; font-size: 13.5px; font-weight: 700;
+  }
+  .course-here-btn .here-sec {
+    flex: 1 1 auto; min-width: 0; font-size: 14.5px; font-weight: 700;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .course-here-btn .here-caret {
+    flex: 0 0 auto; color: var(--accent); font-size: 14px; font-weight: bold;
+  }
   .course-progress { margin: 0 10px 6px; }
   .course-nav { display: none; max-height: 62vh; }
-  .course.nav-open .course-nav { display: flex; position: sticky; top: 42px; z-index: 5; }
+  .course.nav-open .course-nav { display: flex; position: sticky; top: 90px; z-index: 5; }
 }
 
 /* ---------- review fixes ---------- */
