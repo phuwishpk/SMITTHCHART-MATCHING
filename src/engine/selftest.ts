@@ -306,6 +306,24 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
     check('every glossary picture is drawable', badFig.length === 0, [...new Set(badFig)].slice(0, 6).join(' '));
     console.log(`   glossary pictures: ${nFig}`);
   }
+  // The canvas ghosts an element until the explanation names it, so an element that never gets a
+  // step of its own would stay faded for the whole walk.
+  {
+    const { explainCircuit: exC } = await import('./explain');
+    const { EXAMPLES: EX, LESSONS: LS, PROBLEMS: PB } = await import('./lessons');
+    const orphan: string[] = [];
+    let nCirc = 0;
+    type WithCircuit = { id: string; circuit?: () => ReturnType<typeof buildCircuit>; solution?: () => ReturnType<typeof buildCircuit> };
+    for (const it of [...EX, ...LS, ...PB] as WithCircuit[]) {
+      const c = it.circuit ? it.circuit() : it.solution ? it.solution() : null;
+      if (!c || c.elements.length === 0) continue;
+      nCirc++;
+      const named = new Set(exC(solveCircuit(c)).map((st) => st.highlight?.elementId).filter(Boolean));
+      for (const el of c.elements) if (!named.has(el.id)) orphan.push(`${it.id}/${el.type}`);
+    }
+    check('every circuit element gets a step of its own in the explanation', orphan.length === 0, [...new Set(orphan)].slice(0, 5).join(' '));
+    console.log(`   explain coverage: ${nCirc} circuits`);
+  }
   console.log(`   glossary: ${GLOSSARY.length} entries`);
 }
 

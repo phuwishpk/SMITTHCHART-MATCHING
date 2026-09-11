@@ -139,6 +139,23 @@ export const CircuitCanvas: React.FC = () => {
   const [moveDrag, setMoveDrag] = useState<{ id: string; x: number; y: number; target: number | null } | null>(null);
   const highlightId = !state.explainAll ? steps[Math.min(state.explainStep, steps.length - 1)]?.highlight?.elementId : undefined;
 
+  // While the explanation is walking, an element it has not reached yet is not a computed result,
+  // so it is drawn faint with "ยังไม่คำนวณ" in place of its value. Every element of every circuit in
+  // the app gets a step of its own (the self-test enforces it), so each one lights up when the walk
+  // names it, and the last step shows the finished circuit in full.
+  const explained = useMemo(() => {
+    if (state.explainAll || steps.length === 0) return null;
+    // step 1 is the overview — "here is the circuit you built" — so it shows everything, which also
+    // keeps a freshly drawn circuit solid while the builder is being used.
+    if (state.explainStep < 1) return null;
+    if (state.explainStep >= steps.length - 1) return null; // walked to the end: all of it is computed
+    const upto = steps.slice(0, Math.min(state.explainStep, steps.length - 1) + 1);
+    const seen = new Set<string>();
+    for (const st of upto) if (st.highlight?.elementId) seen.add(st.highlight.elementId);
+    return seen;
+  }, [steps, state.explainStep, state.explainAll]);
+  const notYet = (id: string) => explained !== null && !explained.has(id);
+
   const dragType: ElementType | null = dragging && dragging !== 'move' ? dragging : null;
   const zoneAllowed = (orient: 'series' | 'shunt'): boolean => {
     if (dragType) return ELEMENT_SPECS[dragType].allowed.includes(orient);
@@ -333,7 +350,7 @@ export const CircuitCanvas: React.FC = () => {
             const stage = result.stages.find((s) => s.index === it.index);
             const zTitle = stage ? `z: ${fmtNum(stage.zbefore.re, 3)}${stage.zbefore.im < 0 ? '−' : '+'}j${fmtNum(Math.abs(stage.zbefore.im), 3)} → ${fmtNum(stage.zafter.re, 3)}${stage.zafter.im < 0 ? '−' : '+'}j${fmtNum(Math.abs(stage.zafter.im), 3)}` : '';
             const common = {
-              className: `el ${kind} ${sel ? 'selected' : ''} ${hl ? 'highlight' : ''} ${isMoving ? 'ghost' : ''}`,
+              className: `el ${kind} ${sel ? 'selected' : ''} ${hl ? 'highlight' : ''} ${isMoving ? 'ghost' : ''} ${notYet(el.id) ? 'pending' : ''}`,
               style: { color: spec.color } as React.CSSProperties,
               onClick: (e: React.MouseEvent) => { e.stopPropagation(); },
               onPointerDown: (e: React.PointerEvent) => { e.stopPropagation(); startMove(e, el.id); },
@@ -396,7 +413,7 @@ export const CircuitCanvas: React.FC = () => {
                     </g>
                   )}
                   <text x={x + w / 2} y={RAIL_Y - 28} textAnchor="middle" className="el-name">{spec.symbol}</text>
-                  <text x={x + w / 2} y={RAIL_Y + 36} textAnchor="middle" className="el-value">{valueLabel(el, circuit.f)}</text>
+                  <text x={x + w / 2} y={RAIL_Y + 36} textAnchor="middle" className="el-value">{notYet(el.id) ? 'ยังไม่คำนวณ' : valueLabel(el, circuit.f)}</text>
                 </g>
               );
             }
@@ -434,7 +451,7 @@ export const CircuitCanvas: React.FC = () => {
                   </g>
                 )}
                 <text x={cx + 20} y={(y1 + y2) / 2 - 6} className="el-name">{spec.symbol}{stub ? '' : '↓'}</text>
-                <text x={cx + 20} y={(y1 + y2) / 2 + 12} className="el-value">{valueLabel(el, circuit.f)}</text>
+                <text x={cx + 20} y={(y1 + y2) / 2 + 12} className="el-value">{notYet(el.id) ? 'ยังไม่คำนวณ' : valueLabel(el, circuit.f)}</text>
               </g>
             );
           })}
