@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { C, Complex, fmtNum } from '../engine/complex';
 import { gammaFromZ, normalize, reflectedPowerFrac, swrFromGamma } from '../engine/rf';
 import { SmithFigure } from './SmithFigure';
+import { TravelingWaveDemo } from './TravelingWaveDemo';
 
 const Z0 = 50;
 const loads = [
@@ -41,8 +42,9 @@ export const FiveMinuteIntro: React.FC = () => {
 
     {step === 0 && <div className="fm-stage">
       <div><h4>ทำไมต้องมีกราฟนี้?</h4><p>เครื่องส่งส่งพลังงานผ่านสาย 50 Ω ไปยังโหลด ถ้าโหลดไม่เข้ากับสาย พลังงานบางส่วนจะสะท้อนกลับ Smith Chart ช่วยแสดงว่าโหลดอยู่ห่างจากสภาพแมตช์มากแค่ไหน</p>
-        <div className="fm-system" aria-label={`เครื่องส่งต่อผ่านสาย 50 โอห์มไปยังโหลด ${complexText(load, ' Ω')}`}><b>เครื่องส่ง</b><i>คลื่นไป →</i><span>สาย 50 Ω</span><i>→</i><b>โหลด<br />{complexText(load, ' Ω')}</b><em style={{ opacity: matched ? 0.15 : Math.max(0.35, Math.min(1, reflected / 30)) }}>← คลื่นสะท้อน</em></div>
+        <p className="ri-small">เลือกโหลดแล้วดูคลื่นเปลี่ยนด้านล่าง ลองเริ่มที่ 50 Ω แล้วเทียบกับ 100 Ω</p>
         <div className="ri-choices" role="group" aria-label="เลือกโหลด">{loads.map((item, index) => <button key={item.label} type="button" aria-pressed={loadIndex === index} onClick={() => setLoadIndex(index)}>{item.label}</button>)}</div>
+        <TravelingWaveDemo gamma={gamma} loadLabel={complexText(load, ' Ω')} />
         <div className="swd-values"><div><small>กำลังสะท้อนโดยประมาณ</small><b>{fmtNum(reflected, 1)}%</b></div><div><small>SWR</small><b>{Number.isFinite(swr) ? fmtNum(swr, 2) : '∞'}</b></div></div>
         <p className="fm-answer">{matched ? 'โหลดเท่ากับสายพอดี จึงไม่มีคลื่นสะท้อน' : 'โหลดไม่เท่ากับสาย จึงมีคลื่นสะท้อน แม้โหลดจะเป็นตัวต้านทานล้วนก็ตาม'}</p>
       </div>

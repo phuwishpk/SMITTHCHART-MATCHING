@@ -4,7 +4,9 @@ import { rCircle, xCircle, gCircle } from '../engine/smith';
 import {
   readOff, magFromSwr, magFromRlDb, magFromReflPct,
   swrDb, magFromSwrDb, magFromSwLoss, magFromMismatchDb, magFromTransmP, magFromAttenDb, transmPower,
+  swLossCoeff, attenDbFromMag,
 } from '../engine/rf';
+import type { ReadOff as ReadOffT } from '../engine/rf';
 
 // ---------------------------------------------------------------
 // Detailed Smith-chart grid (printed-chart style), outer scales and
@@ -270,6 +272,11 @@ interface StripRow {
   label: string;
   side: 'left' | 'right';
   ticks: { m: number; t: string; minor?: boolean }[];
+  /** this row's own colour: the label, the read dot and the printed value all wear it, so a reader
+   *  can tell at a glance which of the ten dots on the read line belongs to which scale */
+  tone: string;
+  /** what this row reads at a given |Γ|, for the summary line under the strip */
+  read: (ro: ReadOffT, m: number) => string;
 }
 
 /**
@@ -298,24 +305,25 @@ export const RadialScales: React.FC<{
   const xOf = (side: 'left' | 'right', m: number) => (side === 'left' ? xLeft(m) : xRight(m));
   const inf = (m: number, t = '∞') => ({ m, t });
   // The rows, in the printed order, top to bottom. Left and right rows share a line.
+  const nf = (v: number, d: number) => (Number.isFinite(v) ? fmtNum(v, d) : '∞');
   const rows: StripRow[] = [
-    { label: 'SWR', side: 'left',
+    { label: 'SWR', side: 'left', tone: '#dc2626', read: (ro) => nf(ro.swr, 2),
       ticks: [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2, 2.5, 3, 4, 5, 10, 20, 40, 100].map((s) => ({ m: magFromSwr(s), t: String(s) })).concat([inf(1)]) },
-    { label: 'ATTEN dB', side: 'right',
+    { label: 'ATTEN dB', side: 'right', tone: '#0f766e', read: (_ro, m) => nf(attenDbFromMag(m), 2),
       ticks: [0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 15, 20].map((a) => ({ m: magFromAttenDb(a), t: String(a) })).concat([inf(0)]) },
-    { label: 'dBS', side: 'left',
+    { label: 'dBS', side: 'left', tone: '#ea580c', read: (ro) => nf(swrDb(ro.swr), 1),
       ticks: [0, 1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 40].map((d) => ({ m: magFromSwrDb(d), t: String(d) })).concat([inf(1)]) },
-    { label: 'SW LOSS COEFF', side: 'right',
+    { label: 'SW LOSS COEFF', side: 'right', tone: '#0369a1', read: (_ro, m) => nf(swLossCoeff(m), 2),
       ticks: [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2, 3, 4, 5, 10, 20].map((k) => ({ m: magFromSwLoss(k), t: String(k) })).concat([inf(1)]) },
-    { label: 'RTN LOSS dB', side: 'left',
+    { label: 'RTN LOSS dB', side: 'left', tone: '#b45309', read: (ro) => nf(ro.rlDb, 1),
       ticks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 20, 30].map((rl) => ({ m: magFromRlDb(rl), t: String(rl) })).concat([inf(0)]) },
-    { label: 'RFL LOSS dB', side: 'right',
+    { label: 'RFL LOSS dB', side: 'right', tone: '#1d4ed8', read: (ro) => nf(ro.mismatchDb, 2),
       ticks: [0, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 1.5, 2, 3, 4, 5, 6, 10, 15].map((l) => ({ m: magFromMismatchDb(l), t: String(l) })).concat([inf(1)]) },
-    { label: 'RFL COEFF P', side: 'left',
-      ticks: [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.01, 0].map((p) => ({ m: magFromReflPct(p * 100), t: String(p) })) },
-    { label: 'TRANSM COEFF P', side: 'right',
+    { label: 'RFL COEFF P', side: 'left', tone: '#a21caf', read: (_ro, m) => fmtNum(m * m, 3),
+      ticks: [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.01, 0].map((p) => ({ m: magFromReflPct(p * 100), t: String(p) })) },
+    { label: 'TRANSM COEFF P', side: 'right', tone: '#4d7c0f', read: (_ro, m) => fmtNum(transmPower(m), 3),
       ticks: [1, 0.99, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0].map((p) => ({ m: magFromTransmP(p), t: String(p) })) },
-    { label: 'RFL COEFF E/I', side: 'left',
+    { label: 'RFL COEFF E/I', side: 'left', tone: '#7c3aed', read: (_ro, m) => fmtNum(m, 3),
       ticks: range(0, 1.0001, 0.05).map((m) => ({ m, t: Math.round(m * 100) % 10 === 0 ? m.toFixed(1) : '', minor: Math.round(m * 100) % 10 !== 0 })) },
   ];
   const LINES = 5; // row pairs
@@ -388,7 +396,6 @@ export const RadialScales: React.FC<{
     return keep;
   };
   const ro = readM !== null ? readOff({ re: readM, im: 0 }) : null;
-  const fmtInf = (v: number, d: number) => (Number.isFinite(v) ? fmtNum(v, d) : '∞');
   return (
     <div className="radial-scales" ref={boxRef}>
       <svg
@@ -418,7 +425,7 @@ export const RadialScales: React.FC<{
           const b = row.side === 'left' ? CX : XR;
           return (
             <g key={row.label} className="rs-row">
-              <text x={row.side === 'left' ? XL - 6 : XR + 6} y={y + 3} textAnchor={row.side === 'left' ? 'end' : 'start'} className="rs-label">{row.label}</text>
+              <text x={row.side === 'left' ? XL - 6 : XR + 6} y={y + 3} textAnchor={row.side === 'left' ? 'end' : 'start'} className="rs-label" style={{ fill: row.tone }}>{row.label}</text>
               <line x1={a} y1={y} x2={b} y2={y} className="rs-axis" />
               {row.ticks.map((tk, j) => (
                 <g key={j}>
@@ -461,11 +468,16 @@ export const RadialScales: React.FC<{
         {readM !== null && readout && ro && (
           <g className={`rs-read ${readout.cls}`}>
             {rows.map((row) => (
-              <circle key={`rd${row.label}`} cx={xOf(row.side, readM)} cy={rowY(lineOf(row))} r={3} className="rs-read-dot" />
+              <circle key={`rd${row.label}`} cx={xOf(row.side, readM)} cy={rowY(lineOf(row))} r={4} className="rs-read-dot" fill={row.tone} />
             ))}
             {/* what the compass opening reads on each row, printed once under the strip */}
             <text x={CX} y={H - 4} textAnchor="middle" className="rs-read-val">
-              {readout.label ? `${readout.label} · ` : ''}|Γ| {fmtNum(ro.mag, 3)} · SWR {fmtInf(ro.swr, 2)} ({fmtInf(swrDb(ro.swr), 1)} dBS) · RL {fmtInf(ro.rlDb, 1)} dB · |Γ|² {fmtNum(ro.mag * ro.mag, 3)} · mismatch {fmtInf(ro.mismatchDb, 2)} dB · transm. {fmtNum(transmPower(ro.mag), 3)}
+              {readout.label ? <tspan className="rs-read-who">{readout.label} · </tspan> : null}
+              {rows.map((row, i) => (
+                <tspan key={`rv${row.label}`} style={{ fill: row.tone }}>
+                  {i > 0 ? ' · ' : ''}{row.label} {row.read(ro, readM)}
+                </tspan>
+              ))}
             </text>
           </g>
         )}

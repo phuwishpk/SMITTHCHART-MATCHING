@@ -648,5 +648,39 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
   check('the SWR ruler ticks land on r = SWR', rulerBad.length === 0, rulerBad.join(' '));
 }
 
+// Animated voltage waves must keep phase, direction and load boundary conditions.
+{
+  const { voltageWaveSample } = await import('./voltageWaves');
+  const { gammaFromZ, rotateTowardGenerator } = await import('./rf');
+  const gammas = [{ re: 0, im: 0 }, { re: 1, im: 0 }, { re: -1, im: 0 },
+    gammaFromZ({ re: 25, im: 25 }, 50), gammaFromZ({ re: 25, im: -25 }, 50)];
+  let boundaries = true, directions = true, envelopes = true, superposition = true;
+  for (let t = 0; t < 32; t++) {
+    const phase = 2 * Math.PI * t / 32;
+    boundaries &&= near(voltageWaveSample(gammas[2], 0, phase).total, 0, 1e-12)
+      && near(voltageWaveSample(gammas[1], 0, phase).total, 2 * Math.cos(phase), 1e-12);
+    for (const g of gammas) for (let k = 0; k <= 16; k++) {
+      const d = k / 16;
+      const wave = voltageWaveSample(g, d, phase);
+      const local = rotateTowardGenerator(g, d);
+      envelopes &&= near(wave.envelope, Math.hypot(1 + local.re, local.im), 1e-12)
+        && Math.abs(wave.total) <= wave.envelope + 1e-12;
+      superposition &&= near(wave.total, wave.incident + wave.reflected, 1e-12);
+      const delta = 0.03125;
+      directions &&= near(voltageWaveSample(g, d - delta, phase + 2 * Math.PI * delta).incident, wave.incident, 1e-12)
+        && near(voltageWaveSample(g, d + delta, phase + 2 * Math.PI * delta).reflected, wave.reflected, 1e-12);
+      if (g.re === 0 && g.im === 0) boundaries &&= wave.reflected === 0 && wave.total === wave.incident;
+    }
+  }
+  check('animated waves obey matched, open and short load boundaries', boundaries);
+  check('incident crests move toward load; reflected crests toward generator', directions);
+  check('animated voltage envelope agrees with the Smith-chart reflection coefficient', envelopes);
+  check('instantaneous voltage is the sum of incident and reflected waves', superposition);
+  const inductive = voltageWaveSample(gammas[3], 0, Math.PI / 2);
+  const capacitive = voltageWaveSample(gammas[4], 0, Math.PI / 2);
+  check('reactive load phase changes the reflected wave, not just its amplitude',
+    near(inductive.reflected, -capacitive.reflected, 1e-12) && Math.abs(inductive.reflected) > 0.1);
+}
+
 console.log(fails === 0 ? '\nALL PASS (basics course)' : `\n${fails} FAILED`);
 if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
