@@ -191,8 +191,8 @@ export const COURSE: Chapter[] = [
           N('ตัวพิมพ์เล็ก (z, r, x, y, g, b) หมายถึงค่าที่หารด้วย Z₀ แล้ว (normalized) ส่วนตัวพิมพ์ใหญ่ (Z, R, X, Y, G, B) คือค่าจริงที่มีหน่วยโอห์มหรือซีเมนส์'),
         ],
         figures: [
-          { kind: 'table', title: 'สัญลักษณ์ที่พบบ่อย', head: ['สัญลักษณ์', 'ชื่อ', 'หน่วย', 'ความหมาย'],
-            rows: GLOSSARY.filter((g) => g.group === 'basic' || g.group === 'norm' || g.group === 'smith').map((g) => [g.sym, `${g.nameTh} (${g.name})`, g.unit ?? '—', g.short]),
+          { kind: 'table', title: 'สัญลักษณ์ที่พบบ่อย — อ่านว่าอะไร และแทนอะไร', head: ['สัญลักษณ์', 'อ่านว่า', 'ชื่อ', 'หน่วย', 'ความหมาย'],
+            rows: GLOSSARY.filter((g) => g.group === 'basic' || g.group === 'norm' || g.group === 'smith').map((g) => [g.sym, g.say ?? '—', `${g.nameTh} (${g.name})`, g.unit ?? '—', g.short]),
             caption: `กลุ่มที่เหลือ (${GROUP_LABEL.line}, ${GROUP_LABEL.match}, ${GROUP_LABEL.unit}, ${GROUP_LABEL.ui}) ดูได้ในปุ่ม 📗 ตัวย่อ` },
         ],
       },

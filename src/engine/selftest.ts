@@ -233,6 +233,8 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
   {
     const ids = new Set(GLOSSARY.map((g) => g.id));
     const thin = GLOSSARY.filter((g) => !g.plain || g.plain.length < 60 || !(g.seeAlso ?? []).length);
+    const noSay = GLOSSARY.filter((g) => !g.say || g.say.length < 2 || g.say.length > 40);
+    check('every symbol has a short spoken form for the quick table', noSay.length === 0, noSay.map((g) => g.id).slice(0, 6).join(' '));
     check('every glossary entry explains itself in plain Thai', thin.length === 0, thin.map((g) => g.id).slice(0, 6).join(' '));
     const dangling = GLOSSARY.flatMap((g) => (g.seeAlso ?? []).filter((x) => !ids.has(x)).map((x) => `${g.id}→${x}`));
     check('glossary cross-references resolve', dangling.length === 0, dangling.slice(0, 5).join(' '));

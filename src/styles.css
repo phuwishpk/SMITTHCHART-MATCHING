@@ -862,6 +862,20 @@ h1, h2, h3 { margin: 0; }
 /* ---------- glossary ---------- */
 .glossary { padding: 12px 18px 20px; }
 .gl-search { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; background: #fff; padding: 4px 0 10px; z-index: 2; }
+
+/* ---- the symbol quick-reference table at the top of the glossary ---- */
+.gl-quick { border: 1px solid var(--line); border-radius: 10px; background: #fff; margin-bottom: 12px; }
+.gl-quick > summary { cursor: pointer; padding: 8px 10px; font-weight: 800; font-size: 13px; color: #334155; }
+.gl-quick-scroll { overflow-x: auto; padding: 0 10px 10px; }
+.gl-quick-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.gl-quick-table th { text-align: left; font-size: 11.5px; color: #64748b; border-bottom: 1px solid var(--line); padding: 4px 8px; white-space: nowrap; }
+.gl-quick-table td { padding: 4px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: baseline; }
+.gl-quick-table tbody tr:not(.gl-quick-group):hover { background: #f1f5f9; cursor: pointer; }
+.gl-quick-group td { background: #f8fafc; font-weight: 800; font-size: 11.5px; color: #475569; padding-top: 7px; }
+.gl-quick-sym { font-family: var(--mono); font-weight: 700; color: #0f172a; white-space: nowrap; }
+.gl-quick-say { color: #0f766e; white-space: nowrap; }
+.gl-quick-unit { font-family: var(--mono); color: #64748b; white-space: nowrap; }
+.gl-quick-en { color: #94a3b8; margin-left: 6px; font-size: 11.5px; }
 .gl-search input { flex: 1; padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; }
 .gl-search input:focus { outline: 2px solid #93c5fd; border-color: var(--accent); }
 .gl-group { margin-bottom: 18px; }

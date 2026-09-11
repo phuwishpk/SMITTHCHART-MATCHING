@@ -106,6 +106,43 @@ const Row: React.FC<{ e: GlossaryEntry; byId: Map<string, GlossaryEntry> }> = ({
   );
 };
 
+/**
+ * The whole symbol set as one table: what it looks like, how it is said out loud, what it stands
+ * for, and its unit. Meant to be read straight through before the detailed entries below, and it
+ * narrows with the search box like everything else. A row jumps to the full entry.
+ */
+const QuickTable: React.FC<{ entries: GlossaryEntry[] }> = ({ entries }) => {
+  const groups = GROUP_ORDER.map((g) => ({ g, items: entries.filter((e) => e.group === g) })).filter((x) => x.items.length > 0);
+  if (groups.length === 0) return null;
+  return (
+    <details className="gl-quick" open>
+      <summary>📋 ตารางตัวแปรทั้งหมด — แต่ละตัวอ่านว่าอะไร และแทนอะไร ({entries.length} ตัว)</summary>
+      <div className="gl-quick-scroll">
+        <table className="gl-quick-table">
+          <thead>
+            <tr><th>สัญลักษณ์</th><th>อ่านว่า</th><th>แทนอะไร</th><th>หน่วย</th></tr>
+          </thead>
+          <tbody>
+            {groups.map(({ g, items }) => (
+              <React.Fragment key={g}>
+                <tr className="gl-quick-group"><td colSpan={4}>{GROUP_LABEL[g]}</td></tr>
+                {items.map((e) => (
+                  <tr key={e.id} onClick={() => jumpTo(e.id)} title="กดเพื่อไปที่คำอธิบายเต็ม">
+                    <td className="gl-quick-sym">{e.tex ? <Tex tex={e.tex} /> : e.sym}</td>
+                    <td className="gl-quick-say">{e.say ?? '—'}</td>
+                    <td>{e.nameTh}<span className="gl-quick-en">{e.name}</span></td>
+                    <td className="gl-quick-unit">{e.unit ?? '—'}</td>
+                  </tr>
+                ))}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+};
+
 export const GlossaryPanel: React.FC = () => {
   const dispatch = useDispatch();
   const [q, setQ] = useState('');
@@ -122,6 +159,7 @@ export const GlossaryPanel: React.FC = () => {
           📖 ดูในคอร์ส
         </button>
       </div>
+      <QuickTable entries={found} />
       {groups.length === 0 && <div className="gl-empty">ไม่พบสัญลักษณ์ที่ค้นหา ลองพิมพ์เป็นภาษาอังกฤษ เช่น admittance หรือ stub</div>}
       {groups.map(({ g, items }) => (
         <div key={g} className="gl-group">
