@@ -26,6 +26,8 @@ export type PanelId = 'palette' | 'inspector' | 'canvas' | 'chart' | 'explain';
 export interface State {
   circuit: Circuit;
   maximized: PanelId | null;
+  /** panels folded away to give the rest of the layout more room */
+  collapsed: { palette: boolean; inspector: boolean; nav: boolean };
   selectedId: string | null; // element id or 'source'
   mode: 'guided' | 'free';
   lessonId: string | null;
@@ -109,6 +111,7 @@ export type Action =
   | { type: 'modal'; modal: State['modal'] }
   | { type: 'dragging'; value: State['dragging'] }
   | { type: 'maximize'; panel: PanelId | null }
+  | { type: 'collapse'; panel: 'palette' | 'inspector' | 'nav'; value?: boolean }
   | { type: 'reset' };
 
 const STORAGE_KEY = 'rf-smith-lab-v1';
@@ -116,6 +119,7 @@ const STORAGE_KEY = 'rf-smith-lab-v1';
 const defaultState = (): State => ({
   circuit: emptyCircuit(),
   maximized: null,
+  collapsed: { palette: false, inspector: false, nav: false },
   selectedId: null,
   mode: 'guided',
   lessonId: null,
@@ -379,6 +383,8 @@ export const reducer = (s: State, a: Action): State => {
       return { ...s, dragging: a.value };
     case 'maximize':
       return { ...s, maximized: a.panel };
+    case 'collapse':
+      return { ...s, collapsed: { ...s.collapsed, [a.panel]: a.value ?? !s.collapsed[a.panel] } };
     case 'swr_target':
       return { ...s, swrTarget: a.value };
     case 'view':
@@ -428,8 +434,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     try {
-      const { circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, basicsChapter, markers } = state;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, basicsChapter, markers }));
+      const { circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, basicsChapter, markers, collapsed } = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, basicsChapter, markers, collapsed }));
     } catch {
       /* ignore */
     }

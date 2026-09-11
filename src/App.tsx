@@ -50,7 +50,7 @@ export const App: React.FC = () => {
   }, [state.maximized]);
 
   return (
-    <div className={`app ${state.view !== 'lab' ? 'view-course' : ''} ${state.maximized && state.view === 'lab' ? `max max-${state.maximized}` : ''}`}>
+    <div className={`app ${state.view !== 'lab' ? 'view-course' : ''} ${state.maximized && state.view === 'lab' ? `max max-${state.maximized}` : ''} ${state.collapsed.palette && state.collapsed.inspector ? 'left-folded' : ''} ${state.collapsed.nav ? 'nav-folded' : ''}`}>
       <Header />
       {state.maximized && (
         <div className="max-bar">

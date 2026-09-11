@@ -3,6 +3,7 @@ import { useAppState, useDispatch } from '../state/store';
 import { COURSE, Figure } from '../engine/course';
 import { BASICS } from '../engine/basics';
 import { StepLines, Marked } from './StepLines';
+import { FoldButton } from './FoldButton';
 import { MiniPlot } from './MiniPlot';
 import { SmithFigure } from './SmithFigure';
 import { SmithFull } from './SmithFull';
@@ -308,7 +309,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
         <div className="course-progress"><i style={{ width: `${progressPct}%` }} /></div>
       </div>
       <aside className="course-nav" ref={navRef}>
-        <div className="panel-head"><span className="panel-title">{basics ? 'SMITH CHART พื้นฐาน' : 'ANTENNA IMPEDANCE MATCHING'}</span></div>
+        <div className="panel-head"><span className="panel-title">{basics ? 'SMITH CHART พื้นฐาน' : 'ANTENNA IMPEDANCE MATCHING'}</span><FoldButton panel="nav" /></div>
         <div className="course-book">{basics
           ? 'เรียนจากศูนย์: ทำไมต้องมี Smith Chart · อ่านกราฟ · วงกลม SWR · แอดมิตแตนซ์ · สตับ · หม้อแปลง λ/4 · ผลของความถี่ — ทุกตัวเลขและทุกภาพคำนวณสดโดยแอป'
           : <>W. N. Caron — <em>Antenna Impedance Matching</em> (ARRL) · เนื้อหาตามส่วนที่มีในไฟล์: บทนำ, Ch. I–V, Ch. VI Ex. 1–6</>}</div>
@@ -337,6 +338,11 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
         <div className="course-tip">ปุ่ม 🔬 ในเนื้อหาจะโหลดวงจรของตัวอย่างเข้า Lab (พร้อมเป้า SWR) กด "🔬 Lab" ด้านบนเพื่อกลับ</div>
       </aside>
       <div className="course-body" ref={bodyRef}>
+        {state.collapsed.nav && (
+          <button className="btn small course-unfold" onClick={() => dispatch({ type: 'collapse', panel: 'nav', value: false })} title="กางสารบัญกลับมา">
+            ☰ สารบัญ
+          </button>
+        )}
         <header className="course-header">
           <span className="chip">{chapter.num ? (basics ? `บทที่ ${chapter.num}` : `Chapter ${chapter.num}`) : 'บทนำ'}</span>
           <h2>{chapter.title}</h2>

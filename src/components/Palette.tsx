@@ -2,6 +2,7 @@ import React from 'react';
 import { ELEMENT_SPECS, ElementType, PALETTE_ORDER } from '../engine/circuit';
 import { useAppState, useDispatch } from '../state/store';
 import { MaxButton } from './MaxButton';
+import { FoldButton } from './FoldButton';
 import { tip } from '../engine/glossary';
 
 const GLOSSARY_TIP: Partial<Record<string, string>> = {
@@ -29,9 +30,10 @@ export const Palette: React.FC = () => {
   const onDragEnd = () => dispatch({ type: 'dragging', value: null });
 
   return (
-    <div className="palette">
+    <div className={`palette ${state.collapsed.palette ? 'folded' : ''}`}>
       <div className="panel-head">
         <span className="panel-title">COMPONENTS</span>
+        <FoldButton panel="palette" />
         <MaxButton panel="palette" />
       </div>
       <div className="palette-list">

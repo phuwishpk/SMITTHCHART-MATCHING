@@ -50,7 +50,8 @@ h1, h2, h3 { margin: 0; }
 .seg.small button.on { background: #fff; color: var(--accent); font-weight: 600; box-shadow: inset 0 0 0 1px var(--accent); }
 
 /* ---------- layout ---------- */
-.main { display: grid; grid-template-columns: 264px minmax(0, 1fr) 600px; gap: 10px; padding: 10px; min-height: 0; }
+.main { --left-col: 264px; --right-base: 600px; --right-col: var(--right-base); display: grid;
+  grid-template-columns: var(--left-col) minmax(0, 1fr) var(--right-col); gap: 10px; padding: 10px; min-height: 0; }
 .col-left, .col-center, .col-right { min-height: 0; display: flex; flex-direction: column; gap: 10px; }
 .col-left { overflow: hidden; }
 .palette { display: flex; flex-direction: column; flex: 0 0 auto; max-height: 52%; }
@@ -377,10 +378,10 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
 
 /* ---------- responsive ---------- */
 @media (max-width: 1560px) and (min-width: 1280.02px) {
-  .main { grid-template-columns: 252px minmax(0, 1fr) 520px; }
+  .main { --left-col: 252px; --right-base: 520px; }
 }
 @media (max-width: 1280px) and (min-width: 1080.02px) {
-  .main { grid-template-columns: 234px minmax(0, 1fr) 452px; }
+  .main { --left-col: 234px; --right-base: 452px; }
 }
 @media (max-width: 1080px) {
   .app { height: auto; min-height: 100vh; }
@@ -405,6 +406,25 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
 /* ---------- maximize a single panel ---------- */
 .chip.max { margin-left: auto; }
 .panel-head .chip.max { flex-shrink: 0; }
+
+/* ---------- folding panels away ---------- */
+/* A folded panel keeps only its header, so the control that folded it is still where it was. */
+.palette.folded > :not(.panel-head), .inspector.folded > :not(.panel-head) { display: none; }
+.palette.folded, .inspector.folded { flex: 0 0 auto; min-height: 0; max-height: none; }
+.panel-head .chip.fold { flex-shrink: 0; }
+.chip.fold.on { background: #e0e7ff; border-color: #a5b4fc; color: #3730a3; }
+/* Both folded: the column gives most of its width back to the canvas and the chart. */
+/* the width the folded column gives up is shared: most to the canvas, a slice to the chart */
+.app.left-folded .main { --left-col: 156px; --right-col: calc(var(--right-base) + 64px); }
+.app.left-folded .col-left { gap: 6px; }
+.app.left-folded .palette.folded .panel-title, .app.left-folded .inspector.folded .panel-title { font-size: 10px; letter-spacing: 0.04em; }
+.app.left-folded .panel-head { padding: 6px 8px; gap: 4px; }
+.app.left-folded .panel-head .chip.max { display: none; }
+/* The table of contents folds the same way, and the button to bring it back sits where it was. */
+.app.nav-folded .course { grid-template-columns: minmax(0, 1fr); }
+.app.nav-folded .course-nav { display: none; }
+.course-unfold { align-self: flex-start; margin-bottom: 10px; }
+.course-nav .panel-head { position: sticky; top: 0; z-index: 2; }
 .max-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 16px; background: #fef3c7; color: #78350f; font-size: 12.5px; border-bottom: 1px solid #fde68a; }
 .app.max { grid-template-rows: auto auto 1fr; }
 .app.max .bottom { display: none; }

@@ -8,6 +8,7 @@ import { solveQwt, solveSingleStub, solveLMatch } from '../engine/matching';
 import { probeOnLine } from '../engine/solver';
 import { WaveStrip } from './WaveStrip';
 import { MaxButton } from './MaxButton';
+import { FoldButton } from './FoldButton';
 
 const fz = (z: Complex, d = 3) => (isFiniteC(z) ? `${fmtNum(z.re, d)} ${z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(z.im), d)}` : '∞');
 
@@ -19,8 +20,8 @@ export const Inspector: React.FC = () => {
 
   if (!selectedId) {
     return (
-      <div className="inspector">
-        <div className="panel-head"><span className="panel-title">PROPERTIES</span><MaxButton panel="inspector" /></div>
+      <div className={`inspector ${state.collapsed.inspector ? 'folded' : ''}`}>
+        <div className="panel-head"><span className="panel-title">PROPERTIES</span><FoldButton panel="inspector" /><MaxButton panel="inspector" /></div>
         <div className="insp-empty">คลิกอุปกรณ์บน Canvas เพื่อแก้ค่า<br />หรือคลิก RF Source เพื่อตั้งความถี่และ Z₀</div>
       </div>
     );
@@ -29,8 +30,8 @@ export const Inspector: React.FC = () => {
   if (selectedId === 'source') {
     const lam = wavelength(circuit.f, 1);
     return (
-      <div className="inspector">
-        <div className="panel-head"><span className="panel-title">PROPERTIES</span><span className="insp-name">RF Source</span><MaxButton panel="inspector" /></div>
+      <div className={`inspector ${state.collapsed.inspector ? 'folded' : ''}`}>
+        <div className="panel-head"><span className="panel-title">PROPERTIES</span><span className="insp-name">RF Source</span><FoldButton panel="inspector" /><MaxButton panel="inspector" /></div>
         <div className="insp-body">
           <NumField label="Frequency f" unit="MHz" value={circuit.f / 1e6} min={1} max={10000} log digits={5} onChange={(v) => dispatch({ type: 'freq', f: v * 1e6 })} hint={`λ₀ (อากาศ) = ${fmtEng(lam, 'm', 3)}`} />
           <NumField label="Z₀ = Z_S (อิมพีแดนซ์แหล่งจ่าย/ระบบ)" unit="Ω" value={circuit.Z0} min={10} max={300} step={1} onChange={(v) => dispatch({ type: 'z0', Z0: v })} hint="ค่าอ้างอิงสำหรับ normalize: ศูนย์กลาง Smith Chart = Z₀ = conjugate match กับแหล่งจ่าย" />
@@ -63,10 +64,11 @@ export const Inspector: React.FC = () => {
   }
 
   return (
-    <div className="inspector">
+    <div className={`inspector ${state.collapsed.inspector ? 'folded' : ''}`}>
       <div className="panel-head">
         <span className="panel-title">PROPERTIES</span>
         <span className="insp-name" style={{ color: spec.color }}>{spec.symbol} · {spec.name}</span>
+        <FoldButton panel="inspector" />
         <MaxButton panel="inspector" />
       </div>
       <div className="insp-body">
