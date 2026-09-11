@@ -595,6 +595,11 @@ h1, h2, h3 { margin: 0; }
 .rs-read-halo { stroke: #fff; stroke-width: 5; }
 .rs-read-line { stroke-width: 2; stroke-dasharray: 6 3; }
 .rs-read-dot { stroke: #fff; stroke-width: 1.6; }
+.rs-read-hit { fill: transparent; cursor: pointer; }
+.rs-read-halo-pick { fill: none; stroke-width: 1.6; stroke-dasharray: 3 2.5; }
+.rs-row.dim { opacity: 0.3; transition: opacity 0.2s ease; }
+.rs-read-val.one { font-size: 12px; }
+.rs-read-about { font-size: 8px; fill: #64748b; }
 .rs-read-who { fill: #475569; }
 .rs-read-val { font-size: 9px; font-weight: 700; font-family: var(--mono); paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
 .rs-read-flag rect { stroke: none; }

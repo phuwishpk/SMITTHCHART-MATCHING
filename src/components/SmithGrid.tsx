@@ -277,6 +277,8 @@ interface StripRow {
   tone: string;
   /** what this row reads at a given |Γ|, for the summary line under the strip */
   read: (ro: ReadOffT, m: number) => string;
+  /** what the row means, shown when its dot is clicked */
+  about: string;
 }
 
 /**
@@ -297,7 +299,9 @@ export const RadialScales: React.FC<{
   alignTo?: React.RefObject<SVGSVGElement | null>;
 }> = React.memo(({ gammaIn, gammaL, hasNetwork, readout, alignTo }) => {
   const W = 800;
-  const H = 168;
+  // the extra room at the bottom is where a picked row explains itself, kept reserved so the strip
+  // does not change height when one is clicked
+  const H = 188;
   const XL = CX - R; // ORIGIN, under the left rim
   const XR = CX + R; // under the right rim
   const xLeft = (m: number) => CX - Math.min(1, Math.max(0, m)) * R;
@@ -308,22 +312,31 @@ export const RadialScales: React.FC<{
   const nf = (v: number, d: number) => (Number.isFinite(v) ? fmtNum(v, d) : '∞');
   const rows: StripRow[] = [
     { label: 'SWR', side: 'left', tone: '#dc2626', read: (ro) => nf(ro.swr, 2),
+      about: 'อัตราส่วนคลื่นนิ่ง = (1 + |Γ|) / (1 − |Γ|) · เท่ากับ 1 คือแมตช์สมบูรณ์ ยิ่งมากยิ่งสะท้อนมาก',
       ticks: [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2, 2.5, 3, 4, 5, 10, 20, 40, 100].map((s) => ({ m: magFromSwr(s), t: String(s) })).concat([inf(1)]) },
     { label: 'ATTEN dB', side: 'right', tone: '#0f766e', read: (_ro, m) => nf(attenDbFromMag(m), 2),
+      about: 'การลดทอนทางเดียวของสายที่จะทำให้ขอบวง (|Γ| = 1) หดเข้ามาถึงรัศมีนี้พอดี · ใช้ตอนคิดสายที่มีการสูญเสีย',
       ticks: [0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 15, 20].map((a) => ({ m: magFromAttenDb(a), t: String(a) })).concat([inf(0)]) },
     { label: 'dBS', side: 'left', tone: '#ea580c', read: (ro) => nf(swrDb(ro.swr), 1),
+      about: 'ค่า SWR เขียนเป็นเดซิเบล = 20 · log₁₀(SWR) · 0 dBS คือ SWR = 1',
       ticks: [0, 1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 40].map((d) => ({ m: magFromSwrDb(d), t: String(d) })).concat([inf(1)]) },
     { label: 'SW LOSS COEFF', side: 'right', tone: '#0369a1', read: (_ro, m) => nf(swLossCoeff(m), 2),
+      about: 'ตัวคูณการสูญเสียที่เพิ่มขึ้นเพราะมีคลื่นนิ่งบนสาย = (1 + |Γ|²) / (1 − |Γ|²) · เท่ากับ 1 เมื่อไม่มีคลื่นสะท้อน',
       ticks: [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2, 3, 4, 5, 10, 20].map((k) => ({ m: magFromSwLoss(k), t: String(k) })).concat([inf(1)]) },
     { label: 'RTN LOSS dB', side: 'left', tone: '#b45309', read: (ro) => nf(ro.rlDb, 1),
+      about: 'กำลังที่สะท้อนกลับมา ต่ำกว่ากำลังที่ส่งไปกี่เดซิเบล = −20 · log₁₀|Γ| · ยิ่งมากยิ่งดี',
       ticks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 20, 30].map((rl) => ({ m: magFromRlDb(rl), t: String(rl) })).concat([inf(0)]) },
     { label: 'RFL LOSS dB', side: 'right', tone: '#1d4ed8', read: (ro) => nf(ro.mismatchDb, 2),
+      about: 'กำลังที่หายไปเพราะไม่แมตช์ (mismatch loss) = −10 · log₁₀(1 − |Γ|²) · ยิ่งน้อยยิ่งดี',
       ticks: [0, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 1.5, 2, 3, 4, 5, 6, 10, 15].map((l) => ({ m: magFromMismatchDb(l), t: String(l) })).concat([inf(1)]) },
     { label: 'RFL COEFF P', side: 'left', tone: '#a21caf', read: (_ro, m) => fmtNum(m * m, 3),
+      about: 'สัดส่วนของกำลังที่สะท้อนกลับ = |Γ|² · 0 คือไม่สะท้อนเลย 1 คือสะท้อนกลับหมด',
       ticks: [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.01, 0].map((p) => ({ m: magFromReflPct(p * 100), t: String(p) })) },
     { label: 'TRANSM COEFF P', side: 'right', tone: '#4d7c0f', read: (_ro, m) => fmtNum(transmPower(m), 3),
+      about: 'สัดส่วนของกำลังที่ผ่านเข้าไปถึงโหลด = 1 − |Γ|² · รวมกับ RFL COEFF P ได้ 1 พอดีเสมอ',
       ticks: [1, 0.99, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0].map((p) => ({ m: magFromTransmP(p), t: String(p) })) },
     { label: 'RFL COEFF E/I', side: 'left', tone: '#7c3aed', read: (_ro, m) => fmtNum(m, 3),
+      about: 'ขนาดของสัมประสิทธิ์การสะท้อน |Γ| เอง คิดจากแรงดัน (หรือกระแส) ไม่ใช่กำลัง · เป็นรัศมีบนกราฟโดยตรง',
       ticks: range(0, 1.0001, 0.05).map((m) => ({ m, t: Math.round(m * 100) % 10 === 0 ? m.toFixed(1) : '', minor: Math.round(m * 100) % 10 !== 0 })) },
   ];
   const LINES = 5; // row pairs
@@ -338,6 +351,9 @@ export const RadialScales: React.FC<{
   // as long as it is drawn at the same scale and the same origin. When the chart is height-limited
   // (a phone, a short window) its content is smaller than its box, so match it measurement by
   // measurement rather than hoping the CSS widths agree.
+  // clicking a dot on the read line pins that one scale: the line underneath then explains that row
+  // on its own instead of listing all nine at once
+  const [pickRow, setPickRow] = useState<string | null>(null);
   const [fit, setFit] = useState<{ w: number; dx: number } | null>(null);
   const fitRef = useRef(fit);
   fitRef.current = fit;
@@ -424,7 +440,7 @@ export const RadialScales: React.FC<{
           const a = row.side === 'left' ? XL : CX;
           const b = row.side === 'left' ? CX : XR;
           return (
-            <g key={row.label} className="rs-row">
+            <g key={row.label} className={`rs-row ${pickRow && pickRow !== row.label ? 'dim' : ''}`}>
               <text x={row.side === 'left' ? XL - 6 : XR + 6} y={y + 3} textAnchor={row.side === 'left' ? 'end' : 'start'} className="rs-label" style={{ fill: row.tone }}>{row.label}</text>
               <line x1={a} y1={y} x2={b} y2={y} className="rs-axis" />
               {row.ticks.map((tk, j) => (
@@ -468,17 +484,46 @@ export const RadialScales: React.FC<{
         {readM !== null && readout && ro && (
           <g className={`rs-read ${readout.cls}`}>
             {rows.map((row) => (
-              <circle key={`rd${row.label}`} cx={xOf(row.side, readM)} cy={rowY(lineOf(row))} r={4} className="rs-read-dot" fill={row.tone} />
+              <g key={`rd${row.label}`} className={`rs-read-pick ${pickRow === row.label ? 'on' : ''}`}>
+                {pickRow === row.label && (
+                  <circle cx={xOf(row.side, readM)} cy={rowY(lineOf(row))} r={8} className="rs-read-halo-pick" stroke={row.tone} />
+                )}
+                <circle cx={xOf(row.side, readM)} cy={rowY(lineOf(row))} r={4} className="rs-read-dot" fill={row.tone} />
+                <circle
+                  cx={xOf(row.side, readM)}
+                  cy={rowY(lineOf(row))}
+                  r={10}
+                  className="rs-read-hit"
+                  onClick={(e) => { e.stopPropagation(); setPickRow((k) => (k === row.label ? null : row.label)); }}
+                >
+                  <title>{`กดเพื่ออ่านค่า ${row.label}`}</title>
+                </circle>
+              </g>
             ))}
             {/* what the compass opening reads on each row, printed once under the strip */}
-            <text x={CX} y={H - 4} textAnchor="middle" className="rs-read-val">
-              {readout.label ? <tspan className="rs-read-who">{readout.label} · </tspan> : null}
-              {rows.map((row, i) => (
-                <tspan key={`rv${row.label}`} style={{ fill: row.tone }}>
-                  {i > 0 ? ' · ' : ''}{row.label} {row.read(ro, readM)}
-                </tspan>
-              ))}
-            </text>
+            {(() => {
+              const one = pickRow ? rows.find((r) => r.label === pickRow) : undefined;
+              if (one) {
+                return (
+                  <>
+                    <text x={CX} y={H - 20} textAnchor="middle" className="rs-read-val one" style={{ fill: one.tone }}>
+                      {readout.label ? `${readout.label} · ` : ''}{one.label} = {one.read(ro, readM)}
+                    </text>
+                    <text x={CX} y={H - 6} textAnchor="middle" className="rs-read-about">{one.about}  ·  กดจุดเดิมอีกครั้งเพื่อดูครบทุกแถว</text>
+                  </>
+                );
+              }
+              return (
+                <text x={CX} y={H - 4} textAnchor="middle" className="rs-read-val">
+                  {readout.label ? <tspan className="rs-read-who">{readout.label} · </tspan> : null}
+                  {rows.map((row, i) => (
+                    <tspan key={`rv${row.label}`} style={{ fill: row.tone }}>
+                      {i > 0 ? ' · ' : ''}{row.label} {row.read(ro, readM)}
+                    </tspan>
+                  ))}
+                </text>
+              );
+            })()}
           </g>
         )}
       </svg>
