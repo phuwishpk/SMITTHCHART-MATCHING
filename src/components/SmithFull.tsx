@@ -63,12 +63,13 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
      halves = false, angles = false, lcBar = false, glyphs, readout, strip = true, rCircles, xCircles, gCircles, bCircles, labels, note }) => {
     const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
     const clip = `cf${uid}`;
+    const chartSvgRef = React.useRef<SVGSVGElement>(null);
     return (
       <div className="smith-full">
         {title && <div className="sf-title">{title}</div>}
         <div className="sf-scrollhint">↔ เลื่อนซ้าย–ขวาเพื่อดูกราฟทั้งใบ</div>
         <div className="smith-full-scroll">
-          <svg viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${fine ? 'fine' : 'coarse'}${grid === 'full' ? '' : ' plain'}`} width="100%">
+          <svg ref={chartSvgRef} viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${fine ? 'fine' : 'coarse'}${grid === 'full' ? '' : ' plain'}`} width="100%">
             <defs>
               <clipPath id={clip}>
                 <circle cx={CX} cy={CY} r={R} />
@@ -197,6 +198,7 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
             gammaL={gammaFromz(readout)}
             hasNetwork={false}
             readout={{ mag: abs(gammaFromz(readout)), cls: 'in', label: `z = ${fmtNum(readout.re, 2)}${readout.im < 0 ? ' − j' : ' + j'}${fmtNum(Math.abs(readout.im), 2)}` }}
+            alignTo={chartSvgRef}
           />
         )}
         </div>

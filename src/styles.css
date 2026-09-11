@@ -1077,9 +1077,13 @@ img, svg, table { max-width: 100%; }
   .stats { padding: 6px 8px; font-size: 12px; }
   .stat .v.big { font-size: 15px; }
   .legend { gap: 8px; font-size: 10.5px; }
-  /* the radial parameter strip is 800 units wide: fitting it to 360px made the
-     tick labels ~3px, so it keeps a legible width and scrolls sideways */
-  .radial-scales { padding: 0 4px 4px; overflow-x: auto; }
+  /* The strip reads by laying the chart's own radius against it, so its zero must sit under the
+     chart's centre and its far end under the rim. That only holds if the two are drawn at the same
+     width, so on a phone they share one sideways scroller and one floor width — fitting either of
+     them to 360px would put the tick labels at about 3px. */
+  .smith-svg-wrap { overflow-x: auto; align-items: stretch; }
+  .smith-svg-wrap > .smith-svg { min-width: 600px; width: 600px; height: auto; aspect-ratio: 1 / 1; flex: 0 0 auto; align-self: flex-start; }
+  .radial-scales { padding: 0; overflow-x: visible; }
   .radial-scales svg { min-width: 600px; }
   .rs-label { font-size: 12px; }
   .rs-tick-label { font-size: 10px; }

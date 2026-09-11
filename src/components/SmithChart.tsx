@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useAppState, useDispatch, useDerived } from '../state/store';
 import { Complex, abs, arg, deg, fmtNum, isFiniteC } from '../engine/complex';
 import { ELEMENT_SPECS } from '../engine/circuit';
@@ -54,6 +54,7 @@ export const SmithChart: React.FC = () => {
     if (!isFiniteC(result.gammaIn) || abs(result.gammaIn) > 1.0001) return null;
     return { g: result.gammaIn, cls: 'in' as const, label: result.hasNetwork ? 'z_in' : 'z_L' };
   }, [hl.readout, result, walkStep]);
+  const chartSvgRef = useRef<SVGSVGElement>(null);
   const showStrip = state.showRadial || !!hl.readout;
 
   // The explanation walks from the load (highest stage index) down to the input (0).
@@ -176,7 +177,7 @@ export const SmithChart: React.FC = () => {
         </div>
       </div>
       <div className="smith-svg-wrap">
-        <svg viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${state.showFine ? 'fine' : 'coarse'} ${state.markerMode ? 'marking' : ''}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onChartClick}>
+        <svg ref={chartSvgRef} viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${state.showFine ? 'fine' : 'coarse'} ${state.markerMode ? 'marking' : ''}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onChartClick}>
           <defs>
             <clipPath id="clipUnit">
               <circle cx={CX} cy={CY} r={R} />
@@ -420,6 +421,7 @@ export const SmithChart: React.FC = () => {
             gammaL={result.gammaL}
             hasNetwork={result.hasNetwork}
             readout={stripReadout}
+            alignTo={chartSvgRef}
           />
         )}
       </div>

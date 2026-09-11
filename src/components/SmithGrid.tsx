@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Complex, abs, arg, fmtNum, isFiniteC } from '../engine/complex';
 import { rCircle, xCircle, gCircle } from '../engine/smith';
 import { readOff, magFromSwr, magFromRlDb, magFromReflPct } from '../engine/rf';
@@ -262,11 +262,22 @@ export interface ReadoutMark {
   label?: string;
 }
 
-export const RadialScales: React.FC<{ gammaIn: Complex; gammaL: Complex; hasNetwork: boolean; readout?: ReadoutMark }> = React.memo(({ gammaIn, gammaL, hasNetwork, readout }) => {
+export const RadialScales: React.FC<{
+  gammaIn: Complex;
+  gammaL: Complex;
+  hasNetwork: boolean;
+  readout?: ReadoutMark;
+  /** the chart this strip sits under: the strip is sized and offset to share its x-mapping exactly */
+  alignTo?: React.RefObject<SVGSVGElement | null>;
+}> = React.memo(({ gammaIn, gammaL, hasNetwork, readout, alignTo }) => {
   const W = 800;
   const H = 126;
-  const x0 = 150;
-  const x1 = W - 20;
+  // The strip and the chart are separate SVGs, but they share the same viewBox width and are laid
+  // out at the same CSS width — so mapping |Γ| 0…1 onto exactly the chart's radius (CX … CX+R) puts
+  // this scale directly under the chart's own |Γ| axis, and the drop line out of the chart lands on
+  // the read mark here without bending. The row labels and the read values use the space to the left.
+  const x0 = CX;
+  const x1 = CX + R;
   const xOf = (m: number) => x0 + Math.min(1, Math.max(0, m)) * (x1 - x0);
   const rows: { label: string; ticks: { m: number; t: string; minor?: boolean }[] }[] = [
     {
@@ -291,6 +302,33 @@ export const RadialScales: React.FC<{ gammaIn: Complex; gammaL: Complex; hasNetw
   const mIn = abs(gammaIn);
   const mL = abs(gammaL);
   const boxRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  // Both SVGs use the same 800-unit viewBox width, so the strip lands under the chart's own |Γ| axis
+  // as long as it is drawn at the same scale and the same origin. When the chart is height-limited
+  // (a phone, a short window) its content is smaller than its box, so match it measurement by
+  // measurement rather than hoping the CSS widths agree.
+  const [fit, setFit] = useState<{ w: number; dx: number } | null>(null);
+  const fitRef = useRef(fit);
+  fitRef.current = fit;
+  useLayoutEffect(() => {
+    const chart = alignTo?.current;
+    const self = svgRef.current;
+    if (!chart || !self) return;
+    const measure = () => {
+      const m = chart.getScreenCTM();
+      const own = self.getScreenCTM();
+      if (!m || !own) return;
+      const w = 800 * m.a;
+      const dx = m.e - (own.e - (fitRef.current?.dx ?? 0));
+      setFit((prev) => (prev && Math.abs(prev.w - w) < 0.5 && Math.abs(prev.dx - dx) < 0.5 ? prev : { w, dx }));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(chart);
+    if (self.parentElement) ro.observe(self.parentElement);
+    window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, [alignTo]);
   const readX = readout && Number.isFinite(readout.mag) ? xOf(Math.min(1, Math.max(0, readout.mag))) : null;
   useEffect(() => {
     const box = boxRef.current;
@@ -301,7 +339,12 @@ export const RadialScales: React.FC<{ gammaIn: Complex; gammaL: Complex; hasNetw
   }, [readX]);
   return (
     <div className="radial-scales" ref={boxRef}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%">
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        style={fit ? { width: `${fit.w}px`, maxWidth: 'none', transform: `translateX(${fit.dx}px)` } : undefined}
+      >
         {/* the read line goes under the printed ticks so its halo cannot erase them */}
         {readX !== null && (
           <g className={`rs-read ${readout!.cls}`}>
@@ -309,18 +352,34 @@ export const RadialScales: React.FC<{ gammaIn: Complex; gammaL: Complex; hasNetw
             <line x1={readX} y1={16} x2={readX} y2={H - 20} className="rs-read-line" />
           </g>
         )}
-        {rows.map((row, i) => (
-          <g key={row.label} className="rs-row">
-            <text x={46} y={rowY(i) + 3} textAnchor="start" className="rs-label">{row.label}</text>
-            <line x1={x0} y1={rowY(i)} x2={x1} y2={rowY(i)} className="rs-axis" />
-            {row.ticks.map((tk, j) => (
-              <g key={j}>
-                <line x1={xOf(tk.m)} y1={rowY(i) - (tk.minor ? 3 : 5)} x2={xOf(tk.m)} y2={rowY(i)} className={tk.minor ? 'rs-tick minor' : 'rs-tick'} />
-                {tk.t && <text x={xOf(tk.m)} y={rowY(i) - 6} textAnchor="middle" className="rs-tick-label">{tk.t}</text>}
-              </g>
-            ))}
-          </g>
-        ))}
+        {rows.map((row, i) => {
+          // Every tick keeps its mark; a label is only printed where there is room for it, since the
+          // scale is compressed toward |Γ| = 1 and the axis is only as wide as the chart's radius.
+          // The last tick always keeps its label — it is the end of the scale.
+          const wide = (t: string) => 7 + t.length * 4.4;
+          let lastRight = -Infinity;
+          const show = row.ticks.map((tk, j) => {
+            if (!tk.t) return false;
+            const isLast = j === row.ticks.length - 1;
+            const half = wide(tk.t) / 2;
+            const left = xOf(tk.m) - half;
+            if (!isLast && left < lastRight) return false;
+            lastRight = xOf(tk.m) + half;
+            return true;
+          });
+          return (
+            <g key={row.label} className="rs-row">
+              <text x={x0 - 96} y={rowY(i) + 3} textAnchor="start" className="rs-label">{row.label}</text>
+              <line x1={x0} y1={rowY(i)} x2={x1} y2={rowY(i)} className="rs-axis" />
+              {row.ticks.map((tk, j) => (
+                <g key={j}>
+                  <line x1={xOf(tk.m)} y1={rowY(i) - (tk.minor ? 3 : 5)} x2={xOf(tk.m)} y2={rowY(i)} className={tk.minor ? 'rs-tick minor' : 'rs-tick'} />
+                  {show[j] && <text x={xOf(tk.m)} y={rowY(i) - 6} textAnchor="middle" className="rs-tick-label">{tk.t}</text>}
+                </g>
+              ))}
+            </g>
+          );
+        })}
         {hasNetwork && Number.isFinite(mL) && (
           <g className="rs-marker load">
             <line x1={xOf(mL)} y1={rowY(0) - 8} x2={xOf(mL)} y2={H - 22} />
