@@ -1655,7 +1655,7 @@ export const BASICS: Chapter[] = [
             answer: 0,
             explain: `SWR = 1 ต้องการ y = 1 พอดี ไม่ใช่แค่ส่วนจินตภาพเป็นศูนย์ · ที่ y = ${n(exsYtot.re, 4)} + j0 จะได้ z = ${n(1 / exsYtot.re, 4)} และ SWR = ${n(exsSwr, 4)} (คำนวณโดยแอป) · ตัวเลือกสุดท้ายผิดเพราะสตับตัวที่สองที่จุดเดิมก็ยังเปลี่ยนได้แต่ b เหมือนเดิม จุดจะไถลกลับไปมาบนวง g เดิมเท่านั้น ต้องเปลี่ยน “ตำแหน่ง” เท่านั้นถึงจะเปลี่ยน g ได้`,
             hint: 'ถามตัวเองว่าจุดกลางของกราฟมี g เท่าไร แล้วจุดนี้มี g เท่าไร',
-            chart: { scale: false, fine: false, table: false, showY: true, gCircles: [exsYtot.re, 1],
+            chart: { scale: false, fine: false, table: false, grid: 'light', showY: true, gCircles: [exsYtot.re, 1],
               points: [{ z: admittance(exsYtot), label: `y = ${n(exsYtot.re, 2)} + j0`, cls: 'mid' }, { z: C(1, 0), label: 'y = 1 · ยังไปไม่ถึง', cls: 'goal' }] } },
         ],
       },

@@ -45,6 +45,11 @@ const c = (cc: { cx: number; cy: number; r: number }) => {
 /** Static Smith-chart figure for the course: coarse grid + explicit points / curves. */
 export const SmithFigure: React.FC<Props> = ({ title, points, curves, swr, showY, rCircles, xCircles, gCircles, bCircles, regions, note, labels }) => {
   const uid = React.useId().replace(/:/g, '');
+  const axisTaken = React.useMemo(() => {
+    const near = (g: Complex, x: number) => Math.abs(g.re - x) < 0.07 && Math.abs(g.im) < 0.07;
+    const gs = (points ?? []).map((p) => gammaFromz(p.z)).filter(isFiniteC);
+    return { zero: gs.some((g) => near(g, -1)), one: gs.some((g) => near(g, 0)), inf: gs.some((g) => near(g, 1)) };
+  }, [points]);
   return (
     <div className="smith-figure">
       {title && <div className="sf-title">{title}</div>}
@@ -76,9 +81,11 @@ export const SmithFigure: React.FC<Props> = ({ title, points, curves, swr, showY
         </g>
         <line x1={CX - R} y1={CY} x2={CX + R} y2={CY} className="sf-axis" />
         <circle cx={CX} cy={CY} r={R} className="sf-rim" />
-        <text x={CX + 3} y={CY - 4} className="sf-small">1</text>
-        <text x={CX - R + 2} y={CY + 11} className="sf-small">0</text>
-        <text x={CX + R - 8} y={CY + 11} className="sf-small">∞</text>
+        {/* the 0 / 1 / infinity markers step aside when a plotted point already occupies that spot,
+            otherwise every label placed at the centre collides with the tiny "1" */}
+        {!axisTaken.one && <text x={CX + 3} y={CY - 4} className="sf-small">1</text>}
+        {!axisTaken.zero && <text x={CX - R + 2} y={CY + 11} className="sf-small">0</text>}
+        {!axisTaken.inf && <text x={CX + R - 8} y={CY + 11} className="sf-small">∞</text>}
         {swr?.map((s, i) => {
           const m = (s - 1) / (s + 1);
           return (
