@@ -15,6 +15,7 @@ import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import { texToThai } from './tex-to-thai.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = join(ROOT, 'public', 'audio', 'course');
@@ -38,7 +39,9 @@ const EXTRACT = [
   'console.log(JSON.stringify(COURSE.map(c => ({',
   '  id: c.id, num: c.num, title: c.title,',
   '  sections: c.sections.map(s => ({ id: s.id, title: s.title,',
-  "    lines: s.lines.filter(l => l.kind === 'text' || l.kind === 'note' || l.kind === 'warn').map(l => l.text) })),",
+  "    lines: s.lines",
+  "      .filter(l => ['text', 'note', 'warn', 'math', 'result'].includes(l.kind))",
+  "      .map(l => ({ kind: l.kind, text: l.text ?? l.tex })) })),",
   '}))));',
 ].join('\n');
 writeFileSync(join(ROOT, '.tts-extract.ts'), EXTRACT);
@@ -73,6 +76,18 @@ const SAY = [
 ];
 const speakable = (s) => SAY.reduce((t, [re, to]) => t.replace(re, to), s).trim();
 
+/**
+ * An equation is the point of several sections, so it is read out, not skipped. The TeX is turned
+ * into words by scripts/tex-to-thai.mjs, and a short lead-in tells the listener that what follows
+ * is a formula rather than another sentence.
+ */
+const LEAD = { math: 'สมการ', result: 'ผลลัพธ์' };
+const spoken = (line) => {
+  if (line.kind !== 'math' && line.kind !== 'result') return speakable(line.text);
+  const said = texToThai(line.text);
+  return said ? `${LEAD[line.kind]}: ${said}.` : '';
+};
+
 /** Split on sentence-ish boundaries so no chunk is cut mid-thought. */
 const chunk = (text, limit) => {
   if (text.length <= limit) return [text];
@@ -91,7 +106,7 @@ for (const ch of course) {
   for (const sec of ch.sections) {
     const id = `${ch.id}-${sec.id}`;
     if (ONLY && id !== ONLY) continue;
-    const body = [sec.title, ...sec.lines].map(speakable).filter((t) => t.length > 4).join(' ');
+    const body = [speakable(sec.title), ...sec.lines.map(spoken)].filter((t) => t.length > 4).join(' ');
     if (body.length < 5) continue;
     jobs.push({ id, chapter: ch.id, section: sec.id, title: sec.title, parts: chunk(body, LIMIT) });
   }
