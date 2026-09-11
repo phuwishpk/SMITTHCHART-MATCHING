@@ -11,6 +11,7 @@ import { WaveFigure } from './WaveFigure';
 import { ReflectionIntro } from './ReflectionIntro';
 import { LinePositionIntro } from './LinePositionIntro';
 import { AdmittanceIntro, ShuntAdmittanceIntro } from './AdmittanceIntro';
+import { SwrCircleIntro, DistanceIntro } from './SwrDistanceIntro';
 import { CircuitSchematic } from './CircuitSchematic';
 import { solveCircuit, solveSweep, sweepMaxSwr } from '../engine/solver';
 import { solveLCases } from '../engine/matching';
@@ -336,6 +337,8 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
             {basics && chapter.id === 'b1' && sec.id === 'mismatch' && <ReflectionIntro />}
             {basics && chapter.id === 'b1' && sec.id === 'along' && <LinePositionIntro />}
             {basics && chapter.id === 'b1' && sec.id === 'why' && <LinePositionIntro findReal />}
+            {basics && chapter.id === 'b4' && sec.id === 'circle' && <SwrCircleIntro />}
+            {basics && chapter.id === 'b5' && sec.id === 'halflambda' && <DistanceIntro />}
             {basics && chapter.id === 'b6' && sec.id === 'y' && <AdmittanceIntro />}
             {basics && chapter.id === 'b6' && sec.id === 'move' && <ShuntAdmittanceIntro />}
             <StepLines lines={sec.lines} />
