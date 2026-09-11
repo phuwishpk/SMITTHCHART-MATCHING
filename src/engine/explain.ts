@@ -126,7 +126,7 @@ export const explainCircuit = (res: SolveResult): ExplainStep[] => {
         { kind: 'math', tex: `|\\Gamma| = ${tn(ro.mag, 3)} \\quad\\Rightarrow\\quad SWR = \\frac{1+|\\Gamma|}{1-|\\Gamma|} = ${swrTex}` },
         { kind: 'math', tex: `${T('Return loss')} = -20\\log_{10}|\\Gamma| = ${rlTex}\\ ${T('dB')}, \\qquad ${T('Mismatch loss')} = ${mlTex}\\ ${T('dB')}` },
         { kind: 'result', tex: `${T('อ่านตรงเส้นนี้:')}\\; |\\Gamma| = ${tn(ro.mag, 3)},\\; SWR = ${swrTex},\\; RL = ${rlTex}\\ ${T('dB')},\\; ${T('กำลังสะท้อน')}\\ |\\Gamma|^2 = ${tn(ro.reflPct, 1)}\\%` },
-        { kind: 'note', text: 'ในแอปไม่ต้องยกวงเวียนเอง: เส้นประบนกราฟชี้จุดที่รัศมีแตะแกน r = SWR แล้วลากดิ่งลงมาตรง ๆ ถึงแถบด้านล่าง ซึ่งขีดเส้นอ่านค่าไว้ที่ |Γ| เดียวกันพอดี (แถบใช้มาตราส่วนเดียวกับรัศมีของกราฟ เส้นทั้งสองจึงอยู่ในแนวตั้งเดียวกัน) ปุ่ม "อ่าน SWR/RL" ที่หัวแผง SMITH CHART เปิด/ปิดแถบนี้ได้' },
+        { kind: 'note', text: 'ในแอปไม่ต้องยกวงเวียนเอง: แถบ RADIALLY SCALED PARAMETERS ใต้กราฟวางตามผังมาตรฐาน คือกว้างเท่าเส้นผ่านศูนย์กลางของกราฟ จุด CENTER อยู่ใต้จุดกลางกราฟพอดี · ระยะเดียวกับรัศมีถึงจุด z_L วัดจาก CENTER ไปทางซ้ายอ่าน SWR · dBS · return loss · |Γ|² · |Γ| วัดไปทางขวาอ่าน loss และ transmission · เส้นประสองเส้นบนกราฟลากดิ่งลงมาชนเส้นอ่านค่าบนแถบตรง ๆ ทั้งสองข้าง · ปุ่ม "อ่าน SWR/RL" ที่หัวแผง SMITH CHART เปิด/ปิดแถบนี้ได้' },
         { kind: 'note', text: `Mismatch loss ไม่มีแถวของตัวเองบนแถบในแอปนี้ ค่า ${Number.isFinite(ro.mismatchDb) ? fmtNum(ro.mismatchDb, 2) : '∞'} dB ข้างต้นจึงมาจากสูตร −10·log₁₀(1 − |Γ|²) ที่แอปคำนวณให้` },
       ],
       highlight: { swrCircle: from, point: from, readout: { g, from, label: name } },

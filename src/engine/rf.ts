@@ -84,6 +84,22 @@ export const magFromSwr = (swr: number): number => (Number.isFinite(swr) ? (swr 
 export const magFromRlDb = (rlDb: number): number => (Number.isFinite(rlDb) ? 10 ** (-rlDb / 20) : 0);
 export const magFromReflPct = (pct: number): number => Math.sqrt(Math.max(0, Math.min(100, pct)) / 100);
 
+/* ---- the other radially scaled parameters of the printed chart, all functions of |Γ| alone ---- */
+/** SWR expressed in dB, the "dBS" row: 20·log10(SWR) */
+export const swrDb = (swr: number): number => (Number.isFinite(swr) ? 20 * Math.log10(swr) : Infinity);
+export const magFromSwrDb = (dbs: number): number => (Number.isFinite(dbs) ? magFromSwr(10 ** (dbs / 20)) : 1);
+/** standing-wave loss coefficient (1 + |Γ|²)/(1 − |Γ|²): how much more a lossy line loses when it carries a standing wave */
+export const swLossCoeff = (mag: number): number => (mag >= 1 ? Infinity : (1 + mag * mag) / (1 - mag * mag));
+export const magFromSwLoss = (k: number): number => (Number.isFinite(k) ? Math.sqrt(Math.max(0, (k - 1) / (k + 1))) : 1);
+/** fraction of the incident power that gets through, 1 − |Γ|² */
+export const transmPower = (mag: number): number => Math.max(0, 1 - mag * mag);
+export const magFromTransmP = (p: number): number => Math.sqrt(Math.max(0, 1 - Math.min(1, p)));
+/** mismatch loss in dB from |Γ|, −10·log10(1 − |Γ|²), the printed "RFL. LOSS" row */
+export const magFromMismatchDb = (db: number): number => (Number.isFinite(db) ? Math.sqrt(Math.max(0, 1 - 10 ** (-db / 10))) : 1);
+/** one-way line attenuation that would shrink the rim (|Γ| = 1) down to this radius: the reflected wave crosses the line twice */
+export const attenDbFromMag = (mag: number): number => (mag <= 0 ? Infinity : -10 * Math.log10(Math.min(1, mag)));
+export const magFromAttenDb = (a: number): number => (Number.isFinite(a) ? 10 ** (-a / 10) : 0);
+
 /**
  * Position on the "wavelengths toward generator" scale (0 … 0.5 λ),
  * measured clockwise from the short-circuit point (Γ = −1).

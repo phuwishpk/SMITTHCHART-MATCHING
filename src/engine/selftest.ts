@@ -550,6 +550,23 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
   }
   check('radial scale ticks invert exactly', bad.length === 0, bad.slice(0, 3).join(' | '));
 
+  {
+    const { swrDb: sdb, magFromSwrDb: mSdb, swLossCoeff: swl, magFromSwLoss: mSwl, transmPower: tp, magFromTransmP: mTp,
+      magFromMismatchDb: mMis, attenDbFromMag: att, magFromAttenDb: mAtt, mismatchLossDb: misDb, swrFromGamma: swrG2 } = await import('./rf');
+    const bad: string[] = [];
+    for (const m of [0.05, 0.2, 0.4472, 0.7, 0.95]) {
+      const g = { re: m, im: 0 };
+      if (Math.abs(mSdb(sdb(swrG2(g))) - m) > 1e-9) bad.push(`dBS@${m}`);
+      if (Math.abs(mSwl(swl(m)) - m) > 1e-9) bad.push(`swloss@${m}`);
+      if (Math.abs(mTp(tp(m)) - m) > 1e-9) bad.push(`transm@${m}`);
+      if (Math.abs(mMis(misDb(g)) - m) > 1e-9) bad.push(`mismatch@${m}`);
+      if (Math.abs(mAtt(att(m)) - m) > 1e-9) bad.push(`atten@${m}`);
+    }
+    // the printed anchors: SWR 1 / dBS 0 / RL ∞ / |Γ|² 0 sit at CENTER; ATTEN 0 and TRANSM 1 sit at CENTER's mirror, the rim side
+    if (mSdb(0) !== 0 || mSwl(1) !== 0 || mTp(1) !== 0 || mMis(0) !== 0) bad.push('centre-anchors');
+    if (mAtt(0) !== 1 || mTp(0) !== 1 || mSwl(Infinity) !== 1 || mMis(Infinity) !== 1) bad.push('rim-anchors');
+    check('the printed strip rows all invert exactly', bad.length === 0, bad.join(' '));
+  }
   // a known point: z = 25 + j25 on 50 Ω  ->  |Γ| = 0.447, SWR = 2.62, RL = 7.0 dB, 20 % reflected
   const g = gz({ re: 0.5, im: 0.5 });
   const ro = readOff(g);

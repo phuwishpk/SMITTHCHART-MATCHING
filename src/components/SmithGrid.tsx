@@ -1,7 +1,10 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Complex, abs, arg, fmtNum, isFiniteC } from '../engine/complex';
 import { rCircle, xCircle, gCircle } from '../engine/smith';
-import { readOff, magFromSwr, magFromRlDb, magFromReflPct } from '../engine/rf';
+import {
+  readOff, magFromSwr, magFromRlDb, magFromReflPct,
+  swrDb, magFromSwrDb, magFromSwLoss, magFromMismatchDb, magFromTransmP, magFromAttenDb, transmPower,
+} from '../engine/rf';
 
 // ---------------------------------------------------------------
 // Detailed Smith-chart grid (printed-chart style), outer scales and
@@ -262,6 +265,22 @@ export interface ReadoutMark {
   label?: string;
 }
 
+/** one printed row of the strip: which half it lives on and where each tick sits on the 0…1 radius */
+interface StripRow {
+  label: string;
+  side: 'left' | 'right';
+  ticks: { m: number; t: string; minor?: boolean }[];
+}
+
+/**
+ * RADIALLY SCALED PARAMETERS, laid out the way the printed chart lays them out: one strip as wide
+ * as the chart's diameter, CENTER directly under the chart's centre, ORIGIN under the left rim.
+ * Every value here is a function of |Γ| alone, so it is read with a compass — open it from the
+ * chart's centre to the point, then set that same opening from CENTER along the strip. The
+ * reflection family (SWR, dBS, return loss, |Γ|², |Γ|) runs from CENTER out to the LEFT, the
+ * transmission family (line attenuation, standing-wave loss, mismatch loss, transmitted power) runs
+ * from CENTER out to the RIGHT, and the bottom line is 1 + Γ along the real axis, 0 … 2.
+ */
 export const RadialScales: React.FC<{
   gammaIn: Complex;
   gammaL: Complex;
@@ -271,34 +290,38 @@ export const RadialScales: React.FC<{
   alignTo?: React.RefObject<SVGSVGElement | null>;
 }> = React.memo(({ gammaIn, gammaL, hasNetwork, readout, alignTo }) => {
   const W = 800;
-  const H = 126;
-  // The strip and the chart are separate SVGs, but they share the same viewBox width and are laid
-  // out at the same CSS width — so mapping |Γ| 0…1 onto exactly the chart's radius (CX … CX+R) puts
-  // this scale directly under the chart's own |Γ| axis, and the drop line out of the chart lands on
-  // the read mark here without bending. The row labels and the read values use the space to the left.
-  const x0 = CX;
-  const x1 = CX + R;
-  const xOf = (m: number) => x0 + Math.min(1, Math.max(0, m)) * (x1 - x0);
-  const rows: { label: string; ticks: { m: number; t: string; minor?: boolean }[] }[] = [
-    {
-      label: '|Γ|',
-      ticks: [...range(0, 1.0001, 0.02).map((m) => ({ m, t: Math.round(m * 100) % 10 === 0 ? m.toFixed(1) : '', minor: Math.round(m * 100) % 10 !== 0 }))],
-    },
-    {
-      label: 'SWR',
-      ticks: [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2, 2.5, 3, 4, 5, 6, 8, 10, 15, 20, 30, 50].map((s) => ({ m: magFromSwr(s), t: String(s) })).concat([{ m: 1, t: '∞' }]),
-    },
-    {
-      label: 'RL (dB)',
-      // 40 dB would sit 6 units from the infinity end-cap, so the two labels would overlap
-      ticks: [30, 25, 20, 15, 12, 10, 8, 6, 5, 4, 3, 2, 1, 0].map((rl) => ({ m: magFromRlDb(rl), t: String(rl) })).concat([{ m: 0, t: '∞' }]),
-    },
-    {
-      label: '|Γ|² %',
-      ticks: [0, 1, 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((p) => ({ m: magFromReflPct(p), t: String(p) })),
-    },
+  const H = 168;
+  const XL = CX - R; // ORIGIN, under the left rim
+  const XR = CX + R; // under the right rim
+  const xLeft = (m: number) => CX - Math.min(1, Math.max(0, m)) * R;
+  const xRight = (m: number) => CX + Math.min(1, Math.max(0, m)) * R;
+  const xOf = (side: 'left' | 'right', m: number) => (side === 'left' ? xLeft(m) : xRight(m));
+  const inf = (m: number, t = '∞') => ({ m, t });
+  // The rows, in the printed order, top to bottom. Left and right rows share a line.
+  const rows: StripRow[] = [
+    { label: 'SWR', side: 'left',
+      ticks: [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2, 2.5, 3, 4, 5, 10, 20, 40, 100].map((s) => ({ m: magFromSwr(s), t: String(s) })).concat([inf(1)]) },
+    { label: 'ATTEN dB', side: 'right',
+      ticks: [0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 15, 20].map((a) => ({ m: magFromAttenDb(a), t: String(a) })).concat([inf(0)]) },
+    { label: 'dBS', side: 'left',
+      ticks: [0, 1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 40].map((d) => ({ m: magFromSwrDb(d), t: String(d) })).concat([inf(1)]) },
+    { label: 'SW LOSS COEFF', side: 'right',
+      ticks: [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2, 3, 4, 5, 10, 20].map((k) => ({ m: magFromSwLoss(k), t: String(k) })).concat([inf(1)]) },
+    { label: 'RTN LOSS dB', side: 'left',
+      ticks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 20, 30].map((rl) => ({ m: magFromRlDb(rl), t: String(rl) })).concat([inf(0)]) },
+    { label: 'RFL LOSS dB', side: 'right',
+      ticks: [0, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 1.5, 2, 3, 4, 5, 6, 10, 15].map((l) => ({ m: magFromMismatchDb(l), t: String(l) })).concat([inf(1)]) },
+    { label: 'RFL COEFF P', side: 'left',
+      ticks: [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.01, 0].map((p) => ({ m: magFromReflPct(p * 100), t: String(p) })) },
+    { label: 'TRANSM COEFF P', side: 'right',
+      ticks: [1, 0.99, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0].map((p) => ({ m: magFromTransmP(p), t: String(p) })) },
+    { label: 'RFL COEFF E/I', side: 'left',
+      ticks: range(0, 1.0001, 0.05).map((m) => ({ m, t: Math.round(m * 100) % 10 === 0 ? m.toFixed(1) : '', minor: Math.round(m * 100) % 10 !== 0 })) },
   ];
-  const rowY = (i: number) => 34 + i * 22;
+  const LINES = 5; // row pairs
+  const rowY = (i: number) => 22 + i * 22;
+  const lineOf = (r: StripRow) => rows.filter((q) => q.side === r.side).indexOf(r);
+  const yBottom = rowY(LINES) + 4; // the full-width 1 + Γ line
   const mIn = abs(gammaIn);
   const mL = abs(gammaL);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -329,14 +352,43 @@ export const RadialScales: React.FC<{
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, [alignTo]);
-  const readX = readout && Number.isFinite(readout.mag) ? xOf(Math.min(1, Math.max(0, readout.mag))) : null;
+  const readM = readout && Number.isFinite(readout.mag) ? Math.min(1, Math.max(0, readout.mag)) : null;
   useEffect(() => {
     const box = boxRef.current;
-    if (!box || readX === null) return;
+    if (!box || readM === null) return;
     if (box.scrollWidth <= box.clientWidth + 4) return;
-    const target = (readX / W) * box.scrollWidth - box.clientWidth / 2;
+    const target = (xLeft(readM) / W) * box.scrollWidth - box.clientWidth / 2;
     box.scrollTo({ left: Math.max(0, Math.min(target, box.scrollWidth - box.clientWidth)), behavior: 'smooth' });
-  }, [readX]);
+  }, [readM]);
+  // Every tick keeps its mark; a label is printed only where there is room for it, since each
+  // scale is compressed toward the rim. The tick at the rim end (∞, 0 or 1) always keeps its label.
+  const wide = (t: string) => 7 + t.length * 4.4;
+  const labelled = (row: StripRow) => {
+    const order = row.ticks.map((tk, j) => ({ j, x: xOf(row.side, tk.m) })).sort((a, b) => a.x - b.x);
+    const keep = new Set<number>();
+    const rimIdx = row.side === 'left' ? order[0].j : order[order.length - 1].j;
+    const seq = row.side === 'left' ? [...order].reverse() : order; // walk from CENTER toward the rim
+    let last = -Infinity;
+    const rimX = xOf(row.side, row.ticks[rimIdx].m);
+    const rimHalf = wide(row.ticks[rimIdx].t) / 2;
+    for (const { j, x } of seq) {
+      const t = row.ticks[j].t;
+      if (!t) continue;
+      const half = wide(t) / 2;
+      const near = row.side === 'left' ? x - half : x + half;
+      const far = row.side === 'left' ? x + half : x - half;
+      const clearsLast = row.side === 'left' ? far < last : far > last;
+      const clearsRim = j === rimIdx || (row.side === 'left' ? near > rimX + rimHalf : near < rimX - rimHalf);
+      if (j !== rimIdx && !(clearsLast || last === -Infinity)) continue;
+      if (!clearsRim) continue;
+      keep.add(j);
+      last = row.side === 'left' ? x - half : x + half;
+    }
+    keep.add(rimIdx);
+    return keep;
+  };
+  const ro = readM !== null ? readOff({ re: readM, im: 0 }) : null;
+  const fmtInf = (v: number, d: number) => (Number.isFinite(v) ? fmtNum(v, d) : '∞');
   return (
     <div className="radial-scales" ref={boxRef}>
       <svg
@@ -345,85 +397,78 @@ export const RadialScales: React.FC<{
         width="100%"
         style={fit ? { width: `${fit.w}px`, maxWidth: 'none', transform: `translateX(${fit.dx}px)` } : undefined}
       >
+        <text x={XR} y={9} textAnchor="end" className="rs-title">RADIALLY SCALED PARAMETERS</text>
         {/* the read line goes under the printed ticks so its halo cannot erase them */}
-        {readX !== null && (
-          <g className={`rs-read ${readout!.cls}`}>
-            <line x1={readX} y1={16} x2={readX} y2={H - 20} className="rs-read-halo" />
-            <line x1={readX} y1={16} x2={readX} y2={H - 20} className="rs-read-line" />
+        {readM !== null && readout && (
+          <g className={`rs-read ${readout.cls}`}>
+            {(readM < 0.02 ? (['right'] as const) : (['left', 'right'] as const)).map((side) => (
+              <g key={side}>
+                <line x1={xOf(side, readM)} y1={rowY(0) - 8} x2={xOf(side, readM)} y2={yBottom + 6} className="rs-read-halo" />
+                <line x1={xOf(side, readM)} y1={rowY(0) - 8} x2={xOf(side, readM)} y2={yBottom + 6} className="rs-read-line" />
+              </g>
+            ))}
           </g>
         )}
-        {rows.map((row, i) => {
-          // Every tick keeps its mark; a label is only printed where there is room for it, since the
-          // scale is compressed toward |Γ| = 1 and the axis is only as wide as the chart's radius.
-          // The last tick always keeps its label — it is the end of the scale.
-          const wide = (t: string) => 7 + t.length * 4.4;
-          let lastRight = -Infinity;
-          const show = row.ticks.map((tk, j) => {
-            if (!tk.t) return false;
-            const isLast = j === row.ticks.length - 1;
-            const half = wide(tk.t) / 2;
-            const left = xOf(tk.m) - half;
-            if (!isLast && left < lastRight) return false;
-            lastRight = xOf(tk.m) + half;
-            return true;
-          });
+        {/* CENTER and ORIGIN, as printed */}
+        <line x1={CX} y1={rowY(0) - 10} x2={CX} y2={yBottom + 2} className="rs-centre" />
+        {rows.map((row) => {
+          const y = rowY(lineOf(row));
+          const keep = labelled(row);
+          const a = row.side === 'left' ? XL : CX;
+          const b = row.side === 'left' ? CX : XR;
           return (
             <g key={row.label} className="rs-row">
-              <text x={x0 - 96} y={rowY(i) + 3} textAnchor="start" className="rs-label">{row.label}</text>
-              <line x1={x0} y1={rowY(i)} x2={x1} y2={rowY(i)} className="rs-axis" />
+              <text x={row.side === 'left' ? XL - 6 : XR + 6} y={y + 3} textAnchor={row.side === 'left' ? 'end' : 'start'} className="rs-label">{row.label}</text>
+              <line x1={a} y1={y} x2={b} y2={y} className="rs-axis" />
               {row.ticks.map((tk, j) => (
                 <g key={j}>
-                  <line x1={xOf(tk.m)} y1={rowY(i) - (tk.minor ? 3 : 5)} x2={xOf(tk.m)} y2={rowY(i)} className={tk.minor ? 'rs-tick minor' : 'rs-tick'} />
-                  {show[j] && <text x={xOf(tk.m)} y={rowY(i) - 6} textAnchor="middle" className="rs-tick-label">{tk.t}</text>}
+                  <line x1={xOf(row.side, tk.m)} y1={y - (tk.minor ? 3 : 5)} x2={xOf(row.side, tk.m)} y2={y} className={tk.minor ? 'rs-tick minor' : 'rs-tick'} />
+                  {keep.has(j) && tk.t && <text x={xOf(row.side, tk.m)} y={y - 6} textAnchor="middle" className="rs-tick-label">{tk.t}</text>}
                 </g>
               ))}
             </g>
           );
         })}
+        {/* the full-width bottom line: 1 + Γ along the real axis, 0 at ORIGIN, 1 at CENTER, 2 at the right rim */}
+        <g className="rs-row">
+          <text x={XL - 6} y={yBottom + 3} textAnchor="end" className="rs-label">TRANSM COEFF E/I</text>
+          <line x1={XL} y1={yBottom} x2={XR} y2={yBottom} className="rs-axis" />
+          {range(0, 2.0001, 0.1).map((v) => {
+            const x = XL + (v / 2) * (XR - XL);
+            const major = Math.round(v * 10) % 5 === 0;
+            return (
+              <g key={`t${v.toFixed(1)}`}>
+                <line x1={x} y1={yBottom - (major ? 5 : 3)} x2={x} y2={yBottom} className={major ? 'rs-tick' : 'rs-tick minor'} />
+                {major && <text x={x} y={yBottom - 6} textAnchor="middle" className="rs-tick-label">{v.toFixed(1)}</text>}
+              </g>
+            );
+          })}
+          <text x={CX} y={yBottom + 13} textAnchor="middle" className="rs-anchor">▲ CENTER</text>
+          <text x={XL} y={yBottom + 13} textAnchor="middle" className="rs-anchor">▲ ORIGIN</text>
+        </g>
         {hasNetwork && Number.isFinite(mL) && (
           <g className="rs-marker load">
-            <line x1={xOf(mL)} y1={rowY(0) - 8} x2={xOf(mL)} y2={H - 22} />
-            <text x={xOf(mL)} y={H - 13} textAnchor="middle">|Γ_L| = {fmtNum(mL, 3)}</text>
+            <line x1={xLeft(mL)} y1={rowY(0) - 8} x2={xLeft(mL)} y2={yBottom + 2} />
+            <text x={xLeft(mL)} y={rowY(0) - 11} textAnchor="middle">|Γ_L| = {fmtNum(mL, 3)}</text>
           </g>
         )}
         {Number.isFinite(mIn) && (
           <g className="rs-marker in">
-            <line x1={xOf(mIn)} y1={rowY(0) - 8} x2={xOf(mIn)} y2={H - 22} />
-            <text x={xOf(mIn)} y={H - 13} textAnchor={mIn > 0.85 ? 'end' : mIn < 0.12 ? 'start' : 'middle'}>|Γ_in| = {fmtNum(mIn, 3)}</text>
+            <line x1={xLeft(mIn)} y1={rowY(0) - 8} x2={xLeft(mIn)} y2={yBottom + 2} />
+            <text x={xLeft(mIn)} y={rowY(0) - 11} textAnchor={mIn > 0.85 ? 'start' : 'middle'}>|Γ_in| = {fmtNum(mIn, 3)}</text>
           </g>
         )}
-        {readout && Number.isFinite(readout.mag) && (() => {
-          // one radius, four readings: draw the line the compass would leave and
-          // print what each row says where the line crosses it
-          const m = Math.min(1, Math.max(0, readout.mag));
-          const ro = readOff({ re: m, im: 0 });
-          const x = xOf(m);
-          const vals = [
-            fmtNum(ro.mag, 3),
-            Number.isFinite(ro.swr) ? fmtNum(ro.swr, 2) : '∞',
-            Number.isFinite(ro.rlDb) ? fmtNum(ro.rlDb, 1) : '∞',
-            fmtNum(ro.reflPct, 1),
-          ];
-          const flagTxt = `▼ อ่านค่าตรงนี้${readout.label ? ` (${readout.label})` : ''}`;
-          const flagW = 12 + flagTxt.length * 6.2;
-          const flagX = Math.min(Math.max(x, x0 + flagW / 2), x1 - flagW / 2);
-          return (
-            <g className={`rs-read ${readout.cls}`}>
-              <g className="rs-read-flag">
-                <rect x={flagX - flagW / 2} y={1} width={flagW} height={15} rx={7.5} />
-                <text x={flagX} y={12.5} textAnchor="middle">{flagTxt}</text>
-              </g>
-              {rows.map((row, i) => (
-                <g key={`rv${row.label}`}>
-                  <circle cx={x} cy={rowY(i)} r={3.2} className="rs-read-dot" />
-                  {/* what this row reads there, kept at the left so it survives a phone's sideways scroll */}
-                  <text x={x0 - 10} y={rowY(i) + 4} textAnchor="end" className="rs-read-val">{vals[i]}</text>
-                </g>
-              ))}
-            </g>
-          );
-        })()}
-        <text x={46} y={H - 2} className="rs-title">RADIALLY SCALED PARAMETERS</text>
+        {readM !== null && readout && ro && (
+          <g className={`rs-read ${readout.cls}`}>
+            {rows.map((row) => (
+              <circle key={`rd${row.label}`} cx={xOf(row.side, readM)} cy={rowY(lineOf(row))} r={3} className="rs-read-dot" />
+            ))}
+            {/* what the compass opening reads on each row, printed once under the strip */}
+            <text x={CX} y={H - 4} textAnchor="middle" className="rs-read-val">
+              {readout.label ? `${readout.label} · ` : ''}|Γ| {fmtNum(ro.mag, 3)} · SWR {fmtInf(ro.swr, 2)} ({fmtInf(swrDb(ro.swr), 1)} dBS) · RL {fmtInf(ro.rlDb, 1)} dB · |Γ|² {fmtNum(ro.mag * ro.mag, 3)} · mismatch {fmtInf(ro.mismatchDb, 2)} dB · transm. {fmtNum(transmPower(ro.mag), 3)}
+            </text>
+          </g>
+        )}
       </svg>
     </div>
   );
@@ -448,6 +493,7 @@ export const ReadOff: React.FC<{ g: Complex; cls: 'load' | 'in'; label?: string;
   const th = arg(g);
   const P = { x: CX + rad * Math.cos(th), y: CY - rad * Math.sin(th) };
   const A = { x: CX + rad, y: CY };
+  const B = { x: CX - rad, y: CY };
   const swrTxt = Number.isFinite(ro.swr) ? fmtNum(ro.swr, 2) : '∞';
   const tiny = rad < 6; // a matched load has no radius to swing
   // put the callout on the side of the axis the swing arc does NOT cross
@@ -482,20 +528,29 @@ export const ReadOff: React.FC<{ g: Complex; cls: 'load' | 'in'; label?: string;
       {!tiny && Math.abs(th) > 1e-4 && (
         <path d={`M${P.x},${P.y} A${rad},${rad} 0 0 ${th > 0 ? 1 : 0} ${A.x},${A.y}`} className="ro-arc" markerEnd="url(#arrowRo)" />
       )}
-      {/* where you read it */}
+      {/* where you read it: the same opening set to the right (r = SWR here) and to the left of centre */}
       <circle cx={A.x} cy={A.y} r={5.5} className="ro-dot" />
-      {/* the line that drops toward the strip below */}
+      {!tiny && <line x1={CX} y1={CY} x2={B.x} y2={B.y} className="ro-mirror" />}
+      {!tiny && <circle cx={B.x} cy={B.y} r={5.5} className="ro-dot" />}
+      {/* the two lines that drop straight onto the strip below: left onto SWR / RL / |Γ|, right onto loss / transmission */}
       <line x1={A.x} y1={A.y} x2={A.x} y2={dropY} className="ro-drop-halo" />
       <line x1={A.x} y1={A.y} x2={A.x} y2={dropY} className="ro-drop" markerEnd="url(#arrowRoDown)" />
+      {!tiny && <line x1={B.x} y1={B.y} x2={B.x} y2={dropY} className="ro-drop-halo" />}
+      {!tiny && <line x1={B.x} y1={B.y} x2={B.x} y2={dropY} className="ro-drop" markerEnd="url(#arrowRoDown)" />}
       <g className="ro-flag">
         <text x={labX} y={labY} textAnchor={anchor}>อ่านค่าตรงนี้ · SWR = {swrTxt}</text>
         <text x={labX} y={subY} textAnchor={anchor} className="ro-flag-sub">
           {label ? `|Γ| ของ ${label} = ` : '|Γ| = '}{fmtNum(ro.mag, 3)}
         </text>
       </g>
-      <text x={A.x + (toLeft ? -7 : 7)} y={VB - 38} textAnchor={anchor} className="ro-drop-label">
-        {ruler ? '↓ อ่านค่าที่เหลือบนแถบ SWR/RL' : '↓ กดปุ่ม "อ่าน SWR/RL" เพื่อดูแถบสเกลเต็ม'}
-      </text>
+      {ruler ? (
+        <>
+          {!tiny && <text x={B.x - 7} y={VB - 38} textAnchor="end" className="ro-drop-label">↓ ฝั่งซ้าย: SWR · dBS · RL · |Γ|</text>}
+          <text x={A.x + 7} y={VB - 38} textAnchor="start" className="ro-drop-label">↓ ฝั่งขวา: loss · transm.</text>
+        </>
+      ) : (
+        <text x={A.x + (toLeft ? -7 : 7)} y={VB - 38} textAnchor={anchor} className="ro-drop-label">↓ กดปุ่ม "อ่าน SWR/RL" เพื่อดูแถบสเกลเต็ม</text>
+      )}
     </g>
   );
 });
