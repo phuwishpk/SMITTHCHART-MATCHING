@@ -10,6 +10,316 @@
         "ch6-missing.mp3"
       ],
       "chars": 261
+    },
+    "intro-about": {
+      "chapter": "intro",
+      "section": "about",
+      "title": "ขอบเขตของเนื้อหาในไฟล์ และ Errata",
+      "hash": "8bf1d738da99",
+      "files": [
+        "intro-about.mp3"
+      ],
+      "chars": 1155
+    },
+    "intro-symbols": {
+      "chapter": "intro",
+      "section": "symbols",
+      "title": "ตัวย่อและสัญลักษณ์ที่ใช้ทั้งเว็บ",
+      "hash": "2f2613076b94",
+      "files": [
+        "intro-symbols.mp3"
+      ],
+      "chars": 486
+    },
+    "intro-concepts": {
+      "chapter": "intro",
+      "section": "concepts",
+      "title": "แนวคิดหลักของบทนำ",
+      "hash": "41abf10dbd19",
+      "files": [
+        "intro-concepts.mp3"
+      ],
+      "chars": 736
+    },
+    "ch1-lumped": {
+      "chapter": "ch1",
+      "section": "lumped",
+      "title": "Lumped vs Distributed (Fig. 1-1, 1-2)",
+      "hash": "47d25e78236b",
+      "files": [
+        "ch1-lumped.mp3"
+      ],
+      "chars": 770
+    },
+    "ch1-wave": {
+      "chapter": "ch1",
+      "section": "wave",
+      "title": "คลื่นเดินทางและเฟเซอร์ (Fig. 1-4 ถึง 1-6)",
+      "hash": "c811171f5e61",
+      "files": [
+        "ch1-wave.mp3"
+      ],
+      "chars": 491
+    },
+    "ch1-gamma": {
+      "chapter": "ch1",
+      "section": "gamma",
+      "title": "Reflection coefficient และ VSWR (Fig. 1-7, 1-8)",
+      "hash": "f472b699f119",
+      "files": [
+        "ch1-gamma.mp3"
+      ],
+      "chars": 333
+    },
+    "ch1-power": {
+      "chapter": "ch1",
+      "section": "power",
+      "title": "กำลังสะท้อน, mismatch loss และ loss เพิ่มจาก SWR (Fig. 1-9, 1-10)",
+      "hash": "aaa19fc6aed1",
+      "files": [
+        "ch1-power.mp3"
+      ],
+      "chars": 526
+    },
+    "ch2-curve": {
+      "chapter": "ch2",
+      "section": "curve",
+      "title": "Impedance bandwidth และ impedance curve (Fig. 2-1 ถึง 2-4)",
+      "hash": "c83fc3012132",
+      "files": [
+        "ch2-curve.mp3"
+      ],
+      "chars": 485
+    },
+    "ch2-stub": {
+      "chapter": "ch2",
+      "section": "stub",
+      "title": "สตับเป็นรีแอกแตนซ์ (Fig. 2-6 ถึง 2-12)",
+      "hash": "f68a591cfe3b",
+      "files": [
+        "ch2-stub.mp3"
+      ],
+      "chars": 919
+    },
+    "ch2-series-stub": {
+      "chapter": "ch2",
+      "section": "series-stub",
+      "title": "Series stub matching: โจทย์ 175/200/225 MHz (Fig. 2-13 ถึง 2-15)",
+      "hash": "5ccabb9383e5",
+      "files": [
+        "ch2-series-stub.mp3"
+      ],
+      "chars": 825
+    },
+    "ch2-shunt-stub": {
+      "chapter": "ch2",
+      "section": "shunt-stub",
+      "title": "Shunt stub จากข้อมูลคลื่นนิ่ง (Fig. 2-16 ถึง 2-19)",
+      "hash": "8302e5f45b5c",
+      "files": [
+        "ch2-shunt-stub.mp3"
+      ],
+      "chars": 629
+    },
+    "ch2-resonant": {
+      "chapter": "ch2",
+      "section": "resonant",
+      "title": "Resonant stub และ boundary circle (Fig. 2-20 ถึง 2-22)",
+      "hash": "70d890baf399",
+      "files": [
+        "ch2-resonant.mp3"
+      ],
+      "chars": 576
+    },
+    "ch2-qwt": {
+      "chapter": "ch2",
+      "section": "qwt",
+      "title": "Quarter-wave transformer 600 Ω → 50 Ω (Fig. 2-23, 2-24)",
+      "hash": "82fdc765cffe",
+      "files": [
+        "ch2-qwt.mp3"
+      ],
+      "chars": 242
+    },
+    "ch2-balun": {
+      "chapter": "ch2",
+      "section": "balun",
+      "title": "Balun (Fig. 2-25 ถึง 2-28)",
+      "hash": "2e95a2941574",
+      "files": [
+        "ch2-balun.mp3"
+      ],
+      "chars": 431
+    },
+    "ch2-loss": {
+      "chapter": "ch2",
+      "section": "loss",
+      "title": "Line attenuation กับ SWR (Fig. 2-29, 2-30)",
+      "hash": "6b242512a266",
+      "files": [
+        "ch2-loss.mp3"
+      ],
+      "chars": 222
+    },
+    "ch3-norm": {
+      "chapter": "ch3",
+      "section": "norm",
+      "title": "จาก R-X diagram สู่ Smith Chart และการ normalize (Fig. 3-1 ถึง 3-6)",
+      "hash": "b8b991c304f5",
+      "files": [
+        "ch3-norm.mp3"
+      ],
+      "chars": 359
+    },
+    "ch3-admit": {
+      "chapter": "ch3",
+      "section": "admit",
+      "title": "Impedance ↔ Admittance (Fig. 3-4, 3-7, 3-8)",
+      "hash": "cb27bcf3f2ee",
+      "files": [
+        "ch3-admit.mp3"
+      ],
+      "chars": 305
+    },
+    "ch3-move": {
+      "chapter": "ch3",
+      "section": "move",
+      "title": "การเคลื่อนจุดเมื่อใส่ L/C อนุกรมหรือขนาน",
+      "hash": "06ff12597d2b",
+      "files": [
+        "ch3-move.mp3"
+      ],
+      "chars": 344
+    },
+    "ch3-rotate": {
+      "chapter": "ch3",
+      "section": "rotate",
+      "title": "หาโหลดจากค่าที่วัดบนสาย: หมุน 0.120 λ (Fig. 3-9, 3-10)",
+      "hash": "9b99af59b176",
+      "files": [
+        "ch3-rotate.mp3"
+      ],
+      "chars": 356
+    },
+    "ch3-swr": {
+      "chapter": "ch3",
+      "section": "swr",
+      "title": "การอ่าน SWR จาก Smith Chart (Fig. 3-11)",
+      "hash": "5717829df27f",
+      "files": [
+        "ch3-swr.mp3"
+      ],
+      "chars": 253
+    },
+    "ch4-lnet": {
+      "chapter": "ch4",
+      "section": "lnet",
+      "title": "L-network 8 รูปแบบ (Fig. 4-1 a–h, 4-3)",
+      "hash": "eff2f4b06b9f",
+      "files": [
+        "ch4-lnet.mp3"
+      ],
+      "chars": 595
+    },
+    "ch4-regions": {
+      "chapter": "ch4",
+      "section": "regions",
+      "title": "เลือก configuration จาก Region บน Smith Chart (Fig. 4-2, 4-7)",
+      "hash": "c195cb5847e3",
+      "files": [
+        "ch4-regions.mp3"
+      ],
+      "chars": 784
+    },
+    "ch4-ex80": {
+      "chapter": "ch4",
+      "section": "ex80",
+      "title": "ตัวอย่าง Z_A = 80 − j40 Ω → 50 Ω ด้วยสายส่ง + shorted shunt stub (Fig. 4-5, 4-6, 4-8)",
+      "hash": "dea70e73a82a",
+      "files": [
+        "ch4-ex80.mp3"
+      ],
+      "chars": 339
+    },
+    "ch5-rules": {
+      "chapter": "ch5",
+      "section": "rules",
+      "title": "กฎทิศทางเมื่อความถี่เปลี่ยน (Tables 5-1 ถึง 5-4)",
+      "hash": "5ad03a93e47f",
+      "files": [
+        "ch5-rules.mp3"
+      ],
+      "chars": 188
+    },
+    "ch5-cases": {
+      "chapter": "ch5",
+      "section": "cases",
+      "title": "ทดลอง L-network ครบ 8 แบบกับโหลด 3 ความถี่ (Tables 5-5 ถึง 5-12, Fig. 5-1 ถึง 5-8)",
+      "hash": "1e34443a790e",
+      "files": [
+        "ch5-cases.mp3"
+      ],
+      "chars": 899
+    },
+    "ch6-ex1": {
+      "chapter": "ch6",
+      "section": "ex1",
+      "title": "Example 1 — Narrowband matching 12.0–12.4 MHz, SWR ≤ 2 (Fig. 6-1)",
+      "hash": "bf4d384d9d5e",
+      "files": [
+        "ch6-ex1.mp3"
+      ],
+      "chars": 775
+    },
+    "ch6-ex2": {
+      "chapter": "ch6",
+      "section": "ex2",
+      "title": "Example 2 — Line transformer 50–54 MHz, SWR ≤ 1.5 (Fig. 6-2 a–c)",
+      "hash": "caea97521be6",
+      "files": [
+        "ch6-ex2.mp3"
+      ],
+      "chars": 961
+    },
+    "ch6-ex3": {
+      "chapter": "ch6",
+      "section": "ex3",
+      "title": "Example 3 — Half-wave 80-m dipole 3.5–4.0 MHz, SWR ≤ 2 (Fig. 6-3 a–e)",
+      "hash": "5ae95c58d30a",
+      "files": [
+        "ch6-ex3.mp3"
+      ],
+      "chars": 1042
+    },
+    "ch6-ex4": {
+      "chapter": "ch6",
+      "section": "ex4",
+      "title": "Example 4 — Vertical 80-m collinear 3.5–4.0 MHz, SWR ≤ 2 (Fig. 6-4 a–c)",
+      "hash": "3b25002e3e73",
+      "files": [
+        "ch6-ex4.mp3"
+      ],
+      "chars": 894
+    },
+    "ch6-ex5": {
+      "chapter": "ch6",
+      "section": "ex5",
+      "title": "Example 5 — Short vertical 10-m antenna 28–30 MHz, SWR ≤ 2 (Fig. 6-5 a, b)",
+      "hash": "b98b4284437b",
+      "files": [
+        "ch6-ex5.mp3"
+      ],
+      "chars": 1032
+    },
+    "ch6-ex6": {
+      "chapter": "ch6",
+      "section": "ex6",
+      "title": "Example 6 — Broadband dipole 2.0–6.0 MHz, SWR ≤ 3 (ไฟล์จบกลางตัวอย่าง)",
+      "hash": "828d04d9401e",
+      "files": [
+        "ch6-ex6.mp3"
+      ],
+      "chars": 836
     }
   }
 }

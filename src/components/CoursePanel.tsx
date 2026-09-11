@@ -4,7 +4,7 @@ import { COURSE, Figure } from '../engine/course';
 import { BASICS } from '../engine/basics';
 import { StepLines, Marked } from './StepLines';
 import { FoldButton } from './FoldButton';
-import { Narration, useNarration } from './Narration';
+import { Narration, NarrationChapter, useNarration } from './Narration';
 import { MiniPlot } from './MiniPlot';
 import { SmithFigure } from './SmithFigure';
 import { SmithFull } from './SmithFull';
@@ -350,6 +350,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
           <h2>{chapter.title}</h2>
           <div className="course-th">{chapter.titleTh}</div>
           <p className="course-intro">{chapter.intro}</p>
+          {!basics && <NarrationChapter manifest={narration} chapter={chapter.id} sections={sections} />}
         </header>
         {sections.map((sec, si) => (
           <section key={sec.id} id={`sec-${sec.id}`} className="course-section">

@@ -33,6 +33,59 @@ export const useNarration = (): Manifest | null => {
  * to back so the reader hears one continuous reading, and the progress text says which part of how
  * many, because a gap between files should not look like the audio has stopped.
  */
+/**
+ * Read a whole chapter without stopping: every section of it, in the order they are on the page.
+ * It reuses the per-section files, so a chapter reading costs nothing extra to produce — and the
+ * label says which section is being read, so a listener can follow along on screen.
+ */
+export const NarrationChapter: React.FC<{
+  manifest: Manifest | null;
+  chapter: string;
+  sections: { id: string; title: string }[];
+}> = ({ manifest, chapter, sections }) => {
+  const audio = useRef<HTMLAudioElement | null>(null);
+  const [at, setAt] = useState<{ sec: number; file: number } | null>(null);
+
+  const queue = React.useMemo(() => {
+    if (!manifest) return [];
+    return sections
+      .map((s, i) => ({ i, title: s.title, files: manifest.items[`${chapter}-${s.id}`]?.files ?? [] }))
+      .filter((s) => s.files.length > 0);
+  }, [manifest, chapter, sections]);
+
+  useEffect(() => () => { audio.current?.pause(); audio.current = null; }, []);
+  useEffect(() => { audio.current?.pause(); audio.current = null; setAt(null); }, [chapter]);
+
+  if (queue.length === 0) return null;
+
+  const stop = () => { audio.current?.pause(); audio.current = null; setAt(null); };
+  const playAt = (sec: number, file: number) => {
+    audio.current?.pause();
+    if (sec >= queue.length) { stop(); return; }
+    if (file >= queue[sec].files.length) { playAt(sec + 1, 0); return; }
+    const el = new Audio(BASE + queue[sec].files[file]);
+    el.onended = () => playAt(sec, file + 1);
+    el.onerror = () => playAt(sec + 1, 0);
+    audio.current = el;
+    setAt({ sec, file });
+    void el.play().catch(stop);
+  };
+
+  const playing = at !== null;
+  return (
+    <div className="narration chapter">
+      <button className={`btn small narrate ${playing ? 'on' : ''}`} onClick={() => (playing ? stop() : playAt(0, 0))}>
+        {playing ? '⏸ หยุดอ่านทั้งบท' : '🔊 ฟังทั้งบท'}
+      </button>
+      <span className="narrate-part">
+        {playing
+          ? `กำลังอ่าน ${(at?.sec ?? 0) + 1} / ${queue.length} · ${queue[at?.sec ?? 0]?.title ?? ''}`
+          : `มีเสียงอ่าน ${queue.length} หัวข้อ`}
+      </span>
+    </div>
+  );
+};
+
 export const Narration: React.FC<{ manifest: Manifest | null; chapter: string; section: string }> = ({ manifest, chapter, section }) => {
   const item = manifest?.items[`${chapter}-${section}`];
   const audio = useRef<HTMLAudioElement | null>(null);
