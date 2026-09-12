@@ -6,7 +6,12 @@
  * ไฟล์นี้ย้ายการแปลไปไว้ที่ jsx runtime แทน ทุกข้อความที่ถูกเรนเดอร์จริงจึงผ่านตัวแปลเสมอ
  * ถ้าไม่มีคำแปล translate() คืนข้อความไทยเดิม หน้าจอจึงไม่มีทางว่างหรือขึ้นเป็นรหัสคีย์
  */
-import { t } from '../engine/i18n';
+/**
+ * ไม่ import ตัวแปลมาตรง ๆ เพราะ dev server พรีบันเดิลไฟล์นี้เป็นสำเนาแยก
+ * ถ้า import จะได้ตารางคำแปลคนละชุดกับแอป จึงรับฟังก์ชันผ่าน globalThis ที่ engine/i18n ลงทะเบียนไว้แทน
+ */
+const store = globalThis as typeof globalThis & { __smithTranslate?: (s: string) => string };
+const t = (s: string): string => (store.__smithTranslate ? store.__smithTranslate(s) : s);
 
 const THAI = /[฀-๿]/;
 

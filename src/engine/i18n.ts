@@ -28,10 +28,17 @@ export const translate = (text: string, lang: Lang): string => {
  * สำเนาภาษาปัจจุบันไว้ระดับโมดูล สำหรับโค้ดที่ไม่ใช่คอมโพเนนต์ (เช่นตัวช่วยจัดรูปแบบข้อความ)
  * คอมโพเนนต์ควรใช้ useT() จาก state/store แทน เพราะต้องรีเรนเดอร์เมื่อเปลี่ยนภาษา
  */
-let current: Lang = 'th';
-export const setLang = (lang: Lang) => { current = lang; };
-export const getLang = (): Lang => current;
-export const t = (text: string): string => translate(text, current);
+/**
+ * เก็บไว้บน globalThis ไม่ใช่ตัวแปรในโมดูล เพราะ dev server อาจโหลดไฟล์นี้เป็นสองสำเนา
+ * (jsx runtime ถูกพรีบันเดิลแยก) ถ้าเก็บในโมดูล ภาษาที่ตั้งจากฝั่งแอปจะไม่ถึงฝั่ง jsx runtime
+ */
+const store = globalThis as typeof globalThis & { __smithLang?: Lang };
+export const setLang = (lang: Lang) => { store.__smithLang = lang; };
+export const getLang = (): Lang => store.__smithLang ?? 'th';
+export const t = (text: string): string => translate(text, getLang());
+
+/** ให้ jsx runtime (ซึ่งอาจถูกโหลดเป็นคนละสำเนา) เรียกตัวแปลชุดเดียวกับแอปได้ */
+(globalThis as typeof globalThis & { __smithTranslate?: (s: string) => string }).__smithTranslate = t;
 
 /** จำนวนคำแปลที่มีอยู่ ใช้ตรวจความคืบหน้าได้จากคอนโซล */
 export const coverage = () => ({ exact: Object.keys(EXACT).length, pattern: Object.keys(PATTERN).length });

@@ -30,6 +30,8 @@ interface Props {
   bCircles?: number[];
   /** shade the interior of r=1 / g=1 circles (used for the L-network region map) */
   regions?: boolean;
+  /** Shade +x / -x in impedance coordinates, independently of grid overlays. */
+  reactanceHalves?: boolean;
   note?: string;
   labels?: { z: Complex; text: string }[];
 }
@@ -44,7 +46,7 @@ const c = (cc: { cx: number; cy: number; r: number }) => {
 };
 
 /** Static Smith-chart figure for the course: coarse grid + explicit points / curves. */
-export const SmithFigure: React.FC<Props> = ({ title, points, curves, swr, showY, rCircles, xCircles, gCircles, bCircles, regions, note, labels }) => {
+export const SmithFigure: React.FC<Props> = ({ title, points, curves, swr, showY, rCircles, xCircles, gCircles, bCircles, regions, reactanceHalves, note, labels }) => {
   const uid = React.useId().replace(/:/g, '');
   const axisTaken = React.useMemo(() => {
     const near = (g: Complex, x: number) => Math.abs(g.re - x) < 0.07 && Math.abs(g.im) < 0.07;
@@ -64,6 +66,12 @@ export const SmithFigure: React.FC<Props> = ({ title, points, curves, swr, showY
           </marker>
         </defs>
         <circle cx={CX} cy={CY} r={R} className="sf-bg" />
+        {reactanceHalves && (
+          <g clipPath={`url(#clip${uid})`} className="sf-reactance-halves" aria-hidden="true">
+            <rect x={CX - R} y={CY - R} width={R * 2} height={R} className="sf-half-inductive" />
+            <rect x={CX - R} y={CY} width={R * 2} height={R} className="sf-half-capacitive" />
+          </g>
+        )}
         {regions && (
           <g clipPath={`url(#clip${uid})`}>
             <circle {...c(rCircle(1))} className="sf-region r" />

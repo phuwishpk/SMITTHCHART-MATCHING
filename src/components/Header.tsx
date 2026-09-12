@@ -62,7 +62,7 @@ export const Header: React.FC = () => {
           </span>
         )}
         {state.view === 'lab' && exLink && (
-          <button className="chip course-link header-link" title={`เปิดเนื้อหาในคอร์ส: ${exLabel}`} onClick={() => dispatch({ type: 'course_section', chapter: exLink.chapter, section: exLink.section })}>
+          <button className="chip course-link header-link" title={`${t("เปิดเนื้อหาในคอร์ส:")} ${exLabel}`} onClick={() => dispatch({ type: 'course_section', chapter: exLink.chapter, section: exLink.section })}>
             📖 <span className="lg">{t("อ่านเนื้อหา ·")} {exLabel.split(' · ')[0]}</span><span className="sm">{t("เนื้อหา")}</span>
           </button>
         )}

@@ -16,7 +16,7 @@ export const Modals: React.FC = () => {
     const label = sectionLabel(link);
     if (!link || !label) return null;
     return (
-      <button className="card-link" title={`เปิดเนื้อหา: ${label}`} onClick={() => dispatch({ type: 'course_section', chapter: link.chapter, section: link.section })}>
+      <button className="card-link" title={`${t("เปิดเนื้อหา:")} ${label}`} onClick={() => dispatch({ type: 'course_section', chapter: link.chapter, section: link.section })}>
         📖 {label}
       </button>
     );

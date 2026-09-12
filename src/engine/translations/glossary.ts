@@ -688,4 +688,10 @@ export const GLOSSARY: Record<string, string> = {
   'อ่านว่า "ควอเตอร์เวฟทรานส์ฟอร์เมอร์" หรือเรียกสั้น ๆ ว่าสาย "แลมบ์ดาส่วนสี่" · บนแผง PALETTE คือปุ่มสีม่วง λ/4 ซึ่งมีช่องกรอกช่องเดียวคือ Z_t และความยาวถูกตรึงไว้ที่ 0.25 λ เสมอ': 'Said "quarter-wave transformer", or for short a "lambda-over-four" line · on the PALETTE panel it is the purple λ/4 button, which has a single input field, Z_t, with the length fixed at 0.25 λ always',
   'โหลดความต้านทานล้วน 100 Ω บนระบบ 50 Ω: ใช้สาย λ/4 ที่มี Z_t = 70.71 Ω ได้ Z_in = 50 Ω SWR = 1.00 (คือ Example 06 ในเว็บนี้) · ถ้าโหลดเป็น 25 + j25 Ω ต้องเดินสาย 50 Ω ไปก่อน 0.162 λ จนเห็น 130.9 Ω ที่เป็นจำนวนจริง แล้วจึงต่อสาย λ/4 ที่มี Z_t = 80.9 Ω จะได้ SWR = 1.000': 'A purely resistive 100 Ω load in a 50 Ω system: use a λ/4 line with Z_t = 70.71 Ω and you get Z_in = 50 Ω, SWR = 1.00 (this is Example 06 in this app) · if the load is 25 + j25 Ω you must first run 0.162 λ of 50 Ω line until you see a purely real 130.9 Ω, and then add a λ/4 line with Z_t = 80.9 Ω to get SWR = 1.000',
   'λ/4 กับ λ/2 ให้ผลตรงข้ามกัน · สาย λ/2 พาจุดกลับมาที่เดิม อิมพีแดนซ์ไม่เปลี่ยนเลย ส่วนสาย λ/4 กลับด้านอิมพีแดนซ์ จุดวิ่งไปอยู่ฝั่งตรงข้ามของกราฟ · และ Z_t ของสายท่อนนี้ต้องไม่เท่ากับ Z₀ ของระบบ ไม่อย่างนั้นจะไม่แปลงอะไรเลย': 'λ/4 and λ/2 do opposite things · a λ/2 line brings the point right back where it was, leaving the impedance unchanged, while a λ/4 line inverts the impedance and sends the point to the opposite side of the chart · and this piece\'s Z_t must not equal the system Z₀, or it will transform nothing at all',
+  '° หรือ rad': '° or rad',
+  'อนุกรม (series)': 'series',
+  'ขนาน (shunt) ↓': 'shunt ↓',
+  '↓ (หลังชื่ออุปกรณ์)': '↓ (after a component name)',
+  'จุดสีแดง / สีเขียว': 'red / green dots',
+  'สายสม่ำเสมอ': 'uniform line',
 };

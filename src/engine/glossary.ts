@@ -949,7 +949,7 @@ export const tip = (id: string): string => {
   if (!e) return '';
   // ภาษาอังกฤษไม่ต้องวงเล็บชื่อซ้ำ เพราะชื่อไทยแปลแล้วกลายเป็นชื่ออังกฤษตัวเดียวกัน
   const name = getLang() === 'en' ? e.name : `${e.nameTh} (${e.name})`;
-  return `${t(e.sym)} — ${name}${e.unit ? ` [${e.unit}]` : ''}\n${t(e.short)}`;
+  return `${t(e.sym)} — ${name}${e.unit ? ` [${t(e.unit)}]` : ''}\n${t(e.short)}`;
 };
 export const glossaryEntry = (id: string): GlossaryEntry | undefined => byId.get(id);
 

@@ -6,6 +6,7 @@
 // the idea of each book figure; they are not copies of the book art.
 // ---------------------------------------------------------------
 import { Circuit, AntennaPoint, CircuitElement, buildCircuit, makeElement } from './circuit';
+import { t } from './i18n';
 import { StepLine } from './explain';
 import { Complex, C, abs, fmtNum } from './complex';
 import { solveCircuit, solveSweep, sweepMaxSwr } from './solver';
@@ -700,7 +701,7 @@ export const sectionLabel = (link: SectionLink | undefined): string => {
   const ch = findChapter(link.chapter);
   const sec = ch?.sections.find((x) => x.id === link.section);
   if (!ch || !sec) return '';
-  return `${ch.num === '0' ? 'บทนำ' : `Ch. ${ch.num}`} · ${sec.title.split('(')[0].trim()}`;
+  return `${ch.num === '0' ? t('บทนำ') : `Ch. ${ch.num}`} · ${t(sec.title).split('(')[0].trim()}`;
 };
 /** cheap sanity check used by the self-test: every figure's numeric data is finite */
 export const courseFiguresFinite = (): { ok: boolean; bad: string[] } => {

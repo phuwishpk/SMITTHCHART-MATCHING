@@ -3,6 +3,7 @@
 // networks and return complete NEW circuits that are matched.
 // ---------------------------------------------------------------
 import { Circuit, CircuitElement, makeElement, isLine, isStub, ELEMENT_SPECS } from './circuit';
+import { t } from './i18n';
 import { Complex, C, abs, fmtNum, fmtEng, isFiniteC } from './complex';
 import { solveCircuit, solveSweep, sweepMaxSwr, findLoadStart } from './solver';
 import { gammaFromZ, normalize, admittance, swrFromGamma } from './rf';
@@ -106,7 +107,7 @@ export const autoMatch = (circuit: Circuit, mode: MatchMode = 'replace'): AutoMa
     if (!Number.isFinite(swr) || swr > 1.2) return null; // must actually match at the design frequency
     return {
       id, kind, title, circuit: c,
-      parts: [...net.map((e) => describe(e, f)), ...(loadEls.length ? [`${mode === 'add' ? 'วงจรเดิมทั้งชุด' : 'โหลดเดิม'}: ${loadEls.map((e) => ELEMENT_SPECS[e.type].symbol + (e.orient === 'shunt' ? '↓' : '')).join(' — ')}`] : [])],
+      parts: [...net.map((e) => describe(e, f)), ...(loadEls.length ? [`${t(mode === 'add' ? 'วงจรเดิมทั้งชุด' : 'โหลดเดิม')}: ${loadEls.map((e) => ELEMENT_SPECS[e.type].symbol + (e.orient === 'shunt' ? '↓' : '')).join(' — ')}`] : [])],
       zin: r.zin, swr,
       bandMaxSwr: hasSweep ? sweepMaxSwr(solveSweep(c)) : undefined,
       notes,
@@ -122,7 +123,7 @@ export const autoMatch = (circuit: Circuit, mode: MatchMode = 'replace'): AutoMa
   if (Math.abs(RL - Z0) / Z0 < 0.02 && Math.abs(XL) > 1e-6) {
     const X = -XL;
     const e = X > 0 ? el('inductor', 'series', { L: nH(X / (2 * Math.PI * f)) }) : el('capacitor', 'series', { C: pF(-1 / (2 * Math.PI * f * X)) });
-    out.push(make('series1', 'series', `อุปกรณ์อนุกรมตัวเดียว: ${X > 0 ? 'L' : 'C'}`, [e], [
+    out.push(make('series1', 'series', `${t('อุปกรณ์อนุกรมตัวเดียว')}: ${X > 0 ? 'L' : 'C'}`, [e], [
       `โหลดอยู่บนวงกลม r = 1 พอดี (R_L ≈ Z₀ = ${fmtNum(Z0)} Ω) จึงเหลือแค่หักล้างรีแอกแตนซ์`,
       `ต้องการ X = ${fmtNum(X, 2)} Ω ที่ ${fmtNum(f / 1e6, 3)} MHz`,
     ]));
@@ -132,7 +133,7 @@ export const autoMatch = (circuit: Circuit, mode: MatchMode = 'replace'): AutoMa
     const b = -yL.im;
     const B = b / Z0;
     const e = B > 0 ? el('capacitor', 'shunt', { C: pF(B / (2 * Math.PI * f)) }) : el('inductor', 'shunt', { L: nH(-1 / (2 * Math.PI * f * B)) });
-    out.push(make('shunt1', 'shunt', `อุปกรณ์ขนานตัวเดียว: ${B > 0 ? 'C' : 'L'}`, [e], [
+    out.push(make('shunt1', 'shunt', `${t('อุปกรณ์ขนานตัวเดียว')}: ${B > 0 ? 'C' : 'L'}`, [e], [
       'โหลดอยู่บนวงกลม g = 1 พอดี จึงเหลือแค่หักล้าง susceptance',
       `ต้องการ b = ${fmtNum(b, 3)} (B = ${fmtNum(B, 5)} S)`,
     ]));
@@ -150,7 +151,7 @@ export const autoMatch = (circuit: Circuit, mode: MatchMode = 'replace'): AutoMa
     const net = sol.topology === 'shunt-first' ? [series, shunt] : [shunt, series];
     const first = sol.topology === 'shunt-first' ? shunt : series;
     const second = sol.topology === 'shunt-first' ? series : shunt;
-    const label = `L-section: ${ELEMENT_SPECS[first.type].symbol}${first.orient === 'shunt' ? ' ขนาน' : ' อนุกรม'} (ชิดโหลด) → ${ELEMENT_SPECS[second.type].symbol}${second.orient === 'shunt' ? ' ขนาน' : ' อนุกรม'}`;
+    const label = `L-section: ${ELEMENT_SPECS[first.type].symbol} ${t(first.orient === 'shunt' ? 'แบบขนาน' : 'แบบอนุกรม')} ${t('(ชิดโหลด)')} → ${ELEMENT_SPECS[second.type].symbol} ${t(second.orient === 'shunt' ? 'แบบขนาน' : 'แบบอนุกรม')}`;
     out.push(make(`l${i}`, 'lsection', label, net, [
       RL > Z0
         ? `R_L = ${fmtNum(RL, 1)} Ω > Z₀ = ${fmtNum(Z0)} Ω → โหลดอยู่ในวงกลม r = 1 จึงเริ่มด้วยอุปกรณ์ขนานเพื่อพาจุดออกไปตัดวงกลม r = 1`

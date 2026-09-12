@@ -10,18 +10,21 @@ import { extname, join, normalize } from 'node:path';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 
-const root = process.argv[2] ?? 'dist';
+const arg = process.argv[2] ?? 'dist';
+/** ชี้ไปที่เซิร์ฟเวอร์ที่รันอยู่ได้ เช่น http://localhost:5173 หรือชี้ไปที่โฟลเดอร์ dist */
+const external = /^https?:\/\//.test(arg) ? arg.replace(/\/$/, '') : null;
+const root = external ? 'dist' : arg;
 const freePort = () => new Promise((res) => { const s = createServer(); s.listen(0, () => { const p = s.address().port; s.close(() => res(p)); }); });
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json', '.woff2': 'font/woff2', '.png': 'image/png' };
 
-const webPort = await freePort();
+const webPort = external ? 0 : await freePort();
 const server = httpServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   let p = normalize(join(root, decodeURIComponent(url.pathname)));
   try { const body = await readFile(p); res.writeHead(200, { 'content-type': MIME[extname(p)] ?? 'application/octet-stream' }); res.end(body); }
   catch { const body = await readFile(join(root, 'index.html')); res.writeHead(200, { 'content-type': 'text/html' }); res.end(body); }
 });
-await new Promise((r) => server.listen(webPort, r));
+if (!external) await new Promise((r) => server.listen(webPort, r));
 
 const cdpPort = await freePort();
 const profile = await mkdtemp(join(tmpdir(), 'thaiscan-'));
@@ -70,13 +73,23 @@ const COLLECT = `(() => {
 
 const seen = new Set();
 const visit = async (hash, label) => {
-  await evaluate(`location.href = ${JSON.stringify(`http://127.0.0.1:${webPort}/${hash}`)}`);
-  await wait(1400);
+  await evaluate(`location.href = ${JSON.stringify(`${external ?? `http://127.0.0.1:${webPort}`}/${hash}`)}`);
+  await wait(1200);
+  // เลื่อนลงทีละจอจนสุดหน้า แล้วรอให้ของที่โหลดตอนมองเห็นได้เรนเดอร์
+  const height = await evaluate('document.body.scrollHeight');
+  for (let y = 0; y < (height ?? 0) + 2200; y += 1600) {
+    await evaluate(`window.scrollTo(0, ${y})`);
+    await wait(320);
+  }
+  await evaluate('window.scrollTo(0, 0)');
+  await wait(500);
   const found = await evaluate(COLLECT);
   for (const s of found ?? []) seen.add(`${label}|${s}`);
 };
 
 await send('Runtime.enable');
+// จอสูงและเลื่อนจนสุด เพื่อให้ส่วนที่เรนเดอร์เมื่อเลื่อนถึง (IntersectionObserver) ถูกนับด้วย
+await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 2200, deviceScaleFactor: 1, mobile: false });
 await visit('?lang=en&view=basics', 'basics');
 for (const ch of ['b0', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'b9', 'b10', 'b11'])
   await visit(`?lang=en&view=basics&bch=${ch}`, ch);
@@ -85,8 +98,12 @@ for (const ch of ['intro', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6'])
   await visit(`?lang=en&view=course&bch=${ch}`, ch);
 await visit('?lang=en', 'lab');
 await visit('?lang=en&y=1&rad=1', 'lab-y');
+for (const m of ['glossary', 'lessons', 'problems', 'examples', 'matching'])
+  await visit(`?lang=en&modal=${m}`, m);
+for (const id of ['L1', 'L5', 'L10', 'L14'])
+  await visit(`?lang=en&lesson=${id}&solution=1&all=1`, `lesson-${id}`);
 
 console.log([...seen].join('\n'));
 console.error(`\nพบข้อความไทยบนหน้าจอ ${seen.size} รายการ`);
-ws.close(); chrome.kill(); server.close(); await rm(profile, { recursive: true, force: true }).catch(() => {});
+ws.close(); chrome.kill(); if (!external) server.close(); await rm(profile, { recursive: true, force: true }).catch(() => {});
 process.exit(0);
