@@ -53,14 +53,68 @@ export const ShuntAdmittanceIntro: React.FC = () => {
   const [b, setB] = useState(0);
   const z = C(0.5, 0.5), y = admittance(z);
   const total = C(y.re, y.im + b), result = admittance(total);
+  // b เป็นบวกคือตัวเก็บประจุ เป็นลบคือตัวเหนี่ยวนำ จึงคิดค่าอุปกรณ์คนละสูตร
+  const B = b / 50;
+  const part = Math.abs(b) < 1e-9 ? t('ยังไม่ได้ใส่อุปกรณ์')
+    : b > 0 ? `C ≈ ${fmtNum(1e12 * B / (2 * Math.PI * 100e6), 2)} ${t('pF ที่ 100 MHz (อุปกรณ์อุดมคติ)')}`
+      : `L ≈ ${fmtNum(1e9 / (2 * Math.PI * 100e6 * Math.abs(B)), 2)} ${t('nH ที่ 100 MHz (อุปกรณ์อุดมคติ)')}`;
   return <div className="reflection-intro">
     <p className="ri-eyebrow">{t("ใช้ Y เพื่อออกแบบจริง • โหลด 25 + j25 Ω บนระบบ 50 Ω ที่ 100 MHz")}</p>
     <h4>{t("ต่อขนานแล้วบวก Y: หักล้าง −j1 ด้วย +j1")}</h4>
-    <div className="adm-parallel" aria-label={t("โหลดกับตัวเก็บประจุต่อขนานกันที่ขั้วเดียวกัน")}><b>{t("ขั้วเข้าสาย 50 Ω")}</b><div><span>{t("แขนงโหลด")}<br /><strong>y = 1 − j1</strong></span><span>{t("แขนง C ขนาน")}<br /><strong>{t("y เพิ่ม = +j")}{fmtNum(b, 2)}</strong></span></div><b>{t("ขั้วกลับร่วมกัน")}</b></div>
+    <div className="adm-parallel" aria-label={t("โหลดกับตัวเก็บประจุต่อขนานกันที่ขั้วเดียวกัน")}><b>{t("ขั้วเข้าสาย 50 Ω")}</b><div><span>{t("แขนงโหลด")}<br /><strong>y = 1 − j1</strong></span><span>{b < 0 ? t("แขนง L ขนาน") : t("แขนง C ขนาน")}<br /><strong>{t("y เพิ่ม =")} {b < 0 ? '−' : '+'}j{fmtNum(Math.abs(b), 2)}</strong></span></div><b>{t("ขั้วกลับร่วมกัน")}</b></div>
     <p>{t("ทั้งสองแขนงมีแรงดันเท่ากัน กระแสรวมจึงเป็นผลบวก: I รวม = V·Y โหลด + V·Y ของ C นั่นทำให้")} <b>{t("Y รวม = Y โหลด + Y ของ C")}</b> {t("โดยตรง")}</p>
-    <label className="lp-slider">{t("เพิ่ม susceptance ปกติของ C: b =")} {fmtNum(b, 2)}<input type="range" min="0" max="2" step="0.01" value={b} onChange={(event) => setB(Number(event.target.value))} /></label>
-    <div className="ri-choices"><button type="button" onClick={() => setB(0)}>{t("ยังไม่ใส่ C")}</button><button type="button" onClick={() => setB(1)}>{t("ใส่ +j1 พอดี")}</button><button type="button" onClick={() => setB(2)}>{t("ใส่มากเกินไป")}</button></div>
-    <div className="ri-reading"><div aria-live="polite"><h4>{t("y รวม =")} {show(total)}</h4><p>{t("g = 1 คงเดิม ส่วน b เปลี่ยนจาก −1 ไปหา 0")}</p><p>{t("กลับเป็น z =")} {show(result)}<br /><b>SWR = {fmtNum(swrFromGamma(gammaFromz(result)), 3)}</b></p><p>C ≈ {fmtNum(b / (50 * 2 * Math.PI * 100e6) * 1e12, 2)} {t("pF ที่ 100 MHz (อุปกรณ์อุดมคติ)")}</p><p>{b === 1 ? 'ตอนนี้ y = 1 + j0 และ z = 1 + j0 แมตช์พอดี' : b < 1 ? 'ยังชดเชยไม่ครบ ลองเพิ่ม C จน b รวมเป็นศูนย์' : 'ชดเชยเกินแล้ว จุดผ่านศูนย์กลางออกไปอีกด้าน ลด C เพื่อกลับมาแมตช์'}</p></div><SmithFigure showY gCircles={[1]} points={[{ z, label: 'ก่อนใส่ C', cls: 'load' }, { z: result, label: 'หลังใส่ C', cls: 'in' }]} curves={[{ zs: Array.from({ length: 51 }, (_, i) => admittance(C(1, -1 + b * i / 50))), cls: 'y', arrow: b > 0 }]} /></div>
+    <label className="lp-slider">{t("เพิ่ม susceptance ปกติของอุปกรณ์ขนาน: b =")} {fmtNum(b, 2)}<input type="range" min="-1" max="2" step="0.01" value={b} onChange={(event) => setB(Number(event.target.value))} /></label>
+    <div className="ri-choices"><button type="button" onClick={() => setB(0)}>{t("ยังไม่ใส่ C")}</button><button type="button" onClick={() => setB(1)}>{t("ใส่ C ให้ +j1 พอดี")}</button><button type="button" onClick={() => setB(2)}>{t("ใส่ C มากเกินไป")}</button><button type="button" onClick={() => setB(-1)}>{t("ใส่ L ขนานแทน (ผิดทาง)")}</button></div>
+    <div className="ri-reading"><div aria-live="polite"><h4>{t("y รวม =")} {show(total)}</h4><p>{t("g = 1 คงเดิมทุกกรณี ส่วน b เปลี่ยนจาก −1")}</p><p>{t("กลับเป็น z =")} {show(result)}<br /><b>SWR = {fmtNum(swrFromGamma(gammaFromz(result)), 3)}</b></p><p>{part}</p><p>{Math.abs(b - 1) < 5e-3 ? 'ตอนนี้ y = 1 + j0 และ z = 1 + j0 แมตช์พอดี' : b < 0 ? 'L ขนานพา b ติดลบลงไปอีก ยิ่งห่างศูนย์กลาง เพราะโหลดตัวนี้มี b ติดลบอยู่แล้ว ต้องใช้ C ที่ให้ b เป็นบวกมาหักล้าง' : b < 1 ? 'ยังชดเชยไม่ครบ ลองเพิ่ม C จน b รวมเป็นศูนย์' : 'ชดเชยเกินแล้ว จุดผ่านศูนย์กลางออกไปอีกด้าน ลด C เพื่อกลับมาแมตช์'}</p></div><SmithFigure showY gCircles={[1]} points={[{ z, label: t('ก่อนใส่อุปกรณ์'), cls: 'load' }, { z: result, label: t('หลังใส่อุปกรณ์'), cls: 'in' }]} curves={[{ zs: Array.from({ length: 51 }, (_, i) => admittance(C(1, -1 + b * i / 50))), cls: 'y', arrow: b > 0 }]} /></div>
     <p className="ri-small">{t("เส้นทางนี้คือวง g คงที่ เนื่องจากเพิ่มอุปกรณ์รีแอกทีฟขนานจริง ต่างจากการหมุน 180° เพื่ออ่านค่า ซึ่งไม่ได้เปลี่ยนวงจร")}</p>
+  </div>;
+};
+
+/**
+ * คู่ของ ShuntAdmittanceIntro สำหรับหัวข้อ 6.5 — ฝั่งอุปกรณ์อนุกรม
+ * ใช้โหลดตัวเดียวกัน จะได้เทียบกันตรง ๆ ว่าอนุกรมไถลบนวง r ส่วนขนานไถลบนวง g
+ * และเห็นว่าอนุกรมตัวเดียวพาโหลดตัวนี้ถึงศูนย์กลางไม่ได้ เพราะ r ไม่เปลี่ยน
+ */
+export const SeriesImpedanceIntro: React.FC = () => {
+  const [xs, setXs] = useState(0);
+  const z = C(0.5, 0.5);
+  const total = C(z.re, z.im + xs);
+  const swr = swrFromGamma(gammaFromz(total));
+  const X = xs * 50;
+  const part = Math.abs(xs) < 1e-9 ? t('ยังไม่ได้ใส่อุปกรณ์')
+    : xs < 0 ? `C ≈ ${fmtNum(1e12 / (2 * Math.PI * 100e6 * Math.abs(X)), 2)} ${t('pF ที่ 100 MHz (อุปกรณ์อุดมคติ)')}`
+      : `L ≈ ${fmtNum(1e9 * X / (2 * Math.PI * 100e6), 2)} ${t('nH ที่ 100 MHz (อุปกรณ์อุดมคติ)')}`;
+  const verdict = Math.abs(xs + 0.5) < 5e-3
+    ? t('x เป็นศูนย์แล้ว จุดลงมานั่งบนแกนนอน แต่ SWR ยังเป็น 2 ไม่ใช่ 1 เพราะ r ยังเท่าเดิมคือ 0.5')
+    : xs > -0.5 ? t('ยังหักล้างไม่ครบ ลองเพิ่มค่า C จน x รวมเป็นศูนย์')
+      : t('หักล้างเกินแล้ว จุดเลยแกนนอนลงไปครึ่งล่าง ลด C เพื่อกลับขึ้นมา');
+  return <div className="reflection-intro">
+    <p className="ri-eyebrow">{t("เทียบกับฝั่งขนานด้านบน • โหลดตัวเดียวกัน 25 + j25 Ω บนระบบ 50 Ω ที่ 100 MHz")}</p>
+    <h4>{t("ต่ออนุกรมแล้วบวก Z: หักล้าง +j0.5 ด้วย −j0.5")}</h4>
+    <div className="adm-series" aria-label={t("อุปกรณ์กับโหลดต่ออนุกรมกัน กระแสตัวเดียวกันไหลผ่านทั้งสอง")}>
+      <b>{t("ขั้วเข้าสาย 50 Ω")}</b>
+      <div>
+        <span>{t("อุปกรณ์อนุกรม")}<br /><strong>{t("z เพิ่ม =")} {xs < 0 ? '−' : '+'}j{fmtNum(Math.abs(xs), 2)}</strong></span>
+        <i aria-hidden="true" />
+        <span>{t("แขนงโหลด")}<br /><strong>z = 0.5 + j0.5</strong></span>
+      </div>
+      <b>{t("ปลายสายไปยังโหลด")}</b>
+    </div>
+    <p>{t("อนุกรมกันแปลว่ากระแสตัวเดียวกันไหลผ่านทั้งสองตัว แรงดันจึงบวกกัน นั่นทำให้")} <b>{t("Z รวม = Z ของอุปกรณ์ + Z โหลด")}</b> {t("โดยตรง")}</p>
+    <label className="lp-slider">{t("เพิ่ม reactance ปกติของอุปกรณ์: x_s =")} {fmtNum(xs, 2)}<input type="range" min="-1.5" max="1" step="0.01" value={xs} onChange={(event) => setXs(Number(event.target.value))} /></label>
+    <div className="ri-choices">
+      <button type="button" onClick={() => setXs(0)}>{t("ยังไม่ใส่อุปกรณ์")}</button>
+      <button type="button" onClick={() => setXs(-0.5)}>{t("ใส่ C ให้ −j0.5 พอดี")}</button>
+      <button type="button" onClick={() => setXs(-1)}>{t("ใส่ C มากเกินไป")}</button>
+      <button type="button" onClick={() => setXs(0.5)}>{t("ใส่ L แทน (ยิ่งแย่)")}</button>
+    </div>
+    <div className="ri-reading"><div aria-live="polite">
+      <h4>{t("z รวม =")} {show(total)}</h4>
+      <p>{t("r = 0.5 คงเดิมทุกกรณี ส่วน x เปลี่ยนจาก +0.5")}</p>
+      <p><b>SWR = {fmtNum(swr, 3)}</b></p>
+      <p>{part}</p>
+      <p>{verdict}</p>
+    </div><SmithFigure rCircles={[0.5]} points={[{ z, label: t('ก่อนใส่อุปกรณ์'), cls: 'load' }, { z: total, label: t('หลังใส่อุปกรณ์'), cls: 'in' }]} curves={[{ zs: Array.from({ length: 51 }, (_, i) => C(z.re, z.im + xs * i / 50)), cls: 'load', arrow: Math.abs(xs) > 1e-9 }]} /></div>
+    <p className="ri-small">{t("จุดไถลอยู่บนวง r = 0.5 ตลอด ไม่ว่าจะใส่ L หรือ C · ค่าที่ดีที่สุดของอุปกรณ์อนุกรมตัวเดียวคือ SWR = 2 ซึ่งยังไม่แมตช์ ต่างจากฝั่งขนานที่ลงศูนย์กลางได้พอดี เพราะโหลดตัวนี้บังเอิญอยู่บนวง g = 1 อยู่แล้ว")}</p>
   </div>;
 };

@@ -1518,6 +1518,11 @@ img, svg, table { max-width: 100%; }
   .fm-system em { left: 12%; }
   .fm-nav button { min-width: 0; }
 }
+.adm-series { max-width: 650px; margin: 20px auto; padding: 14px 20px; text-align: center; }
+.adm-series > div { display: flex; align-items: stretch; justify-content: center; margin: 16px 0; }
+.adm-series span { display: block; flex: 1; padding: 18px 10px; border: 2px solid #93c5fd; border-radius: 12px; background: #fff; }
+.adm-series i { flex: 0 0 34px; align-self: center; height: 2px; background: #2563eb; }
+.adm-series > div::before, .adm-series > div::after { content: ''; align-self: center; flex: 0 0 24px; height: 2px; background: #2563eb; }
 .adm-parallel { max-width: 650px; margin: 20px auto; padding: 14px 20px; border-top: 4px solid #2563eb; border-bottom: 4px solid #2563eb; text-align: center; }
 .adm-parallel > div { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 16px 0; }
 .adm-parallel span { position: relative; display: block; padding: 18px 10px; border: 2px solid #93c5fd; border-radius: 12px; background: #fff; }
@@ -1698,3 +1703,25 @@ img, svg, table { max-width: 100%; }
 
 /* ปุ่มสลับภาษา: แคบกว่าปุ่มอื่นเพราะมีแค่สองตัวอักษร */
 .lang-seg button { padding: 6px 9px; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; }
+.beta-explanation { margin: 20px 0 24px; padding: 22px; border: 1px solid #cbdde9; border-radius: 12px; background: #fff; }
+.beta-explanation h4 { margin-bottom: 10px; }.beta-explanation h5 { font-size: 15px; line-height: 1.6; margin: 0 0 10px; color: #274d66; }
+.beta-explanation p { font-size: 14px; line-height: 1.9; }
+.beta-definitions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0 22px; }
+.beta-definitions > div { border: 1px solid #dbe4ed; border-radius: 9px; background: #f8fafc; padding: 14px; }
+.beta-definitions dt { font-size: 25px; color: #0f766e; font-family: var(--mono); font-weight: 700; }
+.beta-definitions dd { margin: 6px 0 0; font-size: 13px; line-height: 1.8; }.beta-definitions dd span { display: block; margin-top: 6px; color: #536b7f; }
+.beta-two-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }.beta-two-column > div { min-width: 0; }
+.beta-explanation .tex-block { display: block; overflow-x: auto; font-size: 15px; }
+.beta-worked { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; padding: 14px; border-radius: 8px; background: #edf8f5; border-left: 3px solid #0f766e; font-size: 13px; line-height: 1.7; font-variant-numeric: tabular-nums; }
+.beta-worked strong { color: #0f766e; font-size: 17px; }.beta-worked.chart { background: #f4f0ff; border-color: #7c3aed; }.beta-worked.chart strong { color: #6d28d9; }
+.beta-example-table { overflow-x: auto; margin: 18px 0; }.beta-example-table table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }.beta-example-table caption { text-align: left; font-weight: 700; padding: 8px 0; color: #344f65; }.beta-example-table th, .beta-example-table td { padding: 10px 12px; border-bottom: 1px solid #dbe4ed; }.beta-example-table th { background: #f1f5f9; }.beta-example-table tr.selected { background: #eaf7f3; color: #0f766e; font-weight: 700; }
+@media (max-width: 760px) { .beta-explanation { padding: 16px; }.beta-definitions, .beta-two-column { grid-template-columns: minmax(0, 1fr); }.beta-definitions > div { display: grid; grid-template-columns: 45px 1fr; gap: 12px; }.beta-definitions dd { margin: 0; }.beta-explanation .tex-block { font-size: 13px; } }
+
+/* ตัวเลือกรูปแบบ L-network ในบท IV — ปุ่มที่ใช้ไม่ได้ทำให้จางลงแต่ยังกดดูเหตุผลได้ */
+.lnet-picker { flex-wrap: wrap; }
+.lnet-picker button { font-family: var(--mono); font-size: 12px; }
+.lnet-picker button.no { opacity: 0.55; }
+.lnet-explorer .swd-values { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.lnet-inputs { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.lnet-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+.lnet-field input { width: 118px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--mono); font-size: 13px; }

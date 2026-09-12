@@ -11,7 +11,7 @@ import { StepLine } from './explain';
 import { Complex, C, abs, fmtNum } from './complex';
 import { solveCircuit, solveSweep, sweepMaxSwr } from './solver';
 import { gammaFromZ, zFromGamma, normalize, admittance, rotateTowardGenerator, lineInput, swrFromGamma, stubInput, XL, XC } from './rf';
-import { solveSingleStub } from './matching';
+import { solveSingleStub, solveLCases } from './matching';
 import type { PlotSeries } from '../components/MiniPlot';
 import type { SmithPoint, SmithCurve } from '../components/SmithFigure';
 import { GLOSSARY, GROUP_LABEL } from './glossary';
@@ -78,6 +78,38 @@ const DIST_ZL = C(25, 25);
 /** จุดบนวงกลม SWR ตั้งแต่โหลดจนถึงระยะ dMax (หน่วย λ) สำหรับวาดส่วนโค้งการเดินทาง */
 const walkZs = (dMax: number, n = 60): Complex[] =>
   linspace(0, dMax, n).map((d) => normalize(lineInput(DIST_ZL, 50, d, 0), 50));
+
+// ---------- ตัวอย่าง L-network ของบท IV ----------
+// ใช้โหลดตัวเดียวกับที่วาดไว้ในผังวงจรทั้งแปดแบบ จะได้เดินตามจากรูปไปหาค่าจริงได้เลย
+const LN_ZL = C(100, -50);
+const LN_Z0 = 50;
+const LN_F = 100e6;
+const LN_CASES = solveLCases(LN_ZL, LN_Z0, LN_F);
+const LN_A = LN_CASES.find((c) => c.spec.id === 'a');
+const LN_C_CASE = LN_CASES.find((c) => c.spec.id === 'c');
+const LN_zL = normalize(LN_ZL, LN_Z0);
+const LN_yL = admittance(LN_zL);
+const LN_B1 = LN_A?.xb1 ?? 0;
+const LN_X2 = LN_A?.xb2 ?? 0;
+const LN_y1 = C(LN_yL.re, LN_yL.im + LN_B1);
+const LN_z1 = admittance(LN_y1);
+const LN_z2 = C(LN_z1.re, LN_z1.im + LN_X2);
+/** SWR ของจุด z ปกติ */
+const lnSwr = (z: Complex) => swrFromGamma(gammaFromZ(C(z.re * LN_Z0, z.im * LN_Z0), LN_Z0));
+/** อิมพีแดนซ์จริงเป็นโอห์ม */
+const lnZ = (z: Complex) => `${fz(C(z.re * LN_Z0, z.im * LN_Z0), 2)} Ω`;
+/** แอดมิตแตนซ์จริงเป็นมิลลิซีเมนส์ */
+const lnY = (z: Complex) => {
+  const y = admittance(z);
+  return `${fz(C((y.re / LN_Z0) * 1000, (y.im / LN_Z0) * 1000), 3)} mS`;
+};
+/** ค่าอุปกรณ์เป็น nH หรือ pF ตามชนิด */
+const lnPart = (v: number | undefined, kind: 'inductor' | 'capacitor') =>
+  v === undefined ? '—' : kind === 'inductor' ? `${fmtNum(v * 1e9, 2)} nH` : `${fmtNum(v * 1e12, 2)} pF`;
+/** เส้นทางไถลบนวง g คงที่ (อุปกรณ์ขนาน) และวง r คงที่ (อุปกรณ์อนุกรม) */
+const lnShuntPath = (z: Complex, b: number) =>
+  linspace(0, b, 41).map((bb) => admittance(C(admittance(z).re, admittance(z).im + bb)));
+const lnSeriesPath = (z: Complex, x: number) => linspace(0, x, 41).map((xx) => C(z.re, z.im + xx));
 
 // ---------- data from the book (as given in the summary) ----------
 export const EX1_TABLE: AntennaPoint[] = [{ f: 12.0e6, R: 10, X: -60 }, { f: 12.2e6, R: 16.5, X: -55 }, { f: 12.4e6, R: 20, X: -50 }];
@@ -528,16 +560,63 @@ export const COURSE: Chapter[] = [
         lines: [
           T('L-network ใช้ reactive element 2 ตัว (ตัวหนึ่งอนุกรม อีกตัวขนาน) สลับ L/C และลำดับได้ 8 แบบ ตัวที่ต่อชิดโหลดคือ "ตัวแรก": (a) shunt C → series L, (b) series L → shunt C, (c) shunt L → series C, (d) series C → shunt L, (e) shunt C → series C, (f) series C → shunt C, (g) shunt L → series L, (h) series L → shunt L'),
           T('Fig. 4-3 (a–h): วิธีเดินจุดบน Smith Chart ของแต่ละแบบ — ตัวขนานเดินตามวงกลม g คงที่ ตัวอนุกรมเดินตามวงกลม r คงที่ เป้าหมายคือให้ตัวแรกพาจุดไปยังวงกลม r = 1 (ถ้าตัวที่สองเป็นอนุกรม) หรือ g = 1 (ถ้าตัวที่สองเป็นขนาน)'),
+          T(`ต่อไปนี้คือการทำจริงทีละขั้นบน Smith Chart จนได้ค่า L และ C เป็นตัวเลข โดยใช้โหลดตัวเดียวกับที่วาดไว้ในผังทั้งแปดแบบ คือ Z_L = ${lnZ(LN_zL)} ที่ ${fmtNum(LN_F / 1e6, 0)} MHz บนระบบ ${LN_Z0} Ω · ทุกตัวเลขต่อจากนี้คำนวณโดยแอป`),
+          T('ขั้นที่ 1 — normalize แล้วอ่านทั้ง z และ y พร้อมกัน เพราะ z บอกว่าจุดอยู่ในวงกลม r = 1 หรือไม่ ส่วน y บอกว่าอยู่ในวงกลม g = 1 หรือไม่ สองค่านี้เป็นตัวเลือก configuration ให้เอง'),
+          M(`z_L = \\frac{Z_L}{Z_0} = \\frac{${fz(C(LN_ZL.re, LN_ZL.im), 0)}}{${LN_Z0}} = ${fz(LN_zL, 2)} \\qquad y_L = \\frac{1}{z_L} = ${fz(LN_yL, 2)}`),
+          T(`ขั้นที่ 2 — เลือก configuration จากค่า r · ที่นี่ r = ${fmtNum(LN_zL.re, 0)} ซึ่งมากกว่า 1 แปลว่าจุดอยู่ในวงกลม r = 1 · ตัวแรกที่ชิดโหลดจึงต้องเป็นตัวขนานเสมอ เพื่อไถลบนวง g คงที่ออกไปตัดวงกลม r = 1 ก่อน ถ้าเริ่มด้วยตัวอนุกรมจะไถลอยู่บนวง r = ${fmtNum(LN_zL.re, 0)} ตลอด ไม่มีทางถึงศูนย์กลาง`),
+          T(`ตารางแรกด้านล่างไล่ครบทั้ง 8 แบบให้ดู เหลือใช้ได้จริงเพียง ${LN_CASES.filter((c) => c.feasible).length} แบบ คือ ${LN_CASES.filter((c) => c.feasible).map((c) => `(${c.spec.id}) ${c.spec.label}`).join(' และ ')} ที่เหลืออีก ${LN_CASES.filter((c) => !c.feasible).length} แบบตกไปเพราะเครื่องหมายของค่าที่ต้องใช้ไม่ตรงกับชนิด L/C ของวงจรนั้น`),
+          T(`ขั้นที่ 3 — เดินตัวแรก · เลือกแบบ (a) shunt C → series L · ตัวขนานบวกเข้าในโดเมน Y จึงต้องใช้ y_L = ${fz(LN_yL, 2)} เป็นตัวตั้ง แล้วหา b ที่ทำให้ส่วนจริงของ z ที่แปลงกลับเท่ากับ 1 พอดี`),
+          M(`y_1 = y_L + jb_1 = ${fz(LN_yL, 2)} + j${fmtNum(LN_B1, 4)} = ${fz(LN_y1, 4)} \\;\\Rightarrow\\; z_1 = \\frac{1}{y_1} = ${fz(LN_z1, 4)}`),
+          T(`ส่วนจริงเป็น 1 พอดีตามที่ต้องการ จุดจึงมานั่งบนวงกลม r = 1 แล้ว เหลือแต่ส่วนจินตภาพ ${fmtNum(LN_z1.im, 4)} ที่ต้องหักล้าง`),
+          T(`ขั้นที่ 4 — เดินตัวที่สอง · คราวนี้เป็นตัวอนุกรม จึงบวกในโดเมน Z ตรง ๆ ใส่ x ที่มีขนาดเท่ากันแต่เครื่องหมายตรงข้าม`),
+          M(`z_2 = z_1 + jx_2 = ${fz(LN_z1, 4)} + j${fmtNum(LN_X2, 4)} = ${fz(LN_z2, 3)} \\;\\Rightarrow\\; SWR = ${fmtNum(lnSwr(LN_z2), 3)}`),
+          T(`ขั้นที่ 5 — แปลงค่าปกติกลับเป็นอุปกรณ์จริงที่ ${fmtNum(LN_F / 1e6, 0)} MHz · ตัวขนานเป็นตัวเก็บประจุเพราะ b เป็นบวก ส่วนตัวอนุกรมเป็นตัวเหนี่ยวนำเพราะ x เป็นบวก`),
+          M(`C = \\frac{b_1}{2\\pi f Z_0} = \\frac{${fmtNum(LN_B1, 4)}}{2\\pi \\times ${fmtNum(LN_F / 1e6, 0)}\\times10^{6} \\times ${LN_Z0}} = \\text{${lnPart(LN_A?.first, 'capacitor')}}`),
+          M(`L = \\frac{x_2 Z_0}{2\\pi f} = \\frac{${fmtNum(LN_X2, 4)} \\times ${LN_Z0}}{2\\pi \\times ${fmtNum(LN_F / 1e6, 0)}\\times10^{6}} = \\text{${lnPart(LN_A?.second, 'inductor')}}`),
+          R(`\\text{ต่อ C ขนาน ${lnPart(LN_A?.first, 'capacitor')} ที่โหลด แล้วต่อ L อนุกรม ${lnPart(LN_A?.second, 'inductor')} ไปทางแหล่งจ่าย} \\;\\Rightarrow\\; Z_{in} = ${fz(C(LN_z2.re * LN_Z0, LN_z2.im * LN_Z0), 0)}\\,\\Omega`),
+          N(`แบบ (c) shunt L → series C ก็แมตช์ได้เท่ากัน โดยใช้ L ขนาน ${lnPart(LN_C_CASE?.first, 'inductor')} กับ C อนุกรม ${lnPart(LN_C_CASE?.second, 'capacitor')} · เลือกแบบไหนดูจาก bandwidth ที่ต้องการและค่าอุปกรณ์ที่หาซื้อได้จริง ไม่ใช่ดูแค่ว่าแมตช์หรือไม่`),
+          W('ลำดับสำคัญมาก: ตัวที่ชิดโหลดต้องเป็นตัวขนานเท่านั้นสำหรับโหลดตัวนี้ · ถ้าสลับเอา L อนุกรมไปไว้ชิดโหลด จุดจะไถลอยู่บนวง r = 2 ตลอด แล้วตัวขนานตัวหลังก็พากลับมาศูนย์กลางไม่ได้อีก'),
         ],
         figures: [
-          ...(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const).map((id, i) => {
-            const spec = [
-              [['capacitor', 'shunt'], ['inductor', 'series']], [['inductor', 'series'], ['capacitor', 'shunt']], [['inductor', 'shunt'], ['capacitor', 'series']], [['capacitor', 'series'], ['inductor', 'shunt']],
-              [['capacitor', 'shunt'], ['capacitor', 'series']], [['capacitor', 'series'], ['capacitor', 'shunt']], [['inductor', 'shunt'], ['inductor', 'series']], [['inductor', 'series'], ['inductor', 'shunt']],
-            ][i] as [['inductor' | 'capacitor', 'shunt' | 'series'], ['inductor' | 'capacitor', 'shunt' | 'series']];
-            const [first, second] = spec;
-            return { kind: 'circuit', title: `ตามแนวคิด Fig. 4-1(${id}): ${first[1]} ${first[0] === 'inductor' ? 'L' : 'C'} (ชิดโหลด) → ${second[1]} ${second[0] === 'inductor' ? 'L' : 'C'}`, circuit: buildCircuit(100e6, 50, [[second[0], second[1], second[0] === 'inductor' ? { L: 60 } : { C: 30 }], [first[0], first[1], first[0] === 'inductor' ? { L: 60 } : { C: 30 }], ['load', 'series', { R: 100, X: -50 }]]), caption: 'แสดงโครงวงจรเท่านั้น ค่าอุปกรณ์/โหลดในภาพเป็นค่าสมมุติ ไม่ใช่ค่าที่ match' } as Figure;
-          }),
+          { kind: 'table', title: `ไล่ครบทั้ง 8 แบบกับโหลด ${lnZ(LN_zL)} ที่ ${fmtNum(LN_F / 1e6, 0)} MHz — แบบไหนใช้ได้และค่าอุปกรณ์เท่าไร (คำนวณโดยแอป)`,
+            head: ['แบบ', 'ลำดับอุปกรณ์', 'ตัวแรก (ชิดโหลด)', 'ตัวที่สอง (ไปทางแหล่งจ่าย)', 'ผล'],
+            rows: LN_CASES.map((c) => [
+              `(${c.spec.id})`,
+              c.spec.label,
+              c.feasible ? lnPart(c.first, c.spec.first.type) : '—',
+              c.feasible ? lnPart(c.second, c.spec.second.type) : '—',
+              c.feasible ? 'ใช้ได้' : (c.reason ?? 'ใช้ไม่ได้'),
+            ]),
+            caption: `โหลดตัวนี้มี r = ${fmtNum(LN_zL.re, 0)} จึงอยู่ในวงกลม r = 1 · ทุกแบบที่ขึ้นต้นด้วยตัวอนุกรมจึงตกไปทั้งหมด เหลือเฉพาะแบบที่ขึ้นต้นด้วยตัวขนาน และในสองแบบที่เหลือ ชนิด L/C ถูกบังคับด้วยเครื่องหมายของ b และ x ที่ต้องใช้ ไม่ได้เลือกเองได้` },
+          { kind: 'table', title: 'เดินทีละขั้นของแบบ (a) shunt C → series L — ดูทั้ง Z, Y และ SWR พร้อมกัน (คำนวณโดยแอป)',
+            head: ['ขั้น', 'ความถี่', 'Z จริง (Ω)', 'z ปกติ', 'Y จริง (mS)', 'y ปกติ', 'SWR'],
+            rows: [
+              ['0 · โหลดเปล่า', `${fmtNum(LN_F / 1e6, 0)} MHz`, lnZ(LN_zL), fz(LN_zL, 3), lnY(LN_zL), fz(LN_yL, 3), fmtNum(lnSwr(LN_zL), 3)],
+              [`1 · หลัง C ขนาน ${lnPart(LN_A?.first, 'capacitor')}`, `${fmtNum(LN_F / 1e6, 0)} MHz`, lnZ(LN_z1), fz(LN_z1, 3), lnY(LN_z1), fz(LN_y1, 3), fmtNum(lnSwr(LN_z1), 3)],
+              [`2 · หลัง L อนุกรม ${lnPart(LN_A?.second, 'inductor')}`, `${fmtNum(LN_F / 1e6, 0)} MHz`, lnZ(LN_z2), fz(LN_z2, 3), lnY(LN_z2), fz(admittance(LN_z2), 3), fmtNum(lnSwr(LN_z2), 3)],
+            ],
+            caption: `อ่านตามแถว: ขั้นที่ 1 เปลี่ยนเฉพาะ y (ส่วนจริงของ y คงที่ ${fmtNum(LN_yL.re, 1)} เพราะเป็นอุปกรณ์ขนาน) แล้วทำให้ส่วนจริงของ z กลายเป็น 1 พอดี · ขั้นที่ 2 เปลี่ยนเฉพาะ z (ส่วนจริงของ z คงที่ 1 เพราะเป็นอุปกรณ์อนุกรม) แล้วล้างส่วนจินตภาพจนหมด · SWR จึงไล่จาก ${fmtNum(lnSwr(LN_zL), 3)} ไป ${fmtNum(lnSwr(LN_z2), 3)} ซึ่งคือจุดแมตช์` },
+          { kind: 'chart', title: 'เส้นทางบนกราฟของแบบ (a): ไถลบนวง g ก่อน แล้วไถลบนวง r เข้าศูนย์กลาง',
+            showY: true, scale: false, fine: false,
+            rCircles: [1], gCircles: [LN_yL.re],
+            swr: [lnSwr(LN_zL)],
+            points: [
+              { z: LN_zL, label: `โหลด z = ${fz(LN_zL, 1)}`, cls: 'load' },
+              { z: LN_z1, label: `หลัง C ขนาน z = ${fz(LN_z1, 2)}`, cls: 'mid' },
+              { z: LN_z2, label: 'จุดแมตช์ z = 1', cls: 'in' },
+            ],
+            curves: [
+              { zs: lnShuntPath(LN_zL, LN_B1), cls: 'y', arrow: true },
+              { zs: lnSeriesPath(LN_z1, LN_X2), cls: 'load', arrow: true },
+            ],
+            caption: `เส้นแรก (เขียวน้ำเงิน) คือ C ขนาน จุดไถลบนวง g = ${fmtNum(LN_yL.re, 1)} จนไปแตะวงกลม r = 1 · เส้นที่สอง (แดง) คือ L อนุกรม จุดไถลบนวง r = 1 ขึ้นมาจบที่ศูนย์กลาง · วงกลมประคือ SWR เดิมของโหลด (${fmtNum(lnSwr(LN_zL), 3)}) วาดไว้เทียบให้เห็นว่าอุปกรณ์พาจุดออกจากวงนั้น ต่างจากการต่อสายที่วิ่งอยู่บนวงเดิม` },
+          { kind: 'lab', label: `เปิด Lab: วงจรที่แมตช์แล้ว (C ขนาน ${lnPart(LN_A?.first, 'capacitor')} + L อนุกรม ${lnPart(LN_A?.second, 'inductor')})`,
+            circuit: () => buildCircuit(LN_F, LN_Z0, [
+              ['inductor', 'series', { L: (LN_A?.second ?? 0) * 1e9 }],
+              ['capacitor', 'shunt', { C: (LN_A?.first ?? 0) * 1e12 }],
+              ['load', 'series', { R: LN_ZL.re, X: LN_ZL.im }],
+            ]),
+            note: 'กด Explain เพื่อไล่ขั้นตอนเดียวกันนี้ในหน้า Lab แล้วลองกวาดความถี่ดู bandwidth ของวงจร' },
         ],
       },
       {

@@ -4,6 +4,7 @@ import { C, Complex, abs, fmtNum } from '../engine/complex';
 import { gammaFromz, rotateTowardGenerator, swrFromGamma, wtgFromGamma, zFromGamma } from '../engine/rf';
 import { SmithFigure } from './SmithFigure';
 import { Tex } from './Tex';
+import { BetaLengthExplanation } from './BetaLengthExplanation';
 
 const initial = C(0.5, 0.5);
 const gamma = gammaFromz(initial);
@@ -77,6 +78,7 @@ export const DistanceIntro: React.FC = () => {
       <p>{t("จุดวัดจริงห่างโหลด")} {fmtNum(position, 3)} λ<br />SWR = {fmtNum(swr, 3)} {t("เท่าเดิม")}</p>
       <p className="ri-small">{t("สเกลเริ่มต้นเป็นพิกัดรอบกราฟ จึงไม่จำเป็นต้องเริ่มที่เลข 0 แม้เราจะวัดตรงโหลดก็ตาม")}</p>
     </div><div><SmithFigure points={[{ z: initial, label: 'เริ่ม', cls: 'load' }, { z: current, label: 'ปลายทาง', cls: 'in' }]} curves={[{ zs: Array.from({ length: 81 }, (_, i) => at(startDistance + signed * i / 80)), cls: 'net', arrow: distance > 0 }]} swr={[swr]} /><p className="ri-small">{t("กราฟย่อเน้นทิศหมุน ตัวเลขสเกลแสดงในขั้นตอนข้างกราฟ")}<br />{t("ตัวอย่างนี้ใช้สายสม่ำเสมอไร้การสูญเสีย")}</p></div></div>
+    <BetaLengthExplanation distance={distance} towardGenerator={towardGenerator} />
     <div className="ri-takeaway"><b>0.125 λ → 90° • 0.25 λ → 180° • 0.5 λ → 360°</b><p>{t("มุมบนกราฟมาจากเฟสของคลื่นสะท้อนเทียบกับคลื่นเดินหน้า เมื่อย้ายจุดวัด เฟสทั้งสองเปลี่ยนคนละทิศ จึงได้มุมสัมพัทธ์เป็นสองเท่าของ βl")}</p></div>
   </div>;
 };
