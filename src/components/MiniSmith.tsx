@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '../engine/i18n';
 import { SolveResult } from '../engine/solver';
 import { ELEMENT_SPECS } from '../engine/circuit';
 import { abs, fmtNum, isFiniteC } from '../engine/complex';
@@ -55,7 +56,7 @@ export const MiniSmith: React.FC<{ result: SolveResult; showY?: boolean; caption
         {caption && <b>{caption} · </b>}
         z_in = {isFiniteC(result.zin) ? `${fmtNum(result.zin.re, 2)} ${result.zin.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(result.zin.im), 2)}` : '∞'} · SWR {Number.isFinite(result.swrIn) ? fmtNum(result.swrIn, 2) : '∞'}
         {result.matched && (predicted
-          ? <span className="mini-pred"> → ถ้าใส่วงจรนี้จึงจะแมตช์</span>
+          ? <span className="mini-pred"> {t("→ ถ้าใส่วงจรนี้จึงจะแมตช์")}</span>
           : <span className="mini-ok"> ✓ MATCHED</span>)}
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { t } from '../engine/i18n';
 import { useAppState, useDispatch } from '../state/store';
 import { Lesson } from '../engine/lessons';
 import { buildSolution, applySolutionStep, TargetValue } from '../engine/solutions';
@@ -16,7 +17,7 @@ const fmtT = (v: number | undefined, key: string) => (v === undefined ? '—' : 
 const TargetTable: React.FC<{ targets: TargetValue[]; compact?: boolean; hideAnswer?: boolean }> = ({ targets, compact, hideAnswer }) => (
   <table className={`sol-table ${compact ? 'compact' : ''}`}>
     <thead>
-      <tr><th>อุปกรณ์</th><th>ค่า</th>{!hideAnswer && <th>เฉลย</th>}<th>ของคุณ</th><th></th></tr>
+      <tr><th>{t("อุปกรณ์")}</th><th>{t("ค่า")}</th>{!hideAnswer && <th>{t("เฉลย")}</th>}<th>{t("ของคุณ")}</th><th></th></tr>
     </thead>
     <tbody>
       {targets.map((t, i) => (
@@ -47,17 +48,17 @@ export const SolutionActions: React.FC<{ lesson: Lesson; allOk: boolean }> = ({ 
   };
   return (
     <div className="sol-actions">
-      <button className="btn primary small" disabled={allOk} onClick={stepApply} title="ใส่ค่าเฉลยทีละค่า แล้วดูจุดบน Smith Chart ขยับ">
-        ▶ เติมค่าเฉลยถัดไป
+      <button className="btn primary small" disabled={allOk} onClick={stepApply} title={t("ใส่ค่าเฉลยทีละค่า แล้วดูจุดบน Smith Chart ขยับ")}>
+        {t("▶ เติมค่าเฉลยถัดไป")}
       </button>
       <button className="btn small" disabled={allOk} onClick={() => dispatch({ type: 'lesson_solution' })}>
-        ใช้เฉลยทั้งหมด
+        {t("ใช้เฉลยทั้งหมด")}
       </button>
       <button className="btn small" onClick={applyAndExplain}>
-        ใช้เฉลย + อธิบายทีละขั้น
+        {t("ใช้เฉลย + อธิบายทีละขั้น")}
       </button>
       <button className="btn small" onClick={() => dispatch({ type: 'modal', modal: state.modal === 'solution' ? 'none' : 'solution' })}>
-        📖 วิธีทำ
+        {t("📖 วิธีทำ")}
       </button>
     </div>
   );
@@ -84,13 +85,13 @@ export const SmithWalk: React.FC<{ lesson: Lesson; compact?: boolean; steps?: Ex
   return (
     <div className={`walk ${compact ? 'compact' : ''}`}>
       <div className="walk-head">
-        <b>🧭 วิธีทำบน Smith Chart</b>
+        <b>{t("🧭 วิธีทำบน Smith Chart")}</b>
         {!active ? (
-          <button className="btn primary small" onClick={() => { dispatch({ type: 'solution_walk', i: 0 }); dispatch({ type: 'modal', modal: 'none' }); }}>▶ เริ่มไล่ทีละขั้นบนกราฟ</button>
+          <button className="btn primary small" onClick={() => { dispatch({ type: 'solution_walk', i: 0 }); dispatch({ type: 'modal', modal: 'none' }); }}>{t("▶ เริ่มไล่ทีละขั้นบนกราฟ")}</button>
         ) : (
-          <button className="btn small" onClick={() => dispatch({ type: 'solution_walk', i: null })}>✕ ปิดไฮไลต์</button>
+          <button className="btn small" onClick={() => dispatch({ type: 'solution_walk', i: null })}>{t("✕ ปิดไฮไลต์")}</button>
         )}
-        <span className="muted">{walk.length} ขั้น · ไฮไลต์บนแผง SMITH CHART ด้านขวา</span>
+        <span className="muted">{walk.length} {t("ขั้น · ไฮไลต์บนแผง SMITH CHART ด้านขวา")}</span>
       </div>
       <div className="stepper walk-stepper">
         {walk.map((st, i) => (
@@ -104,12 +105,12 @@ export const SmithWalk: React.FC<{ lesson: Lesson; compact?: boolean; steps?: Ex
       </div>
       {cur && (
         <div className="walk-card" ref={cardRef}>
-          <div className="step-head"><span className="step-num">ขั้น {idx + 1}/{walk.length}</span><span className="step-title">{cur.title}</span></div>
+          <div className="step-head"><span className="step-num">{t("ขั้น")} {idx + 1}/{walk.length}</span><span className="step-title">{cur.title}</span></div>
           <StepLines lines={cur.lines} />
           <div className="step-nav">
-            <button className="btn small" disabled={idx <= 0} onClick={() => dispatch({ type: 'solution_walk', i: idx - 1 })}>◀ ก่อนหน้า</button>
+            <button className="btn small" disabled={idx <= 0} onClick={() => dispatch({ type: 'solution_walk', i: idx - 1 })}>{t("◀ ก่อนหน้า")}</button>
             <span className="step-pos">{idx + 1} / {walk.length}</span>
-            <button className="btn small" disabled={idx >= walk.length - 1} onClick={() => dispatch({ type: 'solution_walk', i: idx + 1 })}>ถัดไป ▶</button>
+            <button className="btn small" disabled={idx >= walk.length - 1} onClick={() => dispatch({ type: 'solution_walk', i: idx + 1 })}>{t("ถัดไป ▶")}</button>
           </div>
         </div>
       )}
@@ -126,7 +127,7 @@ export const SolutionRow: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
   const [peek, setPeek] = React.useState(false);
   React.useEffect(() => setPeek(false), [lesson.id]);
   const walk = React.useMemo(() => (lesson.solution ? smithMethodSteps(lesson, lesson.solution()) : []), [lesson]);
-  if (!info) return <div className="sol-row"><span className="muted">บทเรียนนี้ไม่มีเฉลยตายตัว</span></div>;
+  if (!info) return <div className="sol-row"><span className="muted">{t("บทเรียนนี้ไม่มีเฉลยตายตัว")}</span></div>;
   const walkAt = state.solutionStep === null ? -1 : Math.min(state.solutionStep, walk.length - 1);
   const walkDone = walk.length > 0 && walkAt >= walk.length - 1;
   const show = peek || info.allOk || walkDone;
@@ -134,34 +135,34 @@ export const SolutionRow: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
   return (
     <div className="sol-row">
       <div className="sol-head">
-        <b>เฉลย</b>
+        <b>{t("เฉลย")}</b>
         <span className={`sol-status ${info.allOk ? 'ok' : ''}`}>{info.allOk ? '✓ ตรงกับเฉลยทุกค่าแล้ว' : `${info.targets.filter((t) => t.ok).length}/${info.targets.length} ค่าตรงเฉลย${info.structureOk ? '' : ' · โครงวงจรยังไม่ตรง'}`}</span>
-        {state.lastSolutionStep && <span className="sol-last">ล่าสุด: {state.lastSolutionStep}</span>}
+        {state.lastSolutionStep && <span className="sol-last">{t("ล่าสุด:")} {state.lastSolutionStep}</span>}
       </div>
       {show ? (
         <>
-          <div className="sol-reveal-why">เปิดวงจรเฉลยแล้ว เพราะ{why}</div>
+          <div className="sol-reveal-why">{t("เปิดวงจรเฉลยแล้ว เพราะ")}{why}</div>
           <div className="sol-grid">
             <div className="sol-circuit">
-              <CircuitSchematic circuit={info.circuit} result={solveCircuit(info.circuit)} status={info.solutionStatus} title="วงจรเฉลย (✓ = ค่าของคุณตรงแล้ว, ✗ = ยังไม่ตรง/ยังไม่มี)" maxHeight={150} />
+              <CircuitSchematic circuit={info.circuit} result={solveCircuit(info.circuit)} status={info.solutionStatus} title={t("วงจรเฉลย (✓ = ค่าของคุณตรงแล้ว, ✗ = ยังไม่ตรง/ยังไม่มี)")} maxHeight={150} />
             </div>
             <TargetTable targets={info.targets} compact />
           </div>
           <details className="sol-derive-inline" open>
-            <summary>📖 คำอธิบายละเอียดของวงจรนี้</summary>
+            <summary>{t("📖 คำอธิบายละเอียดของวงจรนี้")}</summary>
             <StepLines lines={info.steps} />
           </details>
         </>
       ) : (
         <div className="sol-hidden">
-          <div className="sol-hidden-head">🔒 ยังไม่แสดงวงจรเฉลย</div>
+          <div className="sol-hidden-head">{t("🔒 ยังไม่แสดงวงจรเฉลย")}</div>
           <p>
-            วงจรคือ “คำตอบ” ของบทนี้ จึงเก็บไว้ทีหลัง · ไล่ดูวิธีทำบนกราฟให้ครบทั้ง {walk.length} ขั้นก่อน
+            {t("วงจรคือ “คำตอบ” ของบทนี้ จึงเก็บไว้ทีหลัง · ไล่ดูวิธีทำบนกราฟให้ครบทั้ง")} {walk.length} ขั้นก่อน
             {walkAt >= 0 ? ` (ตอนนี้อยู่ขั้นที่ ${walkAt + 1})` : ''} แล้ววงจรกับค่าทุกตัวจะแสดงพร้อมคำอธิบายละเอียด
           </p>
           <TargetTable targets={info.targets} compact hideAnswer />
-          <div className="sol-hidden-note">ตารางนี้บอกได้ว่าค่าไหนยังไม่ตรง โดยยังไม่บอกตัวเลขเฉลย</div>
-          <button className="btn small" onClick={() => setPeek(true)}>👁 ข้ามไปดูวงจรเฉลยเลย</button>
+          <div className="sol-hidden-note">{t("ตารางนี้บอกได้ว่าค่าไหนยังไม่ตรง โดยยังไม่บอกตัวเลขเฉลย")}</div>
+          <button className="btn small" onClick={() => setPeek(true)}>{t("👁 ข้ามไปดูวงจรเฉลยเลย")}</button>
         </div>
       )}
       <SolutionActions lesson={lesson} allOk={info.allOk} />
@@ -175,7 +176,7 @@ export const SolutionModalBody: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
   const state = useAppState();
   const dispatch = useDispatch();
   const info = buildSolution(lesson, state.circuit);
-  if (!info) return <div className="modal-body">บทเรียนนี้ไม่มีเฉลยตายตัว</div>;
+  if (!info) return <div className="modal-body">{t("บทเรียนนี้ไม่มีเฉลยตายตัว")}</div>;
   const solRes = solveCircuit(info.circuit);
   const stuRes = solveCircuit(state.circuit);
   const needY = info.circuit.elements.some((e) => e.orient === 'shunt');
@@ -183,25 +184,25 @@ export const SolutionModalBody: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
     <div className="modal-body sol-modal">
       <div className="sol-compare">
         <div className="sol-cmp-card yours">
-          <CircuitSchematic circuit={state.circuit} result={stuRes} status={info.studentStatus} title="วงจรของคุณ (ตอนนี้)" maxHeight={170} />
+          <CircuitSchematic circuit={state.circuit} result={stuRes} status={info.studentStatus} title={t("วงจรของคุณ (ตอนนี้)")} maxHeight={170} />
           <MiniSmith result={stuRes} showY={needY} caption="ของคุณ" />
         </div>
         <div className="sol-cmp-card answer">
-          <CircuitSchematic circuit={info.circuit} result={solRes} status={info.solutionStatus} title="วงจรเฉลย" maxHeight={170} />
+          <CircuitSchematic circuit={info.circuit} result={solRes} status={info.solutionStatus} title={t("วงจรเฉลย")} maxHeight={170} />
           <MiniSmith result={solRes} showY={needY} caption="เฉลย" />
         </div>
       </div>
       <div className="sol-cols">
         <div className="sol-derive">
-          <h3>วิธีทำ (คำนวณตามหนังสือ)</h3>
+          <h3>{t("วิธีทำ (คำนวณตามหนังสือ)")}</h3>
           <StepLines lines={info.steps} />
-          <h3 style={{ marginTop: 14 }}>วิธีทำบน Smith Chart (เชิงกราฟ)</h3>
+          <h3 style={{ marginTop: 14 }}>{t("วิธีทำบน Smith Chart (เชิงกราฟ)")}</h3>
           <ol className="walk-list">
             {smithMethodSteps(lesson, info.circuit).map((st, i) => (
               <li key={st.id}>
                 <div className="walk-list-head">
                   <b>{i + 1}. {st.title}</b>
-                  <button className="mini wide" onClick={() => { dispatch({ type: 'solution_walk', i }); dispatch({ type: 'modal', modal: 'none' }); }} title="ปิดหน้านี้แล้วไฮไลต์ขั้นนี้บน Smith Chart">ดูบนกราฟ ▶</button>
+                  <button className="mini wide" onClick={() => { dispatch({ type: 'solution_walk', i }); dispatch({ type: 'modal', modal: 'none' }); }} title={t("ปิดหน้านี้แล้วไฮไลต์ขั้นนี้บน Smith Chart")}>{t("ดูบนกราฟ ▶")}</button>
                 </div>
                 <StepLines lines={st.lines} />
               </li>
@@ -209,7 +210,7 @@ export const SolutionModalBody: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
           </ol>
         </div>
         <div className="sol-side">
-          <h3>ค่าเฉลย</h3>
+          <h3>{t("ค่าเฉลย")}</h3>
           <TargetTable targets={info.targets} />
           <div className="sol-meta">f = {fmtNum(info.circuit.f / 1e6, 4)} MHz · Z₀ = {fmtNum(info.circuit.Z0, 1)} Ω</div>
           <SolutionActions lesson={lesson} allOk={info.allOk} />

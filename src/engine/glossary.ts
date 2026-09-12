@@ -8,6 +8,7 @@ import type { SmithPoint, SmithCurve } from '../components/SmithFigure';
 import type { PlotSeries } from '../components/MiniPlot';
 import type { Circuit } from './circuit';
 import { C, type Complex } from './complex';
+import { getLang, t } from './i18n';
 
 /**
  * A picture for one glossary entry. Each kind reuses a renderer the course already has,
@@ -945,7 +946,10 @@ const byId = new Map(GLOSSARY.map((e) => [e.id, e]));
 /** one-line meaning for a `title` tooltip, e.g. tip('SWR') */
 export const tip = (id: string): string => {
   const e = byId.get(id);
-  return e ? `${e.sym} — ${e.nameTh} (${e.name})${e.unit ? ` [${e.unit}]` : ''}\n${e.short}` : '';
+  if (!e) return '';
+  // ภาษาอังกฤษไม่ต้องวงเล็บชื่อซ้ำ เพราะชื่อไทยแปลแล้วกลายเป็นชื่ออังกฤษตัวเดียวกัน
+  const name = getLang() === 'en' ? e.name : `${e.nameTh} (${e.name})`;
+  return `${t(e.sym)} — ${name}${e.unit ? ` [${e.unit}]` : ''}\n${t(e.short)}`;
 };
 export const glossaryEntry = (id: string): GlossaryEntry | undefined => byId.get(id);
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { t } from '../engine/i18n';
 import { Complex, abs, fmtNum } from '../engine/complex';
 import { voltageWaveSample } from '../engine/voltageWaves';
 
@@ -33,7 +34,7 @@ export const VoltageWavePicture: React.FC<PictureProps> = ({ gamma, phase, showT
   const forwardX = ((cycle % 1) + 1) % 1;
   const backwardX = (((-phase - Math.atan2(gamma.im, gamma.re)) / TAU % 1) + 1) % 1;
   return <svg className="tw-svg" viewBox={`0 0 640 ${height}`} role="img" aria-labelledby={`${id}-title ${id}-desc`}>
-    <title id={`${id}-title`}>คลื่นแรงดันเดินไปทางโหลดและสะท้อนกลับบนสายเดียวกัน</title>
+    <title id={`${id}-title`}>{t("คลื่นแรงดันเดินไปทางโหลดและสะท้อนกลับบนสายเดียวกัน")}</title>
     <desc id={`${id}-desc`}>{`ซ้ายคือเครื่องส่ง ขวาคือโหลด สเกลแรงดันทั้งสามแถวเท่ากัน ${matched ? 'โหลดแมตช์จึงไม่มีคลื่นสะท้อน' : `แอมพลิจูดคลื่นสะท้อนเป็น ${fmtNum(abs(gamma) * 100, 1)} เปอร์เซ็นต์ของคลื่นไป`}`}</desc>
     {lanes.map(lane => <g key={lane.key} className={`tw-lane ${lane.cls}`}>
       <text x="44" y={lane.y - 83} className="tw-lane-title">{lane.title}</text>
@@ -50,13 +51,13 @@ export const VoltageWavePicture: React.FC<PictureProps> = ({ gamma, phase, showT
         <polyline points={points('envelope', lane.y, -1)} />
       </g>}
       {!(lane.key === 'reflected' && matched) && <polyline points={points(lane.key, lane.y)} className="tw-wave" />}
-      {lane.key === 'reflected' && matched && <text x="320" y={lane.y - 12} textAnchor="middle" className="tw-no-reflection">แอมพลิจูดเป็นศูนย์</text>}
+      {lane.key === 'reflected' && matched && <text x="320" y={lane.y - 12} textAnchor="middle" className="tw-no-reflection">{t("แอมพลิจูดเป็นศูนย์")}</text>}
       {lane.key === 'incident' && <circle cx={44 + forwardX * 552} cy={lane.y - 30} r="5" className="tw-crest" />}
       {lane.key === 'reflected' && !matched && <circle cx={44 + backwardX * 552} cy={lane.y - abs(gamma) * 30} r="5" className="tw-crest" />}
     </g>)}
-    <text x="44" y={height - 26} className="tw-endpoint">เครื่องส่ง</text>
-    <text x="596" y={height - 26} textAnchor="end" className="tw-endpoint">โหลด</text>
-    <text x="320" y={height - 5} textAnchor="middle" className="tw-axis-label">ตำแหน่งบนสายช่วงยาว 1 λ · ขึ้น–ลงคือแรงดัน</text>
+    <text x="44" y={height - 26} className="tw-endpoint">{t("เครื่องส่ง")}</text>
+    <text x="596" y={height - 26} textAnchor="end" className="tw-endpoint">{t("โหลด")}</text>
+    <text x="320" y={height - 5} textAnchor="middle" className="tw-axis-label">{t("ตำแหน่งบนสายช่วงยาว 1 λ · ขึ้น–ลงคือแรงดัน")}</text>
   </svg>;
 };
 
@@ -122,25 +123,25 @@ export const TravelingWaveDemo: React.FC<{ gamma: Complex; loadLabel: string }> 
     : 'ตามจุดบนยอดคลื่น: สีน้ำเงินเดินไปทางขวา ส่วนสีส้มเดินกลับทางซ้าย ยอดสีส้มยิ่งเล็กแปลว่าสะท้อนน้อย', [matched]);
 
   return <div className="traveling-wave-demo" ref={container}>
-    <div className="tw-heading"><div><h5>ดูคลื่นเคลื่อนไหวบนสาย</h5><p>สาย 50 Ω → โหลด {loadLabel}</p></div><span className={`tw-status ${playing ? 'playing' : ''}`}>{playing ? 'กำลังเล่น' : 'หยุดภาพ'}</span></div>
+    <div className="tw-heading"><div><h5>{t("ดูคลื่นเคลื่อนไหวบนสาย")}</h5><p>{t("สาย 50 Ω → โหลด")} {loadLabel}</p></div><span className={`tw-status ${playing ? 'playing' : ''}`}>{playing ? 'กำลังเล่น' : 'หยุดภาพ'}</span></div>
     <div className="tw-controls">
       <button type="button" onClick={() => setPlaying(value => !value)}>{playing ? 'Ⅱ หยุดภาพ' : '▶ เล่นคลื่น'}</button>
-      <button type="button" onClick={() => movePhase(phaseRef.current + TAU / 16)}>ทีละจังหวะ →</button>
-      <button type="button" onClick={() => movePhase(0)}>กลับจังหวะเริ่ม</button>
-      <label>ความเร็วภาพ<select value={speed} onChange={e => setSpeed(Number(e.target.value))}><option value={0.25}>ช้ามาก · 0.25×</option><option value={0.5}>ช้า · 0.5×</option><option value={1}>ปกติ · 1×</option><option value={2}>เร็ว · 2×</option></select></label>
+      <button type="button" onClick={() => movePhase(phaseRef.current + TAU / 16)}>{t("ทีละจังหวะ →")}</button>
+      <button type="button" onClick={() => movePhase(0)}>{t("กลับจังหวะเริ่ม")}</button>
+      <label>{t("ความเร็วภาพ")}<select value={speed} onChange={e => setSpeed(Number(e.target.value))}><option value={0.25}>{t("ช้ามาก · 0.25×")}</option><option value={0.5}>{t("ช้า · 0.5×")}</option><option value={1}>{t("ปกติ · 1×")}</option><option value={2}>{t("เร็ว · 2×")}</option></select></label>
     </div>
     <div className="tw-options">
-      <label><input type="checkbox" checked={showTotal} onChange={e => setShowTotal(e.target.checked)} aria-controls={`${id}-picture`} /> ดูคลื่นรวมด้วย</label>
-      {showTotal && <label><input type="checkbox" checked={showEnvelope} onChange={e => setShowEnvelope(e.target.checked)} /> แสดงกรอบขนาดคลื่นรวม</label>}
+      <label><input type="checkbox" checked={showTotal} onChange={e => setShowTotal(e.target.checked)} aria-controls={`${id}-picture`} /> {t("ดูคลื่นรวมด้วย")}</label>
+      {showTotal && <label><input type="checkbox" checked={showEnvelope} onChange={e => setShowEnvelope(e.target.checked)} /> {t("แสดงกรอบขนาดคลื่นรวม")}</label>}
     </div>
     <div id={`${id}-picture`}><VoltageWavePicture gamma={gamma} phase={phase} showTotal={showTotal} showEnvelope={showEnvelope} /></div>
     <p className="tw-feedback" aria-live="polite">{feedback}</p>
     {showTotal && <p>{matched ? 'เมื่อไม่มีคลื่นสะท้อน คลื่นรวมเหมือนคลื่นไป และกรอบขนาดแรงดันราบเท่ากันตลอดสาย' : 'คลื่นสองทิศบวกกันเป็นแรงดันรวมสีเขียว เส้นประเป็นกรอบขนาดแรงดัน จุดที่กรอบสูงและต่ำอยู่ที่เดิม แม้แรงดัน ณ แต่ละจุดยังแกว่งตามเวลา — นี่คือรูปแบบคลื่นนิ่งเมื่อมีการสะท้อน'}</p>}
-    <details className="tw-reading"><summary>วิธีอ่านภาพนี้</summary>
-      <p>ทั้งสามแถวเป็นแรงดันบนสายเส้นเดียวกัน แยกภาพเพื่อให้ตามคลื่นทัน เส้นโค้งขึ้น–ลงแทนแรงดัน ณ ขณะนั้น ตัวสายไม่ได้ขยับตามเส้น และจุดบนยอดคลื่นใช้ติดตามทิศการเคลื่อนของยอด</p>
-      <p>ทุกแถวใช้สเกลเดียวกัน ตั้งแอมพลิจูดคลื่นไปเป็น 1 คลื่นกลับมีแอมพลิจูด {fmtNum(abs(gamma), 3)} เท่า และมีกำลังสะท้อนประมาณ {fmtNum(abs(gamma) ** 2 * 100, 1)}% จึงไม่ควรอ่านเปอร์เซ็นต์กำลังจากความสูงของคลื่นโดยตรง</p>
-      <p>ภาพนี้เป็นคลื่นไซน์ต่อเนื่องหลังระบบอยู่ตัวบนสายไร้การสูญเสีย การเปลี่ยนโหลดจะแสดงสภาพอยู่ตัวของโหลดใหม่ ความเร็วภาพถูกลดลงเพื่อการเรียนรู้ ปุ่มความเร็วไม่เปลี่ยนความถี่หรือค่า SWR ของวงจร</p>
-      <p>หลักการ: <a href="https://eng.libretexts.org/Bookshelves/Electrical_Engineering/Electro-Optics/Book%3A_Electromagnetics_I_%28Ellingson%29/03%3A_Transmission_Lines/3.12%3A_Voltage_Reflection_Coefficient" target="_blank" rel="noreferrer">คลื่นเดินหน้าและคลื่นสะท้อน — Electromagnetics I</a></p>
+    <details className="tw-reading"><summary>{t("วิธีอ่านภาพนี้")}</summary>
+      <p>{t("ทั้งสามแถวเป็นแรงดันบนสายเส้นเดียวกัน แยกภาพเพื่อให้ตามคลื่นทัน เส้นโค้งขึ้น–ลงแทนแรงดัน ณ ขณะนั้น ตัวสายไม่ได้ขยับตามเส้น และจุดบนยอดคลื่นใช้ติดตามทิศการเคลื่อนของยอด")}</p>
+      <p>{t("ทุกแถวใช้สเกลเดียวกัน ตั้งแอมพลิจูดคลื่นไปเป็น 1 คลื่นกลับมีแอมพลิจูด")} {fmtNum(abs(gamma), 3)} {t("เท่า และมีกำลังสะท้อนประมาณ")} {fmtNum(abs(gamma) ** 2 * 100, 1)}{t("% จึงไม่ควรอ่านเปอร์เซ็นต์กำลังจากความสูงของคลื่นโดยตรง")}</p>
+      <p>{t("ภาพนี้เป็นคลื่นไซน์ต่อเนื่องหลังระบบอยู่ตัวบนสายไร้การสูญเสีย การเปลี่ยนโหลดจะแสดงสภาพอยู่ตัวของโหลดใหม่ ความเร็วภาพถูกลดลงเพื่อการเรียนรู้ ปุ่มความเร็วไม่เปลี่ยนความถี่หรือค่า SWR ของวงจร")}</p>
+      <p>{t("หลักการ:")} <a href="https://eng.libretexts.org/Bookshelves/Electrical_Engineering/Electro-Optics/Book%3A_Electromagnetics_I_%28Ellingson%29/03%3A_Transmission_Lines/3.12%3A_Voltage_Reflection_Coefficient" target="_blank" rel="noreferrer">{t("คลื่นเดินหน้าและคลื่นสะท้อน — Electromagnetics I")}</a></p>
     </details>
   </div>;
 };

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { t } from '../engine/i18n';
 import { useAppState, useDispatch, useDerived } from '../state/store';
 import { LESSONS, PROBLEMS, findLesson, AnswerSpec } from '../engine/lessons';
 import { SolutionRow } from './SolutionPanel';
@@ -9,11 +10,11 @@ import { fmtNum } from '../engine/complex';
 
 /** map an answer key to its glossary explanation */
 const ANSWER_TIP: Record<string, string> = {
-  r: tip('r'), x: tip('x'), g: tip('g'), b: tip('b'), gL: tip('g'), bL: tip('b'), bC: tip('b'), bAt: tip('b'), xL: tip('x'),
-  gamma: tip('absGamma'), swr: tip('SWR'), swrL: tip('SWR'), swr175: tip('SWR'),
-  R: tip('R'), X: tip('X'), RL: tip('R'), XL: tip('X'), G: tip('G'), B: tip('B'),
-  L: tip('Lind'), C: tip('Ccap'), Lsh: tip('Lind'), Lse: tip('Lind'), Zt: tip('Zt'), Q: tip('Q'),
-  d: tip('WTG'), l: tip('stub'), rin: tip('r'), xin: tip('x'),
+  r: 'r', x: 'x', g: 'g', b: 'b', gL: 'g', bL: 'b', bC: 'b', bAt: 'b', xL: 'x',
+  gamma: 'absGamma', swr: 'SWR', swrL: 'SWR', swr175: 'SWR',
+  R: 'R', X: 'X', RL: 'R', XL: 'X', G: 'G', B: 'B',
+  L: 'Lind', C: 'Ccap', Lsh: 'Lind', Lse: 'Lind', Zt: 'Zt', Q: 'Q',
+  d: 'WTG', l: 'stub', rin: 'r', xin: 'x',
 };
 
 export const GuidePanel: React.FC = () => {
@@ -51,9 +52,9 @@ export const GuidePanel: React.FC = () => {
   if (!lesson) {
     return (
       <div className="guide empty">
-        <span>🎓 Guided Lab: เลือกบทเรียนเพื่อให้ระบบพาทำทีละขั้น</span>
-        <button className="btn primary small" onClick={() => dispatch({ type: 'modal', modal: 'lessons' })}>เลือกบทเรียน</button>
-        <button className="btn small" onClick={() => dispatch({ type: 'lesson', id: 'l1' })}>เริ่ม Level 1</button>
+        <span>{t("🎓 Guided Lab: เลือกบทเรียนเพื่อให้ระบบพาทำทีละขั้น")}</span>
+        <button className="btn primary small" onClick={() => dispatch({ type: 'modal', modal: 'lessons' })}>{t("เลือกบทเรียน")}</button>
+        <button className="btn small" onClick={() => dispatch({ type: 'lesson', id: 'l1' })}>{t("เริ่ม Level 1")}</button>
       </div>
     );
   }
@@ -74,26 +75,26 @@ export const GuidePanel: React.FC = () => {
         <span className="spacer" />
         <span className="progress">{Math.min(done, total)}/{total}</span>
         <button className="chip" onClick={() => setShowConcept(!showConcept)}>{showConcept ? 'ซ่อนแนวคิด' : 'แนวคิด'}</button>
-        <button className="chip match-chip" title="ให้ระบบออกแบบวงจร matching จากโหลดของโจทย์นี้" onClick={() => dispatch({ type: 'modal', modal: 'matching' })}>⚡ สร้างวงจร matching</button>
+        <button className="chip match-chip" title={t("ให้ระบบออกแบบวงจร matching จากโหลดของโจทย์นี้")} onClick={() => dispatch({ type: 'modal', modal: 'matching' })}>{t("⚡ สร้างวงจร matching")}</button>
         <button className={`chip ${state.showSolution ? 'on' : ''}`} onClick={() => dispatch({ type: 'show_solution', value: !state.showSolution })}>{state.showSolution ? 'ซ่อนเฉลย' : 'เฉลย'}</button>
         {SECTION_LINKS[lesson.id] && (
           <button className="chip course-link" title={`เปิดคอร์ส: ${sectionLabel(SECTION_LINKS[lesson.id])}`} onClick={() => dispatch({ type: 'course_section', chapter: SECTION_LINKS[lesson.id].chapter, section: SECTION_LINKS[lesson.id].section })}>
             📖 {sectionLabel(SECTION_LINKS[lesson.id])}
           </button>
         )}
-        <button className="chip" onClick={() => dispatch({ type: 'lesson', id: lesson.id })}>เริ่มใหม่</button>
-        {nextLesson && <button className={`chip ${complete ? 'on' : ''}`} onClick={() => dispatch({ type: 'lesson', id: nextLesson.id })}>ถัดไป: {lesson.kind === 'problem' ? nextLesson.title.split(' ')[0] : `L${nextLesson.level}`} ▶</button>}
+        <button className="chip" onClick={() => dispatch({ type: 'lesson', id: lesson.id })}>{t("เริ่มใหม่")}</button>
+        {nextLesson && <button className={`chip ${complete ? 'on' : ''}`} onClick={() => dispatch({ type: 'lesson', id: nextLesson.id })}>{t("ถัดไป:")} {lesson.kind === 'problem' ? nextLesson.title.split(' ')[0] : `L${nextLesson.level}`} ▶</button>}
       </div>
       {lesson.kind === 'problem' && lesson.statement && (
         <div className="problem-statement">
-          <b>โจทย์:</b> {lesson.statement}
+          <b>{t("โจทย์:")}</b> {lesson.statement}
         </div>
       )}
       {answerInfo && (
         <div className="answers">
           <div className="answers-grid">
             {answerInfo.rows.map((row) => (
-              <label key={row.spec.key} className={`answer ${state.answersChecked ? (row.ok ? 'ok' : 'bad') : ''}`} title={ANSWER_TIP[row.spec.key] || row.spec.label}>
+              <label key={row.spec.key} className={`answer ${state.answersChecked ? (row.ok ? 'ok' : 'bad') : ''}`} title={ANSWER_TIP[row.spec.key] ? tip(ANSWER_TIP[row.spec.key]) : row.spec.label}>
                 <span className="answer-label">{row.spec.label}</span>
                 <input
                   type="text"
@@ -105,18 +106,18 @@ export const GuidePanel: React.FC = () => {
                 />
                 {row.spec.unit && <span className="answer-unit">{row.spec.unit}</span>}
                 {state.answersChecked && <span className="answer-mark">{row.ok ? '✓' : '✗'}</span>}
-                {state.answersChecked && !row.ok && state.showSolution && <span className="answer-expected">เฉลย {fmtNum(row.expected, 3)}</span>}
+                {state.answersChecked && !row.ok && state.showSolution && <span className="answer-expected">{t("เฉลย")} {fmtNum(row.expected, 3)}</span>}
               </label>
             ))}
           </div>
           <div className="answers-actions">
-            <button className="btn primary small" onClick={() => dispatch({ type: 'answers_checked', value: true })}>✔ ตรวจคำตอบ</button>
+            <button className="btn primary small" onClick={() => dispatch({ type: 'answers_checked', value: true })}>{t("✔ ตรวจคำตอบ")}</button>
             {state.answersChecked && (
               <span className={`answers-result ${answerInfo.allOk ? 'ok' : ''}`}>
                 {answerInfo.allOk ? '✓ ถูกต้องทุกข้อ' : `ถูก ${answerInfo.rows.filter((r) => r.ok).length}/${answerInfo.rows.length} ข้อ${state.showSolution ? '' : ' · กด "เฉลย" เพื่อดูค่าที่ถูกต้อง'}`}
               </span>
             )}
-            <span className="muted">ยอมรับความคลาดเคลื่อน ≈ 2–4 %</span>
+            <span className="muted">{t("ยอมรับความคลาดเคลื่อน ≈ 2–4 %")}</span>
           </div>
         </div>
       )}

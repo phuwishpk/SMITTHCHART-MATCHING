@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react({ jsxImportSource: '@jsx-i18n' })],
+  resolve: { alias: { '@jsx-i18n': fileURLToPath(new URL('./src/jsx-i18n', import.meta.url)) } },
   base: './',
   build: {
     rollupOptions: {

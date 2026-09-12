@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { t } from '../engine/i18n';
 import { Complex, abs, arg, fmtNum, isFiniteC } from '../engine/complex';
 import { rCircle, xCircle, gCircle } from '../engine/smith';
 import {
@@ -251,9 +252,9 @@ export const OuterScales: React.FC = React.memo(() => {
       <circle cx={CX} cy={CY} r={R * RING.wtg[0]} className="scale-ring" />
       <circle cx={CX} cy={CY} r={R * RING.wtl[0]} className="scale-ring" />
       {els}
-      <text x={6} y={14} className="scale-title">WAVELENGTHS TOWARD GENERATOR ⟳ (วงนอก)</text>
-      <text x={VB - 6} y={14} textAnchor="end" className="scale-title">WAVELENGTHS TOWARD LOAD ⟲ (วงนอกสุด)</text>
-      <text x={6} y={VB - 6} className="scale-title">ANGLE OF REFLECTION COEFFICIENT (°) (วงใน)</text>
+      <text x={6} y={14} className="scale-title">{t("WAVELENGTHS TOWARD GENERATOR ⟳ (วงนอก)")}</text>
+      <text x={VB - 6} y={14} textAnchor="end" className="scale-title">{t("WAVELENGTHS TOWARD LOAD ⟲ (วงนอกสุด)")}</text>
+      <text x={6} y={VB - 6} className="scale-title">{t("ANGLE OF REFLECTION COEFFICIENT (°) (วงใน)")}</text>
       <text x={VB - 6} y={VB - 6} textAnchor="end" className="scale-title">IMPEDANCE OR ADMITTANCE COORDINATES</text>
     </g>
   );
@@ -509,7 +510,7 @@ export const RadialScales: React.FC<{
                     <text x={CX} y={H - 20} textAnchor="middle" className="rs-read-val one" style={{ fill: one.tone }}>
                       {readout.label ? `${readout.label} · ` : ''}{one.label} = {one.read(ro, readM)}
                     </text>
-                    <text x={CX} y={H - 6} textAnchor="middle" className="rs-read-about">{one.about}  ·  กดจุดเดิมอีกครั้งเพื่อดูครบทุกแถว</text>
+                    <text x={CX} y={H - 6} textAnchor="middle" className="rs-read-about">{one.about}  {t("·  กดจุดเดิมอีกครั้งเพื่อดูครบทุกแถว")}</text>
                   </>
                 );
               }
@@ -602,7 +603,7 @@ export const ReadOff: React.FC<{ g: Complex; cls: 'load' | 'in'; label?: string;
             </g>
           );
         })}
-        <text x={CX + R * 0.46} y={CY - 27} textAnchor="middle" className="ro-caption">ครึ่งขวาของแกนนอน: ค่า r ตรงนี้ = SWR</text>
+        <text x={CX + R * 0.46} y={CY - 27} textAnchor="middle" className="ro-caption">{t("ครึ่งขวาของแกนนอน: ค่า r ตรงนี้ = SWR")}</text>
       </g>
       )}
       {/* compass radius, then the swing down onto the axis */}
@@ -620,15 +621,15 @@ export const ReadOff: React.FC<{ g: Complex; cls: 'load' | 'in'; label?: string;
       {!tiny && <line x1={B.x} y1={B.y} x2={B.x} y2={dropY} className="ro-drop-halo" />}
       {!tiny && <line x1={B.x} y1={B.y} x2={B.x} y2={dropY} className="ro-drop" markerEnd="url(#arrowRoDown)" />}
       <g className="ro-flag">
-        <text x={labX} y={labY} textAnchor={anchor}>อ่านค่าตรงนี้ · SWR = {swrTxt}</text>
+        <text x={labX} y={labY} textAnchor={anchor}>{t("อ่านค่าตรงนี้ · SWR =")} {swrTxt}</text>
         <text x={labX} y={subY} textAnchor={anchor} className="ro-flag-sub">
-          {label ? `|Γ| ของ ${label} = ` : '|Γ| = '}{fmtNum(ro.mag, 3)}
+          {label ? `${t('|Γ| ของ')} ${t(label)} = ` : '|Γ| = '}{fmtNum(ro.mag, 3)}
         </text>
       </g>
       {ruler ? (
         <>
-          {!tiny && <text x={B.x - 7} y={VB - 38} textAnchor="end" className="ro-drop-label">↓ ฝั่งซ้าย: SWR · dBS · RL · |Γ|</text>}
-          <text x={A.x + 7} y={VB - 38} textAnchor="start" className="ro-drop-label">↓ ฝั่งขวา: loss · transm.</text>
+          {!tiny && <text x={B.x - 7} y={VB - 38} textAnchor="end" className="ro-drop-label">{t("↓ ฝั่งซ้าย: SWR · dBS · RL · |Γ|")}</text>}
+          <text x={A.x + 7} y={VB - 38} textAnchor="start" className="ro-drop-label">{t("↓ ฝั่งขวา: loss · transm.")}</text>
         </>
       ) : (
         <text x={A.x + (toLeft ? -7 : 7)} y={VB - 38} textAnchor={anchor} className="ro-drop-label">↓ กดปุ่ม "อ่าน SWR/RL" เพื่อดูแถบสเกลเต็ม</text>

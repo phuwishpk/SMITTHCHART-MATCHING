@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '../engine/i18n';
 import { Complex, abs, isFiniteC, fmtNum } from '../engine/complex';
 import { rCircle, xCircle, gCircle, bCircle, toSvg, pathToPoints } from '../engine/smith';
 import { gammaFromz, swrFromGamma, magFromSwr } from '../engine/rf';
@@ -69,7 +70,7 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
     return (
       <div className="smith-full">
         {title && <div className="sf-title">{title}</div>}
-        <div className="sf-scrollhint">↔ เลื่อนซ้าย–ขวาเพื่อดูกราฟทั้งใบ</div>
+        <div className="sf-scrollhint">{t("↔ เลื่อนซ้าย–ขวาเพื่อดูกราฟทั้งใบ")}</div>
         <div className="smith-full-scroll">
           <svg ref={chartSvgRef} viewBox={`0 0 ${VB} ${VB}`} className={`smith-svg ${fine ? 'fine' : 'coarse'}${grid === 'full' ? '' : ' plain'}`} width="100%">
             <defs>
@@ -209,7 +210,7 @@ export const SmithFull: React.FC<SmithFullProps> = React.memo(
         {note && <div className="sf-note">{note}</div>}
         {table && points && points.length > 0 && (
           <table className="cf-table">
-            <thead><tr><th>จุด</th><th>z</th><th>|Γ|</th><th>SWR</th></tr></thead>
+            <thead><tr><th>{t("จุด")}</th><th>z</th><th>|Γ|</th><th>SWR</th></tr></thead>
             <tbody>
               {points.map((pt, i) => {
                 const g = gammaFromz(pt.z);

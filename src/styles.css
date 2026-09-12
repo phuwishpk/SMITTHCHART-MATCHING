@@ -723,7 +723,7 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
 .course-nav {
   background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
   overflow: auto; display: flex; flex-direction: column;
-  align-self: start; position: sticky; top: 70px; max-height: calc(100vh - 85px);
+  align-self: start; position: sticky; top: calc(var(--header-h, 55px) + 15px); max-height: calc(100vh - var(--header-h, 55px) - 30px);
 }
 .course-here { display: none; }
 .course-progress { height: 3px; background: #e2e8f0; border-radius: 2px; overflow: hidden; }
@@ -940,7 +940,8 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
   .course-here {
     display: block;
     position: sticky;
-    top: 55px;
+    /* ตรึงใต้แถบหัวพอดี ไม่ใช่เลขคงที่ เพราะแถบหัวสูงไม่เท่ากันในแต่ละขนาดจอ */
+    top: var(--header-h, 55px);
     z-index: 6;
     background: #fff;
     margin: -10px -10px 15px -10px;
@@ -965,7 +966,8 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
   }
   .course-progress { margin: 0 10px 6px; }
   .course-nav { display: none; max-height: 62vh; }
-  .course.nav-open .course-nav { display: flex; position: sticky; top: 90px; z-index: 5; }
+  /* 60px คือความสูงของแถบบอกตำแหน่ง (.course-here) ที่อยู่เหนือมัน */
+  .course.nav-open .course-nav { display: flex; position: sticky; top: calc(var(--header-h, 55px) + 60px); z-index: 5; }
 }
 
 /* ---------- review fixes ---------- */
@@ -1681,4 +1683,7 @@ img, svg, table { max-width: 100%; }
 }
 .fx-reading { scroll-margin-top: 16px; }
 .fx-reading-bottom { padding: 16px 24px; border-top: 1px solid #dbe4ed; background: #f0f8ff; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; line-height: 1.7; }
-@media (max-width: 1080px) { .fx-reading { scroll-margin-top: 160px; } }
+@media (max-width: 1080px) { .fx-reading { scroll-margin-top: calc(var(--header-h, 55px) + 70px); } }
+
+/* ปุ่มสลับภาษา: แคบกว่าปุ่มอื่นเพราะมีแค่สองตัวอักษร */
+.lang-seg button { padding: 6px 9px; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; }

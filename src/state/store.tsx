@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
+import { Lang, setLang, translate } from '../engine/i18n';
 import { Circuit, ElementType, Orientation, makeElement, emptyCircuit, ELEMENT_SPECS, cloneCircuit } from '../engine/circuit';
 import { EXAMPLES, findLesson } from '../engine/lessons';
 import { solveCircuit, SolveResult, solveSweep, SweepPoint } from '../engine/solver';
@@ -40,6 +41,8 @@ export interface State {
   showFine: boolean;
   showRadial: boolean;
   showSweep: boolean;
+  /** ภาษาของหน้าจอ: ไทย หรือ อังกฤษ */
+  lang: Lang;
   /** main view: the lab or the Antenna Impedance Matching course */
   view: 'lab' | 'course' | 'basics';
   courseChapter: string;
@@ -71,6 +74,7 @@ export interface State {
 }
 
 export type Action =
+  | { type: 'lang'; lang: Lang }
   | { type: 'set_circuit'; circuit: Circuit; select?: string | null }
   | { type: 'add'; elType: ElementType; index: number; orient?: Orientation }
   | { type: 'remove'; id: string }
@@ -135,6 +139,7 @@ const defaultState = (): State => ({
   view: 'lab',
   courseChapter: 'intro',
   courseSection: null,
+  lang: 'th',
   basicsChapter: 'b1',
   basicsSection: null,
   exampleId: null,
@@ -175,6 +180,7 @@ const applyQuery = (s: State): State => {
     if (q.get('solution') === '1') out = { ...out, showSolution: true };
     if (q.get('solution') === 'modal') out = { ...out, showSolution: true, modal: 'solution' };
     if (['problems', 'lessons', 'examples', 'glossary', 'matching'].includes(q.get('modal') ?? '')) out = { ...out, modal: q.get('modal') as State['modal'] };
+    if (q.get('lang') === 'en' || q.get('lang') === 'th') out = { ...out, lang: q.get('lang') as Lang };
     if (q.get('view') === 'course') out = { ...out, view: 'course' };
     if (q.get('view') === 'basics') out = { ...out, view: 'basics' };
     const bch = q.get('bch');
@@ -219,7 +225,15 @@ const applyQuery = (s: State): State => {
   }
 };
 
-const loadState = (): State => applyQuery(loadStored());
+/**
+ * ต้องตั้งภาษาให้ตัวแปลระดับโมดูลตั้งแต่ก่อนเรนเดอร์รอบแรก
+ * ถ้ารอไปตั้งใน useEffect รอบแรกจะวาดเป็นภาษาไทยไปแล้ว และส่วนที่ไม่ถูกเรนเดอร์ซ้ำจะค้างเป็นไทย
+ */
+const loadState = (): State => {
+  const state = applyQuery(loadStored());
+  setLang(state.lang);
+  return state;
+};
 
 const loadStored = (): State => {
   const base = defaultState();
@@ -383,6 +397,9 @@ export const reducer = (s: State, a: Action): State => {
       return { ...s, dragging: a.value };
     case 'maximize':
       return { ...s, maximized: a.panel };
+    case 'lang':
+      setLang(a.lang);
+      return { ...s, lang: a.lang };
     case 'collapse':
       return { ...s, collapsed: { ...s.collapsed, [a.panel]: a.value ?? !s.collapsed[a.panel] } };
     case 'swr_target':
@@ -432,10 +449,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return { result, steps, sweep };
   }, [state.circuit]);
 
+  // ภาษาที่มาจาก URL หรือจาก localStorage ไม่ได้ผ่าน reducer จึงต้องซิงก์สำเนาระดับโมดูลเองทุกครั้ง
+  // ไม่งั้น t() ที่คอมโพเนนต์เรียกตรง ๆ จะยังคืนภาษาไทยแม้หน้าจอจะอยู่โหมดอังกฤษ
+  useEffect(() => { setLang(state.lang); }, [state.lang]);
   useEffect(() => {
     try {
-      const { circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, basicsChapter, markers, collapsed } = state;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, basicsChapter, markers, collapsed }));
+      const { circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, basicsChapter, markers, collapsed, lang } = state;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit, mode, lessonId, lessonDone, showZ, showY, showSwr, showPath, showScale, showFine, showRadial, showSweep, swrTarget, selectedId, answers, courseChapter, basicsChapter, markers, collapsed, lang }));
     } catch {
       /* ignore */
     }
@@ -464,4 +484,10 @@ export const useDerived = (): Derived => {
   const v = useContext(DerivedCtx);
   if (!v) throw new Error('StoreProvider missing');
   return v;
+};
+
+/** ฟังก์ชันแปลสำหรับคอมโพเนนต์ รีเรนเดอร์เองเมื่อผู้ใช้เปลี่ยนภาษา */
+export const useT = () => {
+  const { lang } = useAppState();
+  return React.useCallback((text: string) => translate(text, lang), [lang]);
 };

@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '../engine/i18n';
 import { fmtNum } from '../engine/complex';
 
 /** |V(d)| and |I(d)| standing-wave envelope on a lossless line for a given load reflection coefficient. */
@@ -34,9 +35,9 @@ export const WaveFigure: React.FC<{ gammaMag: number; gammaDeg?: number; len?: n
         ))}
         <polyline points={pts.map((p) => `${xOf(p.d).toFixed(1)},${yOf(p.v).toFixed(1)}`).join(' ')} className="mp-line" style={{ stroke: '#2563eb' }} />
         <polyline points={pts.map((p) => `${xOf(p.d).toFixed(1)},${yOf(p.i).toFixed(1)}`).join(' ')} className="mp-line" style={{ stroke: '#d97706', strokeDasharray: '4 3' }} />
-        <text x={pad} y={top - 8} className="mp-tick wave-legend">|V| (น้ำเงิน) · |I| (ส้ม) · |Γ| = {fmtNum(gammaMag, 2)} · VSWR = {Number.isFinite(swr) ? fmtNum(swr, 2) : '∞'}</text>
-        <text x={pad} y={H - 4} className="mp-axis">← ไปทาง generator</text>
-        <text x={W - pad} y={H - 4} textAnchor="end" className="mp-axis">โหลด (d = 0)</text>
+        <text x={pad} y={top - 8} className="mp-tick wave-legend">{t("|V| (น้ำเงิน) · |I| (ส้ม) · |Γ| =")} {fmtNum(gammaMag, 2)} · VSWR = {Number.isFinite(swr) ? fmtNum(swr, 2) : '∞'}</text>
+        <text x={pad} y={H - 4} className="mp-axis">{t("← ไปทาง generator")}</text>
+        <text x={W - pad} y={H - 4} textAnchor="end" className="mp-axis">{t("โหลด (d = 0)")}</text>
       </svg>
     </div>
   );

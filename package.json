@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "tsx src/engine/selftest.ts",
     "tts": "node scripts/tts.mjs",
-    "pdf": "tsx scripts/build-course-pdf.tsx docs/smith-chart-basics-course.html && node scripts/print-pdf.mjs \"$PWD/docs/smith-chart-basics-course.html\" \"$PWD/docs/smith-chart-basics-course.pdf\""
+    "pdf": "tsx scripts/build-course-pdf.tsx docs/smith-chart-basics-course.html && node scripts/print-pdf.mjs \"$PWD/docs/smith-chart-basics-course.html\" \"$PWD/docs/smith-chart-basics-course.pdf\"",
+    "scan:th": "node scripts/scan-thai.mjs dist"
   },
   "dependencies": {
     "katex": "^0.16.22",

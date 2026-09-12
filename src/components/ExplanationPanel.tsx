@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { t } from '../engine/i18n';
 import { useAppState, useDispatch, useDerived } from '../state/store';
 import { ExplainStep } from '../engine/explain';
 import { Line } from './StepLines';
@@ -58,7 +59,7 @@ export const ExplanationPanel: React.FC = () => {
             {auto ? '⏸ หยุด' : '⏵ เล่นอัตโนมัติ'}
           </button>
           <button className={`chip ${state.explainAll ? 'on' : ''}`} onClick={() => dispatch({ type: 'explain_all', value: !state.explainAll })}>
-            แสดงทุกขั้น
+            {t("แสดงทุกขั้น")}
           </button>
           <MaxButton panel="explain" />
         </div>
@@ -85,9 +86,9 @@ export const ExplanationPanel: React.FC = () => {
             <div className="step-single">
               <StepCard step={step} n={idx + 1} active />
               <div className="step-nav">
-                <button className="btn small" disabled={idx === 0} onClick={() => dispatch({ type: 'explain_step', i: idx - 1 })}>◀ ก่อนหน้า</button>
+                <button className="btn small" disabled={idx === 0} onClick={() => dispatch({ type: 'explain_step', i: idx - 1 })}>{t("◀ ก่อนหน้า")}</button>
                 <span className="step-pos">{idx + 1} / {steps.length}</span>
-                <button className="btn small" disabled={idx >= steps.length - 1} onClick={() => dispatch({ type: 'explain_step', i: idx + 1 })}>ถัดไป ▶</button>
+                <button className="btn small" disabled={idx >= steps.length - 1} onClick={() => dispatch({ type: 'explain_step', i: idx + 1 })}>{t("ถัดไป ▶")}</button>
               </div>
             </div>
           )

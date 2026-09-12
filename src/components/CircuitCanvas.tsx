@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { t } from '../engine/i18n';
 import { useAppState, useDispatch, useDerived } from '../state/store';
 import { CircuitElement, ELEMENT_SPECS, ElementType, isLine, isStub, antennaZ } from '../engine/circuit';
 import { fmtNum } from '../engine/complex';
@@ -62,7 +63,7 @@ export const valueLabel = (el: CircuitElement, f: number): string => {
     case 'antenna': {
       const z = antennaZ(el.table, f);
       const n = el.table?.length ?? 0;
-      return `${n} จุด · ${fmtNum(z.re, 1)} ${z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(z.im), 1)} Ω @ ${fmtNum(f / 1e6, 2)} MHz`;
+      return `${n} ${t('จุด')} · ${fmtNum(z.re, 1)} ${z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(z.im), 1)} Ω @ ${fmtNum(f / 1e6, 2)} MHz`;
     }
     default:
       return '';
@@ -266,11 +267,11 @@ export const CircuitCanvas: React.FC = () => {
         <button className="btn ghost" onClick={() => dispatch({ type: 'select', id: 'source' })}>
           ⚙ <span className="lg">Source</span><span className="sm">Src</span>
         </button>
-        <button className="btn ghost danger" onClick={() => dispatch({ type: 'set_circuit', circuit: { ...circuit, elements: [] }, select: null })} title="ล้างอุปกรณ์ทั้งหมด">
-          ✕ <span className="lg">ล้างวงจร</span><span className="sm">ล้าง</span>
+        <button className="btn ghost danger" onClick={() => dispatch({ type: 'set_circuit', circuit: { ...circuit, elements: [] }, select: null })} title={t("ล้างอุปกรณ์ทั้งหมด")}>
+          ✕ <span className="lg">{t("ล้างวงจร")}</span><span className="sm">{t("ล้าง")}</span>
         </button>
-        <button className="btn match" title="ออกแบบวงจร matching จากโหลดปัจจุบัน แล้วเปลี่ยนเป็นวงจรใหม่ที่แมตช์" onClick={() => { if (state.maximized) dispatch({ type: 'maximize', panel: null }); dispatch({ type: 'modal', modal: 'matching' }); }}>
-          ⚡ <span className="lg">สร้างวงจร matching</span><span className="sm">matching</span>
+        <button className="btn match" title={t("ออกแบบวงจร matching จากโหลดปัจจุบัน แล้วเปลี่ยนเป็นวงจรใหม่ที่แมตช์")} onClick={() => { if (state.maximized) dispatch({ type: 'maximize', panel: null }); dispatch({ type: 'modal', modal: 'matching' }); }}>
+          ⚡ <span className="lg">{t("สร้างวงจร matching")}</span><span className="sm">matching</span>
         </button>
         <button className="btn primary" onClick={() => startExplain(dispatch, state.maximized)}>
           ▶ <span className="lg">Explain this circuit</span><span className="sm">Explain</span>
@@ -321,8 +322,8 @@ export const CircuitCanvas: React.FC = () => {
           {circuit.elements.length === 0 && (
             <g className="empty-hint">
               <rect x={X0} y={RAIL_Y - 36} width={360} height={72} rx={12} />
-              <text x={X0 + 180} y={RAIL_Y - 6} textAnchor="middle">ลากอุปกรณ์จาก COMPONENTS มาวางบนสายนี้</text>
-              <text x={X0 + 180} y={RAIL_Y + 18} textAnchor="middle" className="small">วางบนสาย = อนุกรม · วางใต้สาย = ขนานลงกราวด์</text>
+              <text x={X0 + 180} y={RAIL_Y - 6} textAnchor="middle">{t("ลากอุปกรณ์จาก COMPONENTS มาวางบนสายนี้")}</text>
+              <text x={X0 + 180} y={RAIL_Y + 18} textAnchor="middle" className="small">{t("วางบนสาย = อนุกรม · วางใต้สาย = ขนานลงกราวด์")}</text>
             </g>
           )}
 
@@ -503,7 +504,7 @@ export const CircuitCanvas: React.FC = () => {
                     >
                       <rect x={z.x - 18} y={RAIL_Y + 30} width={36} height={78} rx={6} />
                       <text x={z.x} y={RAIL_Y + 62} textAnchor="middle">⏚</text>
-                      <text x={z.x} y={RAIL_Y + 96} textAnchor="middle" className="zone-small">ขนาน</text>
+                      <text x={z.x} y={RAIL_Y + 96} textAnchor="middle" className="zone-small">{t("ขนาน")}</text>
                     </g>
                   )}
                 </g>

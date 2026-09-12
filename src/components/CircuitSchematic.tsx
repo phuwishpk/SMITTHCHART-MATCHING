@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { t } from '../engine/i18n';
 import { Circuit, ELEMENT_SPECS, isLine, isStub } from '../engine/circuit';
 import { SolveResult } from '../engine/solver';
 import { fmtNum } from '../engine/complex';
@@ -48,7 +49,7 @@ export const CircuitSchematic: React.FC<Props> = ({ circuit, result, status, tit
           <text x={12} y={RAIL_Y - 33} textAnchor="start" className="el-value">{fmtNum(circuit.f / 1e6, 3)} MHz · Z_S = Z₀ = {fmtNum(circuit.Z0, 1)} Ω</text>
         </g>
         {circuit.elements.length === 0 && (
-          <text x={X0 + 40} y={RAIL_Y + 5} className="el-value">(ยังไม่มีอุปกรณ์)</text>
+          <text x={X0 + 40} y={RAIL_Y + 5} className="el-value">{t("(ยังไม่มีอุปกรณ์)")}</text>
         )}
         {netBr && (
           <g className="bracket net">

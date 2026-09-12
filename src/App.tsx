@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useRef } from 'react';
+import { t } from './engine/i18n';
 import { Header } from './components/Header';
 import { Palette } from './components/Palette';
 import { Inspector } from './components/Inspector';
@@ -54,8 +55,8 @@ export const App: React.FC = () => {
       <Header />
       {state.maximized && (
         <div className="max-bar">
-          <span>ขยายแผง: <b>{{ palette: 'COMPONENTS', inspector: 'PROPERTIES', canvas: 'CIRCUIT CANVAS', chart: 'SMITH CHART', explain: 'STEP-BY-STEP EXPLANATION' }[state.maximized]}</b></span>
-          <button className="btn small" onClick={() => dispatch({ type: 'maximize', panel: null })}>⤡ ย่อกลับ (Esc)</button>
+          <span>{t("ขยายแผง:")} <b>{{ palette: 'COMPONENTS', inspector: 'PROPERTIES', canvas: 'CIRCUIT CANVAS', chart: 'SMITH CHART', explain: 'STEP-BY-STEP EXPLANATION' }[state.maximized]}</b></span>
+          <button className="btn small" onClick={() => dispatch({ type: 'maximize', panel: null })}>{t("⤡ ย่อกลับ (Esc)")}</button>
         </div>
       )}
       {state.view === 'course' ? (

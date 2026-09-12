@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { t } from '../engine/i18n';
 import { useAppState, useDispatch } from '../state/store';
 import { autoMatch, MatchCandidate, MatchMode } from '../engine/autoMatch';
 import { CircuitSchematic } from './CircuitSchematic';
@@ -22,14 +23,14 @@ const Card: React.FC<{ c: MatchCandidate; best: boolean; mode: MatchMode }> = ({
     <div className={`mt-card ${best ? 'best' : ''}`}>
       <div className="mt-head">
         <b>{c.title}</b>
-        {best && <span className="mt-best">แนะนำ</span>}
+        {best && <span className="mt-best">{t("แนะนำ")}</span>}
         <span className="spacer" />
         <span className="mt-swr">SWR {fmtNum(c.swr, 3)}</span>
-        {c.bandMaxSwr !== undefined && <span className="mt-band">ทั้งแบนด์สูงสุด {fmtNum(c.bandMaxSwr, 2)}</span>}
+        {c.bandMaxSwr !== undefined && <span className="mt-band">{t("ทั้งแบนด์สูงสุด")} {fmtNum(c.bandMaxSwr, 2)}</span>}
       </div>
       <div className="mt-body">
         <div className="mt-left">
-          <CircuitSchematic circuit={c.circuit} result={res} title="วงจรใหม่ (จากแหล่งจ่ายไปทางโหลด)" maxHeight={140} />
+          <CircuitSchematic circuit={c.circuit} result={res} title={t("วงจรใหม่ (จากแหล่งจ่ายไปทางโหลด)")} maxHeight={140} />
           <ul className="mt-parts">
             {c.parts.map((p, i) => (
               <li key={i}>{p}</li>
@@ -60,19 +61,19 @@ export const MatchingPanel: React.FC = () => {
     <div className="modal-body matching">
       <div className="mt-summary">
         <div className="mt-mode">
-          <b>ทำอย่างไรกับวงจรเดิม</b>
+          <b>{t("ทำอย่างไรกับวงจรเดิม")}</b>
           <div className="seg small">
-            <button className={mode === 'replace' ? 'on' : ''} onClick={() => setMode('replace')} title="เก็บเฉพาะโหลดท้ายวงจร แล้วแทนที่ matching network เดิมด้วยวงจรใหม่">
-              ♻ แทนที่ network เดิม
+            <button className={mode === 'replace' ? 'on' : ''} onClick={() => setMode('replace')} title={t("เก็บเฉพาะโหลดท้ายวงจร แล้วแทนที่ matching network เดิมด้วยวงจรใหม่")}>
+              {t("♻ แทนที่ network เดิม")}
             </button>
-            <button className={mode === 'add' ? 'on' : ''} onClick={() => setMode('add')} title="เก็บวงจรเดิมทั้งชุดไว้ แล้วเพิ่ม matching network ใหม่ต่อด้านแหล่งจ่าย">
-              ＋ เพิ่มต่อจากวงจรเดิม
+            <button className={mode === 'add' ? 'on' : ''} onClick={() => setMode('add')} title={t("เก็บวงจรเดิมทั้งชุดไว้ แล้วเพิ่ม matching network ใหม่ต่อด้านแหล่งจ่าย")}>
+              {t("＋ เพิ่มต่อจากวงจรเดิม")}
             </button>
           </div>
-          {!hasNetwork && <span className="muted">วงจรเดิมยังไม่มี network ทั้งสองแบบจึงให้ผลเหมือนกัน</span>}
+          {!hasNetwork && <span className="muted">{t("วงจรเดิมยังไม่มี network ทั้งสองแบบจึงให้ผลเหมือนกัน")}</span>}
         </div>
         <div>
-          <b>{mode === 'add' ? 'วงจรเดิมทั้งชุด (ใช้เป็นโหลด)' : 'โหลดปัจจุบัน'}</b> Z = {fz(r.ZL, 2)} Ω · z = {fz(r.zL, 3)} · SWR ก่อนแมตช์ ={' '}
+          <b>{mode === 'add' ? 'วงจรเดิมทั้งชุด (ใช้เป็นโหลด)' : 'โหลดปัจจุบัน'}</b> Z = {fz(r.ZL, 2)} Ω · z = {fz(r.zL, 3)} {t("· SWR ก่อนแมตช์ =")}{' '}
           <b className={r.swrL > 2 ? 'bad' : ''}>{Number.isFinite(r.swrL) ? fmtNum(r.swrL, 2) : '∞'}</b>
           {r.loadCount > 0 && <span className="muted"> · {mode === 'add' ? `ใช้อุปกรณ์ทั้ง ${r.loadCount} ตัวเป็นโหลด` : `ใช้อุปกรณ์ท้ายวงจร ${r.loadCount} ตัวเป็นโหลด`}</span>}
         </div>
@@ -87,10 +88,10 @@ export const MatchingPanel: React.FC = () => {
           ))}
         </div>
       )}
-      {r.candidates.length === 0 && !r.problem && <div className="mt-note">ไม่พบวงจรที่เหมาะสม</div>}
+      {r.candidates.length === 0 && !r.problem && <div className="mt-note">{t("ไม่พบวงจรที่เหมาะสม")}</div>}
       <div className="mt-foot">
-        <button className="btn" onClick={() => dispatch({ type: 'modal', modal: 'none' })}>ปิด</button>
-        <span className="muted">ทุกวงจรออกแบบที่ความถี่ {fmtNum(state.circuit.f / 1e6, 3)} MHz และ Z₀ = {fmtNum(state.circuit.Z0, 1)} Ω · เรียงจากผลดีที่สุด</span>
+        <button className="btn" onClick={() => dispatch({ type: 'modal', modal: 'none' })}>{t("ปิด")}</button>
+        <span className="muted">{t("ทุกวงจรออกแบบที่ความถี่")} {fmtNum(state.circuit.f / 1e6, 3)} {t("MHz และ Z₀ =")} {fmtNum(state.circuit.Z0, 1)} {t("Ω · เรียงจากผลดีที่สุด")}</span>
       </div>
     </div>
   );

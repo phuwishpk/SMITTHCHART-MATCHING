@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tex } from './Tex';
 import { StepLine } from '../engine/explain';
+import { useT } from '../state/store';
 
 /**
  * Course text marks its load-bearing phrases with **double asterisks**. They are rendered as a
@@ -8,7 +9,9 @@ import { StepLine } from '../engine/explain';
  * not "this word is loud". Everything else is left alone, so a line with no marks looks exactly
  * as it did before.
  */
-export const Marked: React.FC<{ text: string }> = ({ text }) => {
+export const Marked: React.FC<{ text: string }> = ({ text: raw }) => {
+  // จุดเดียวที่ข้อความคอร์สทุกบรรทัดวิ่งผ่าน จึงแปลตรงนี้ทีเดียว
+  const text = useT()(raw);
   if (!text.includes('**')) return <>{text}</>;
   const parts = text.split(/\*\*([^*]+)\*\*/g);
   return (
@@ -31,7 +34,7 @@ export const Line: React.FC<{ line: StepLine }> = ({ line }) => {
     case 'note':
       return <div className="ex-note">💡 <Marked text={line.text} /></div>;
     case 'code':
-      return <pre className="ex-code">{line.text}</pre>;
+      return <pre className="ex-code"><Marked text={line.text} /></pre>;
     case 'warn':
       return <div className="ex-warn">⚠ <Marked text={line.text} /></div>;
   }

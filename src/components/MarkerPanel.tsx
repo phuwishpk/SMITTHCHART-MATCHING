@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { t } from '../engine/i18n';
 import { useAppState, useDispatch, useDerived, Marker } from '../state/store';
 import { Complex, abs, arg, deg, fmtNum, isFiniteC } from '../engine/complex';
 import { gammaFromz, admittance, swrFromGamma, wtgFromGamma, returnLossDb } from '../engine/rf';
@@ -56,31 +57,31 @@ export const MarkerPanel: React.FC = () => {
   return (
     <div className="markers">
       <div className="mk-head">
-        <b>📍 จุดที่ mark</b>
-        <button className={`chip ${state.markerMode ? 'on' : ''}`} onClick={() => dispatch({ type: 'marker_mode', value: !state.markerMode })} title="เปิดแล้วคลิกบน Smith Chart เพื่อปักจุดตรงตำแหน่งที่คลิก">
+        <b>{t("📍 จุดที่ mark")}</b>
+        <button className={`chip ${state.markerMode ? 'on' : ''}`} onClick={() => dispatch({ type: 'marker_mode', value: !state.markerMode })} title={t("เปิดแล้วคลิกบน Smith Chart เพื่อปักจุดตรงตำแหน่งที่คลิก")}>
           {state.markerMode ? '● คลิกบนกราฟเพื่อปักจุด' : '＋ ปักจุดด้วยการคลิก'}
         </button>
-        <button className="mini wide" onClick={() => addAt({ re: 1, im: 0 })} title="เพิ่มจุดแล้วพิมพ์ค่า r และ x เอง">＋ พิมพ์ค่าเอง</button>
-        <button className="mini wide" onClick={() => addAt(result.zin, 'z_in')} title="ปักจุดที่อิมพีแดนซ์ขาเข้าปัจจุบัน" disabled={!isFiniteC(result.zin)}>＋ z_in</button>
+        <button className="mini wide" onClick={() => addAt({ re: 1, im: 0 })} title={t("เพิ่มจุดแล้วพิมพ์ค่า r และ x เอง")}>{t("＋ พิมพ์ค่าเอง")}</button>
+        <button className="mini wide" onClick={() => addAt(result.zin, 'z_in')} title={t("ปักจุดที่อิมพีแดนซ์ขาเข้าปัจจุบัน")} disabled={!isFiniteC(result.zin)}>＋ z_in</button>
         {result.hasNetwork && (
-          <button className="mini wide" onClick={() => addAt(result.zL, 'z_L')} title="ปักจุดที่อิมพีแดนซ์ของโหลด" disabled={!isFiniteC(result.zL)}>＋ z_L</button>
+          <button className="mini wide" onClick={() => addAt(result.zL, 'z_L')} title={t("ปักจุดที่อิมพีแดนซ์ของโหลด")} disabled={!isFiniteC(result.zL)}>＋ z_L</button>
         )}
         <span className="spacer" />
-        <label className="mk-unit" title="สลับระหว่างค่าปกติ (r + jx) กับค่าจริงเป็นโอห์ม">
-          <input type="checkbox" checked={ohms} onChange={(e) => setOhms(e.target.checked)} /> หน่วย Ω
+        <label className="mk-unit" title={t("สลับระหว่างค่าปกติ (r + jx) กับค่าจริงเป็นโอห์ม")}>
+          <input type="checkbox" checked={ohms} onChange={(e) => setOhms(e.target.checked)} /> {t("หน่วย Ω")}
         </label>
-        {markers.length > 0 && <button className="mini wide" onClick={() => dispatch({ type: 'markers_clear' })}>ล้างทั้งหมด</button>}
+        {markers.length > 0 && <button className="mini wide" onClick={() => dispatch({ type: 'markers_clear' })}>{t("ล้างทั้งหมด")}</button>}
       </div>
       {markers.length === 0 ? (
         <div className="mk-empty">
-          ยังไม่มีจุดที่ mark · กด <b>＋ ปักจุดด้วยการคลิก</b> แล้วคลิกตำแหน่งบน Smith Chart หรือกด <b>＋ พิมพ์ค่าเอง</b> เพื่อกรอก r และ x
+          {t("ยังไม่มีจุดที่ mark · กด")} <b>{t("＋ ปักจุดด้วยการคลิก")}</b> {t("แล้วคลิกตำแหน่งบน Smith Chart หรือกด")} <b>{t("＋ พิมพ์ค่าเอง")}</b> {t("เพื่อกรอก r และ x")}
         </div>
       ) : (
         <div className="mk-table-wrap">
         <table className="mk-table">
           <thead>
             <tr>
-              <th></th><th>ชื่อ</th><th>{ohms ? 'R (Ω)' : 'r'}</th><th>{ohms ? 'X (Ω)' : 'x'}</th><th className="col-wide">y = g + jb</th><th className="col-wide">|Γ| ∠</th><th>SWR</th><th className="col-wide">→gen</th><th></th>
+              <th></th><th>{t("ชื่อ")}</th><th>{ohms ? 'R (Ω)' : 'r'}</th><th>{ohms ? 'X (Ω)' : 'x'}</th><th className="col-wide">y = g + jb</th><th className="col-wide">|Γ| ∠</th><th>SWR</th><th className="col-wide">→gen</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -98,7 +99,7 @@ export const MarkerPanel: React.FC = () => {
                   <td className="mono col-wide">{i.outside ? '—' : `${fmtNum(abs(i.g), 3)} ∠${fmtNum(deg(arg(i.g)), 0)}°`}</td>
                   <td className="mono" title={`|Γ| = ${fmtNum(abs(i.g), 3)} ∠${fmtNum(deg(arg(i.g)), 1)}° · y = ${fz(i.y, 3)} · ${fmtNum(i.wtg, 3)} λ toward generator · Z = ${fmtNum(i.Z.re, 1)} ${i.Z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(i.Z.im), 1)} Ω`}>{i.outside ? '—' : Number.isFinite(i.swr) ? fmtNum(i.swr, 2) : '∞'}</td>
                   <td className="mono col-wide">{i.outside ? '—' : `${fmtNum(i.wtg, 3)} λ`}</td>
-                  <td><button className="mini" title="ลบจุดนี้" onClick={() => dispatch({ type: 'marker_remove', id: m.id })}>✕</button></td>
+                  <td><button className="mini" title={t("ลบจุดนี้")} onClick={() => dispatch({ type: 'marker_remove', id: m.id })}>✕</button></td>
                 </tr>
               );
             })}
@@ -107,7 +108,7 @@ export const MarkerPanel: React.FC = () => {
         </div>
       )}
       {markers.some((m) => info(m, Z0).outside) && (
-        <div className="mk-warn">⚠ จุดที่มี r ติดลบจะอยู่นอกวงกลม Smith Chart จึงไม่ถูกวาด (อิมพีแดนซ์ของวงจร passive ต้องมี r ≥ 0)</div>
+        <div className="mk-warn">{t("⚠ จุดที่มี r ติดลบจะอยู่นอกวงกลม Smith Chart จึงไม่ถูกวาด (อิมพีแดนซ์ของวงจร passive ต้องมี r ≥ 0)")}</div>
       )}
     </div>
   );

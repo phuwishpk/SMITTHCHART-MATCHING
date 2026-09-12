@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { t } from '../engine/i18n';
 import { useAppState, useDispatch } from '../state/store';
 import { LESSONS, EXAMPLES, PROBLEMS, findLesson } from '../engine/lessons';
 import { SECTION_LINKS, sectionLabel } from '../engine/course';
@@ -36,10 +37,10 @@ export const Modals: React.FC = () => {
       <div className="modal-backdrop" onClick={close}>
         <div className="modal wide" onClick={(e) => e.stopPropagation()}>
           <div className="modal-head">
-            <h2>📖 วิธีทำ{lesson ? ` — Level ${lesson.level}: ${lesson.title}` : ''}</h2>
+            <h2>{t("📖 วิธีทำ")}{lesson ? ` — Level ${lesson.level}: ${lesson.title}` : ''}</h2>
             <button className="btn ghost" onClick={close}>✕</button>
           </div>
-          {lesson ? <SolutionModalBody lesson={lesson} /> : <div className="modal-body">เลือกบทเรียนก่อน</div>}
+          {lesson ? <SolutionModalBody lesson={lesson} /> : <div className="modal-body">{t("เลือกบทเรียนก่อน")}</div>}
         </div>
       </div>
     );
@@ -49,7 +50,7 @@ export const Modals: React.FC = () => {
       <div className="modal-backdrop" onClick={close}>
         <div className="modal wide" onClick={(e) => e.stopPropagation()}>
           <div className="modal-head">
-            <h2>⚡ สร้างวงจร matching ให้โหลดนี้</h2>
+            <h2>{t("⚡ สร้างวงจร matching ให้โหลดนี้")}</h2>
             <button className="btn ghost" onClick={close}>✕</button>
           </div>
           <MatchingPanel />
@@ -62,7 +63,7 @@ export const Modals: React.FC = () => {
       <div className="modal-backdrop" onClick={close}>
         <div className="modal wide" onClick={(e) => e.stopPropagation()}>
           <div className="modal-head">
-            <h2>📗 ความหมายของตัวย่อและสัญลักษณ์</h2>
+            <h2>{t("📗 ความหมายของตัวย่อและสัญลักษณ์")}</h2>
             <button className="btn ghost" onClick={close}>✕</button>
           </div>
           <GlossaryPanel />
@@ -75,7 +76,7 @@ export const Modals: React.FC = () => {
       <div className="modal-backdrop" onClick={close}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>
           <div className="modal-head">
-            <h2>📝 โจทย์ฝึกหัด: Impedance (Z) และ Admittance (Y)</h2>
+            <h2>{t("📝 โจทย์ฝึกหัด: Impedance (Z) และ Admittance (Y)")}</h2>
             <button className="btn ghost" onClick={close}>✕</button>
           </div>
           <div className="modal-body">
@@ -86,7 +87,7 @@ export const Modals: React.FC = () => {
                   {PROBLEMS.filter((p) => p.category === cat).map((p) => (
                     <div key={p.id} className="card-wrap">
                       <button className={`card ${state.lessonId === p.id ? 'active' : ''}`} onClick={() => dispatch({ type: 'lesson', id: p.id })}>
-                        <span className="card-lvl">{cat === 'impedance' ? 'IMPEDANCE' : cat === 'admittance' ? 'ADMITTANCE' : 'CARON'} · {p.answers?.length ?? 0} คำตอบ</span>
+                        <span className="card-lvl">{cat === 'impedance' ? 'IMPEDANCE' : cat === 'admittance' ? 'ADMITTANCE' : 'CARON'} · {p.answers?.length ?? 0} {t("คำตอบ")}</span>
                         <b>{p.title}</b>
                         <small>{p.learn}</small>
                       </button>
@@ -120,7 +121,7 @@ export const Modals: React.FC = () => {
                   {LESSONS.filter((l) => l.phase === ph).map((l) => (
                     <div key={l.id} className="card-wrap">
                       <button className={`card ${state.lessonId === l.id ? 'active' : ''}`} onClick={() => dispatch({ type: 'lesson', id: l.id })}>
-                        <span className="card-lvl">Level {l.level}{l.bookPriority && <em title="ตรงกับบท Transmission Lines ในหนังสือ"> ★ หนังสือ</em>}</span>
+                        <span className="card-lvl">Level {l.level}{l.bookPriority && <em title={t("ตรงกับบท Transmission Lines ในหนังสือ")}> {t("★ หนังสือ")}</em>}</span>
                         <b>{l.title}</b>
                         <small>{l.learn}</small>
                       </button>

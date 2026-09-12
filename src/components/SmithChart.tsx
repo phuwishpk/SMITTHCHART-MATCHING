@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { t } from '../engine/i18n';
 import { useAppState, useDispatch, useDerived } from '../state/store';
 import { Complex, abs, arg, deg, fmtNum, isFiniteC } from '../engine/complex';
 import { ELEMENT_SPECS } from '../engine/circuit';
@@ -86,7 +87,7 @@ export const SmithChart: React.FC = () => {
       return out;
     }
     // termination
-    out.push({ g: gammaFromz(result.termination === 'open' ? { re: Infinity, im: 0 } : { re: 0, im: 0 }), label: result.termination === 'open' ? 'ปลายเปิด' : 'ปลายลัดวงจร', cls: 'term', r: 3.5, key: 'term', z: result.Zterm, idx: n });
+    out.push({ g: gammaFromz(result.termination === 'open' ? { re: Infinity, im: 0 } : { re: 0, im: 0 }), label: t(result.termination === 'open' ? 'ปลายเปิด' : 'ปลายลัดวงจร'), cls: 'term', r: 3.5, key: 'term', z: result.Zterm, idx: n });
     let netCount = 0;
     for (const s of result.stages) {
       const isLoadPt = s.index === result.loadStart;
@@ -98,10 +99,10 @@ export const SmithChart: React.FC = () => {
       } else if (isIn) {
         out.push({ g: gammaFromz(s.zafter), label: 'z_in', cls: 'in', r: 8, key: 'in', z: s.zafter, idx: s.index });
       } else if (s.inLoad) {
-        out.push({ g: gammaFromz(s.zafter), label: `หลัง ${ELEMENT_SPECS[s.el.type].symbol}`, cls: 'mid-load', r: 3.5, key: `s${s.index}`, z: s.zafter, idx: s.index });
+        out.push({ g: gammaFromz(s.zafter), label: `${t('หลัง')} ${ELEMENT_SPECS[s.el.type].symbol}`, cls: 'mid-load', r: 3.5, key: `s${s.index}`, z: s.zafter, idx: s.index });
       } else {
         netCount += 1;
-        out.push({ g: gammaFromz(s.zafter), label: `${netCount}: หลัง ${ELEMENT_SPECS[s.el.type].symbol}`, cls: 'mid-net', r: 5.5, key: `s${s.index}`, z: s.zafter, idx: s.index });
+        out.push({ g: gammaFromz(s.zafter), label: `${netCount}: ${t('หลัง')} ${ELEMENT_SPECS[s.el.type].symbol}`, cls: 'mid-net', r: 5.5, key: `s${s.index}`, z: s.zafter, idx: s.index });
       }
     }
     return out;
@@ -160,7 +161,7 @@ export const SmithChart: React.FC = () => {
   return (
     <div className="smith-wrap">
       <div className="panel-head">
-        <span className="panel-title">SMITH CHART{walkStep && <span className="walk-badge"> · เฉลยขั้น {Math.min(state.solutionStep!, walk.length - 1) + 1}: {walkStep.short}</span>}</span>
+        <span className="panel-title">SMITH CHART{walkStep && <span className="walk-badge"> {t("· เฉลยขั้น")} {Math.min(state.solutionStep!, walk.length - 1) + 1}: {walkStep.short}</span>}</span>
         <div className="chip-row">
           <Toggle k="showZ" label="Z grid" />
           <Toggle k="showY" label="Y grid" />
@@ -170,11 +171,11 @@ export const SmithChart: React.FC = () => {
           <Toggle k="showFine" label="กริดละเอียด" />
           <Toggle k="showRadial" label="อ่าน SWR/RL" />
           {sweep.length > 0 && <Toggle k="showSweep" label="กวาดความถี่" />}
-          <button className={`chip ${state.markerMode ? 'on' : ''}`} onClick={() => dispatch({ type: 'marker_mode', value: !state.markerMode })} title="เปิดแล้วคลิกบนกราฟเพื่อปักจุด z (ดูรายการด้านล่างกราฟ)">
+          <button className={`chip ${state.markerMode ? 'on' : ''}`} onClick={() => dispatch({ type: 'marker_mode', value: !state.markerMode })} title={t("เปิดแล้วคลิกบนกราฟเพื่อปักจุด z (ดูรายการด้านล่างกราฟ)")}>
             📍 Mark z{state.markers.length ? ` (${state.markers.length})` : ''}
           </button>
-          <button className={`chip ${state.swrTarget ? 'on' : ''}`} onClick={() => { const seq = [null, 1.5, 2, 3]; const i = seq.indexOf(state.swrTarget as never); dispatch({ type: 'swr_target', value: seq[(i + 1) % seq.length] }); }} title="วงกลมเป้าหมาย SWR (คลิกวนค่า)">
-            เป้า SWR {state.swrTarget ? `≤ ${state.swrTarget}` : 'ปิด'}
+          <button className={`chip ${state.swrTarget ? 'on' : ''}`} onClick={() => { const seq = [null, 1.5, 2, 3]; const i = seq.indexOf(state.swrTarget as never); dispatch({ type: 'swr_target', value: seq[(i + 1) % seq.length] }); }} title={t("วงกลมเป้าหมาย SWR (คลิกวนค่า)")}>
+            {t("เป้า SWR")} {state.swrTarget ? `≤ ${state.swrTarget}` : 'ปิด'}
           </button>
           <MaxButton panel="chart" />
         </div>
@@ -395,7 +396,7 @@ export const SmithChart: React.FC = () => {
                     className="pt-hit"
                     onClick={(e) => { e.stopPropagation(); setPicked((k) => (k === pt.key ? null : pt.key)); }}
                   >
-                    <title>{`กดเพื่ออ่านค่าของจุดนี้ — ${pt.label}`}</title>
+                    <title>{`${t('กดเพื่ออ่านค่าของจุดนี้ —')} ${pt.label}`}</title>
                   </circle>
                   <circle cx={p.x} cy={p.y} r={pt.r} className={`pt ${pt.cls}`} pointerEvents="none">
                     <title>{`${pt.label}\nz = ${fmtz(pt.z)}\n|Γ| = ${fmtNum(abs(pt.g), 3)}  SWR = ${fmtNum(swrFromGamma(pt.g), 2)}`}</title>
@@ -423,8 +424,8 @@ export const SmithChart: React.FC = () => {
           return (
             <div className={`pick-box ${pt.cls}`}>
               <div className="pick-head">
-                <b>อ่านค่าที่จุดนี้ · {pt.label}</b>
-                <button className="mini" onClick={() => setPicked(null)} title="ปิด">✕</button>
+                <b>{t("อ่านค่าที่จุดนี้ ·")} {pt.label}</b>
+                <button className="mini" onClick={() => setPicked(null)} title={t("ปิด")}>✕</button>
               </div>
               {row('z', fmtz(pt.z, 4))}
               {row('Z', isFiniteC(pt.z) ? `${fmtNum(pt.z.re * Z0, 2)} ${pt.z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(pt.z.im) * Z0, 2)} Ω` : '∞')}
@@ -449,12 +450,12 @@ export const SmithChart: React.FC = () => {
             <div>Γ = {fmtNum(abs(hover), 4)} ∠{fmtNum(deg(arg(hover)), 2)}°</div>
             <div>SWR = {fmtNum(swrFromGamma(hover), 3)} · RL = {Number.isFinite(returnLossDb(hover)) ? `${fmtNum(returnLossDb(hover), 2)} dB` : '∞'}</div>
             <div>→gen {fmtNum(wtgFromGamma(hover), 4)} λ · →load {fmtNum(((0.5 - wtgFromGamma(hover)) % 0.5 + 0.5) % 0.5, 4)} λ</div>
-            {state.markerMode && <div className="hover-mark">คลิกเพื่อปักจุดนี้</div>}
+            {state.markerMode && <div className="hover-mark">{t("คลิกเพื่อปักจุดนี้")}</div>}
           </div>
         )}
         <div className="legend">
           <span><i className="dot load" /> Load z_L</span>
-          <span><i className="dot mid-net" /> ระหว่างทาง</span>
+          <span><i className="dot mid-net" /> {t("ระหว่างทาง")}</span>
           <span><i className="dot in" /> z_in</span>
           <span><i className="dot probe" /> Probe</span>
         </div>
@@ -494,8 +495,8 @@ export const SmithChart: React.FC = () => {
               </tbody>
             </table>
             <div className="band-summary">
-              SWR สูงสุดในแบนด์ = <b>{fmtNum(Math.max(...sweep.map((p) => p.result.swrIn)), 2)}</b>
-              {state.swrTarget && (Math.max(...sweep.map((p) => p.result.swrIn)) <= state.swrTarget ? <span className="ok"> ✓ ทุกความถี่อยู่ใน SWR ≤ {state.swrTarget}</span> : <span className="bad"> ✗ มี {sweep.filter((p) => p.result.swrIn > state.swrTarget!).length} ความถี่เกินเป้า</span>)}
+              {t("SWR สูงสุดในแบนด์ =")} <b>{fmtNum(Math.max(...sweep.map((p) => p.result.swrIn)), 2)}</b>
+              {state.swrTarget && (Math.max(...sweep.map((p) => p.result.swrIn)) <= state.swrTarget ? <span className="ok"> {t("✓ ทุกความถี่อยู่ใน SWR ≤")} {state.swrTarget}</span> : <span className="bad"> {t("✗ มี")} {sweep.filter((p) => p.result.swrIn > state.swrTarget!).length} {t("ความถี่เกินเป้า")}</span>)}
             </div>
           </div>
         )}
@@ -511,7 +512,7 @@ export const SmithChart: React.FC = () => {
               <span className="ba"><b>AFTER</b> z_in = {fmtz(result.zin, 2)} · SWR {Number.isFinite(result.swrIn) ? fmtNum(result.swrIn, 2) : '∞'}</span>
             </div>
           ) : (
-            <div className="before-after"><span className="ba">กำลังสะท้อน |Γ|² = {fmtNum(abs(result.gammaIn) ** 2 * 100, 1)} % · mismatch loss {Number.isFinite(result.mismatchLossDb) ? fmtNum(result.mismatchLossDb, 2) : '∞'} dB</span></div>
+            <div className="before-after"><span className="ba">{t("กำลังสะท้อน |Γ|² =")} {fmtNum(abs(result.gammaIn) ** 2 * 100, 1)} % · mismatch loss {Number.isFinite(result.mismatchLossDb) ? fmtNum(result.mismatchLossDb, 2) : '∞'} dB</span></div>
           )}
         </div>
       </div>

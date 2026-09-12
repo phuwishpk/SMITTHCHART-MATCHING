@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '../engine/i18n';
 import { Stage, standingWave } from '../engine/solver';
 import { fmtNum } from '../engine/complex';
 
@@ -25,7 +26,7 @@ export const WaveStrip: React.FC<{ stage: Stage; probeD?: number }> = ({ stage, 
         {probeD !== undefined && <line x1={xOf(probeD)} y1={pad} x2={xOf(probeD)} y2={H - pad} className="wave-probe" />}
         <text x={pad} y={H - 1} className="wave-label">generator ←</text>
         <text x={W - pad} y={H - 1} textAnchor="end" className="wave-label">→ load</text>
-        <text x={pad} y={12} className="wave-label">|V| (น้ำเงิน), |I| (ส้ม) · SWR บนสาย = {vminV > 1e-9 ? fmtNum(vmaxV / vminV, 2) : '∞'}</text>
+        <text x={pad} y={12} className="wave-label">{t("|V| (น้ำเงิน), |I| (ส้ม) · SWR บนสาย =")} {vminV > 1e-9 ? fmtNum(vmaxV / vminV, 2) : '∞'}</text>
       </svg>
     </div>
   );

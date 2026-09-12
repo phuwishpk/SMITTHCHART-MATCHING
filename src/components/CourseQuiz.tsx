@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { t } from '../engine/i18n';
 import { SmithFull, SmithFullProps } from './SmithFull';
 import { Marked } from './StepLines';
 
@@ -23,7 +24,7 @@ export const CourseQuiz: React.FC<QuizFigure> = ({ question, choices, answer, ex
   const right = picked === answer;
   return (
     <div className={`quiz ${done ? (right ? 'ok' : 'bad') : ''}`}>
-      <div className="quiz-q"><span className="quiz-tag">ลองตอบก่อน</span> {question}</div>
+      <div className="quiz-q"><span className="quiz-tag">{t("ลองตอบก่อน")}</span> {question}</div>
       {chart && (
         <div className="quiz-chart">
           <SmithFull {...chart} scale={chart.scale ?? false} fine={chart.fine ?? false} />
@@ -45,7 +46,7 @@ export const CourseQuiz: React.FC<QuizFigure> = ({ question, choices, answer, ex
       {done && (
         <div className="quiz-explain">
           <b>{right ? '✓ ถูกต้อง' : '✗ ยังไม่ใช่'}</b> — <Marked text={explain} />
-          {!right && <button className="btn small quiz-retry" onClick={() => setPicked(null)}>ลองใหม่</button>}
+          {!right && <button className="btn small quiz-retry" onClick={() => setPicked(null)}>{t("ลองใหม่")}</button>}
         </div>
       )}
     </div>

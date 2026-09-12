@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { t as tr } from '../engine/i18n';
 import { C, Complex, fmtNum } from '../engine/complex';
 import { admittance, gammaFromz, normalize, rotateTowardGenerator, swrFromGamma, wtgFromGamma, zFromGamma } from '../engine/rf';
 import { solveSingleStub } from '../engine/matching';
@@ -127,17 +128,17 @@ export const SingleStubWalkthrough: React.FC = () => {
   }
 
   return <div className="stub-walk" ref={root}>
-    <header className="stub-walk-header"><div><p className="stub-eyebrow">EXAMPLE 7–8 · ANIMATED WALKTHROUGH</p><h4>จากโหลดที่ไม่แมตช์ → สู่จุดกึ่งกลาง</h4><p>Z_L = 450 − j600 Ω · สายและสตับ 300 Ω · 10 MHz</p></div><span className="stub-mode">{playing ? '● เล่นอัตโนมัติ' : position >= steps.length ? '✓ เล่นครบแล้ว' : 'Ⅱ หยุดที่เฟรมนี้'}</span></header>
-    <div className="stub-controls" role="group" aria-label="ควบคุมภาพเคลื่อนไหว">
+    <header className="stub-walk-header"><div><p className="stub-eyebrow">EXAMPLE 7–8 · ANIMATED WALKTHROUGH</p><h4>{tr("จากโหลดที่ไม่แมตช์ → สู่จุดกึ่งกลาง")}</h4><p>{tr("Z_L = 450 − j600 Ω · สายและสตับ 300 Ω · 10 MHz")}</p></div><span className="stub-mode">{playing ? '● เล่นอัตโนมัติ' : position >= steps.length ? '✓ เล่นครบแล้ว' : 'Ⅱ หยุดที่เฟรมนี้'}</span></header>
+    <div className="stub-controls" role="group" aria-label={tr("ควบคุมภาพเคลื่อนไหว")}>
       <button type="button" className="btn primary" onClick={play}>{playing ? 'Ⅱ หยุดชั่วคราว' : position >= steps.length ? '▶ เล่นอีกครั้ง' : '▶ เล่นต่อ'}</button>
-      <button type="button" className="btn" onClick={() => { setPosition(0); setPlaying(true); }}>↺ เริ่มใหม่</button>
-      <button type="button" className="btn" disabled={index === 0} onClick={() => select(index - 1)}>← ก่อนหน้า</button>
-      <button type="button" className="btn" disabled={index === steps.length - 1} onClick={() => select(index + 1)}>ถัดไป →</button>
-      <label>ความเร็ว <select value={speed} onChange={e => setSpeed(Number(e.target.value))} aria-label="ความเร็วการเล่น">{[0.5, 1, 1.5, 2].map(s => <option key={s} value={s}>{s}×</option>)}</select></label>
-      <label><input type="checkbox" checked={loop} onChange={e => setLoop(e.target.checked)} /> วนซ้ำ</label>
+      <button type="button" className="btn" onClick={() => { setPosition(0); setPlaying(true); }}>{tr("↺ เริ่มใหม่")}</button>
+      <button type="button" className="btn" disabled={index === 0} onClick={() => select(index - 1)}>{tr("← ก่อนหน้า")}</button>
+      <button type="button" className="btn" disabled={index === steps.length - 1} onClick={() => select(index + 1)}>{tr("ถัดไป →")}</button>
+      <label>{tr("ความเร็ว")} <select value={speed} onChange={e => setSpeed(Number(e.target.value))} aria-label={tr("ความเร็วการเล่น")}>{[0.5, 1, 1.5, 2].map(s => <option key={s} value={s}>{s}×</option>)}</select></label>
+      <label><input type="checkbox" checked={loop} onChange={e => setLoop(e.target.checked)} /> {tr("วนซ้ำ")}</label>
     </div>
-    <div className="stub-timeline"><label htmlFor="stub-frame-slider">เลือกเฟรมละเอียด <span>ขั้น {index + 1}/{steps.length} · {f(progress * 100, 0)}%</span></label><input id="stub-frame-slider" type="range" min="0" max={steps.length} step="0.001" value={position} aria-valuetext={`ขั้น ${index + 1}: ${step.short}, ${f(progress * 100, 0)} เปอร์เซ็นต์`} onChange={e => { setPlaying(false); setPosition(Number(e.target.value)); }} /><p>กดชื่อขั้นเพื่อดูภาพปลายทาง หรือลากแถบเพื่อดูระหว่างการเคลื่อนที่ · 14 วินาทีต่อขั้นที่ความเร็ว 1×</p></div>
-    <nav className="stub-steps" aria-label="เลือกขั้นของ Example 7-8">{steps.map((s, i) => <button type="button" key={s.short} aria-current={index === i ? 'step' : undefined} onClick={() => select(i)}><span>{i < index ? '✓' : i + 1}</span>{s.short}</button>)}</nav>
+    <div className="stub-timeline"><label htmlFor="stub-frame-slider">{tr("เลือกเฟรมละเอียด")} <span>{tr("ขั้น")} {index + 1}/{steps.length} · {f(progress * 100, 0)}%</span></label><input id="stub-frame-slider" type="range" min="0" max={steps.length} step="0.001" value={position} aria-valuetext={`ขั้น ${index + 1}: ${step.short}, ${f(progress * 100, 0)} เปอร์เซ็นต์`} onChange={e => { setPlaying(false); setPosition(Number(e.target.value)); }} /><p>{tr("กดชื่อขั้นเพื่อดูภาพปลายทาง หรือลากแถบเพื่อดูระหว่างการเคลื่อนที่ · 14 วินาทีต่อขั้นที่ความเร็ว 1×")}</p></div>
+    <nav className="stub-steps" aria-label={tr("เลือกขั้นของ Example 7-8")}>{steps.map((s, i) => <button type="button" key={s.short} aria-current={index === i ? 'step' : undefined} onClick={() => select(i)}><span>{i < index ? '✓' : i + 1}</span>{s.short}</button>)}</nav>
     <div className="stub-stage">
       <div className="stub-visual"><div className="stub-chart-tag">{index === 1 ? 'กริด Z · จุดช่วยอ่าน Y' : index >= 2 ? 'พิกัด Γ จริง · อ่านกริด Y' : 'พิกัด Γ จริง · อ่านกริด Z'}</div><SmithFigure
         points={points} curves={curves} showY={index >= 2} swr={index <= 4 ? [swr] : undefined}
@@ -145,21 +146,21 @@ export const SingleStubWalkthrough: React.FC = () => {
         gCircles={index >= 2 && index !== 5 ? [1] : undefined} bCircles={index === 5 && t > 0.98 ? [solution.bStub] : undefined}
       /><div className="stub-live-value" data-testid="stub-readout">{readout}</div><p className="stub-legend">{chartNote}</p>
       </div>
-      <article className="stub-explanation" aria-label="คำอธิบายขั้นปัจจุบัน"><p className="stub-eyebrow">{step.tag}</p><h4 aria-live="polite">{step.title}</h4><Tex block tex={step.formula} />{step.paragraphs.map(p => <p key={p}>{p}</p>)}
-        {index === 3 && <p className="stub-scale-note">สเกล WTG ในพิกัดนี้: {f(wtgFromGamma(gammaFromz(zLoad)), 4)}λ → {f(wtgFromGamma(gammaFromz(zAtStub)), 4)}λ · ถ้าผ่าน 0 ให้บวก 0.5λ ก่อนลบ</p>}
-        <div className="stub-takeaway"><strong>สิ่งที่ได้จากขั้นนี้</strong><p>{step.takeaway}</p></div>
+      <article className="stub-explanation" aria-label={tr("คำอธิบายขั้นปัจจุบัน")}><p className="stub-eyebrow">{step.tag}</p><h4 aria-live="polite">{step.title}</h4><Tex block tex={step.formula} />{step.paragraphs.map(p => <p key={p}>{p}</p>)}
+        {index === 3 && <p className="stub-scale-note">{tr("สเกล WTG ในพิกัดนี้:")} {f(wtgFromGamma(gammaFromz(zLoad)), 4)}λ → {f(wtgFromGamma(gammaFromz(zAtStub)), 4)}{tr("λ · ถ้าผ่าน 0 ให้บวก 0.5λ ก่อนลบ")}</p>}
+        <div className="stub-takeaway"><strong>{tr("สิ่งที่ได้จากขั้นนี้")}</strong><p>{step.takeaway}</p></div>
       </article>
     </div>
-    <div className="stub-circuit"><div className="stub-circuit-title">ตำแหน่งในวงจรจริง <span>แผนภาพไม่ใช่มาตราส่วนความยาว</span></div><svg viewBox="0 0 740 172" role="img" aria-label="เครื่องส่ง ต่อผ่านจุดต่อสตับและสายหลักระยะ d ไปยังโหลด สตับปลายลัดยาว l_s ต่อขนานที่จุดนั้น">
+    <div className="stub-circuit"><div className="stub-circuit-title">{tr("ตำแหน่งในวงจรจริง")} <span>{tr("แผนภาพไม่ใช่มาตราส่วนความยาว")}</span></div><svg viewBox="0 0 740 172" role="img" aria-label={tr("เครื่องส่ง ต่อผ่านจุดต่อสตับและสายหลักระยะ d ไปยังโหลด สตับปลายลัดยาว l_s ต่อขนานที่จุดนั้น")}>
       <path d="M85 63H650 M85 108H650" stroke="#64748b" strokeWidth="3" fill="none" />
       <rect x="22" y="43" width="110" height="86" rx="10" fill="#eff6ff" stroke="#3b82f6" /><text x="77" y="76" textAnchor="middle">Generator</text><text x="77" y="99" textAnchor="middle">300 Ω</text>
-      <rect x="590" y="43" width="132" height="86" rx="10" fill="#fff1f2" stroke="#ef4444" /><text x="656" y="76" textAnchor="middle">โหลด Z_L</text><text x="656" y="99" textAnchor="middle">450 − j600 Ω</text>
+      <rect x="590" y="43" width="132" height="86" rx="10" fill="#fff1f2" stroke="#ef4444" /><text x="656" y="76" textAnchor="middle">{tr("โหลด Z_L")}</text><text x="656" y="99" textAnchor="middle">450 − j600 Ω</text>
       <path d="M290 63V150H312V108" fill="none" stroke={index >= 5 ? '#9333ea' : '#cbd5e1'} strokeWidth="4" strokeDasharray={index < 5 ? '5 4' : undefined} />
       <circle cx="290" cy="63" r="6" fill={index >= 3 ? '#16a34a' : '#64748b'} /><text x="434" y="30" textAnchor="middle">{index >= 3 ? `← d = ${f(solution.dLambda, 4)}λ →` : '← ระยะ d จากโหลด →'}</text>
       <text x="325" y="149" fill="#7e22ce">{index >= 5 ? `l_s = ${f(solution.lLambda, 4)}λ · SHORT` : 'ตำแหน่งที่จะต่อสตับ'}</text>
       {index >= 6 && <text x="208" y="30" textAnchor="middle" fill="#15803d">{index === 7 || t === 1 ? 'SWR = 1' : 'กำลังชดเชย'}</text>}
       {index === 3 && <circle cx={590 - 300 * t} cy="63" r="7" fill="#16a34a" stroke="white" strokeWidth="2" />}
     </svg></div>
-    <p className="stub-footnote">แบบจำลองสายและสตับไร้การสูญเสีย · เล่นเมื่อส่วนนี้อยู่ในจอ และพักเมื่อเลื่อนออก · ผู้ที่ตั้งค่าลดการเคลื่อนไหวสามารถกดเล่นเองได้</p>
+    <p className="stub-footnote">{tr("แบบจำลองสายและสตับไร้การสูญเสีย · เล่นเมื่อส่วนนี้อยู่ในจอ และพักเมื่อเลื่อนออก · ผู้ที่ตั้งค่าลดการเคลื่อนไหวสามารถกดเล่นเองได้")}</p>
   </div>;
 };

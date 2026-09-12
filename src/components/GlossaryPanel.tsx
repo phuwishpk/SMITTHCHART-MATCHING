@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '../engine/i18n';
 import { GLOSSARY, GROUP_LABEL, GROUP_ORDER, GlossaryEntry, GlossaryFigure, searchGlossary, SYMBOLS_SECTION } from '../engine/glossary';
 import { sectionLabel } from '../engine/course';
 import { solveCircuit } from '../engine/solver';
@@ -77,14 +78,14 @@ const Row: React.FC<{ e: GlossaryEntry; byId: Map<string, GlossaryEntry> }> = ({
         <div className="gl-name">
           <b>{e.nameTh}</b>
           <span className="gl-en">{e.name}</span>
-          {e.unit && <span className="gl-unit">หน่วย {e.unit}</span>}
+          {e.unit && <span className="gl-unit">{t("หน่วย")} {e.unit}</span>}
         </div>
         <div className="gl-short">{e.short}</div>
         {e.plain && <div className="gl-plain">{e.plain}</div>}
         {e.formula && <div className="gl-formula"><Tex tex={e.formula} block /></div>}
-        {e.read && <div className="gl-line read"><span className="gl-tag">อ่านว่า / ดูตรงไหน</span>{e.read}</div>}
-        {e.example && <div className="gl-line example"><span className="gl-tag">ตัวอย่าง</span>{e.example}</div>}
-        {e.confuse && <div className="gl-line confuse"><span className="gl-tag">อย่าสับสนกับ</span>{e.confuse}</div>}
+        {e.read && <div className="gl-line read"><span className="gl-tag">{t("อ่านว่า / ดูตรงไหน")}</span>{e.read}</div>}
+        {e.example && <div className="gl-line example"><span className="gl-tag">{t("ตัวอย่าง")}</span>{e.example}</div>}
+        {e.confuse && <div className="gl-line confuse"><span className="gl-tag">{t("อย่าสับสนกับ")}</span>{e.confuse}</div>}
         {e.fig && <Figure fig={e.fig} />}
         {e.detail?.map((d, i) => (
           <div key={i} className="gl-detail">· {d}</div>
@@ -97,7 +98,7 @@ const Row: React.FC<{ e: GlossaryEntry; byId: Map<string, GlossaryEntry> }> = ({
           ))}
           {e.link && label && (
             <button className="gl-link" onClick={() => dispatch({ type: 'course_section', chapter: e.link!.chapter, section: e.link!.section })}>
-              📖 อ่านเนื้อหา: {label}
+              {t("📖 อ่านเนื้อหา:")} {label}
             </button>
           )}
         </div>
@@ -116,18 +117,18 @@ const QuickTable: React.FC<{ entries: GlossaryEntry[] }> = ({ entries }) => {
   if (groups.length === 0) return null;
   return (
     <details className="gl-quick" open>
-      <summary>📋 ตารางตัวแปรทั้งหมด — แต่ละตัวอ่านว่าอะไร และแทนอะไร ({entries.length} ตัว)</summary>
+      <summary>{t("📋 ตารางตัวแปรทั้งหมด — แต่ละตัวอ่านว่าอะไร และแทนอะไร (")}{entries.length} {t("ตัว)")}</summary>
       <div className="gl-quick-scroll">
         <table className="gl-quick-table">
           <thead>
-            <tr><th>สัญลักษณ์</th><th>อ่านว่า</th><th>แทนอะไร</th><th>หน่วย</th></tr>
+            <tr><th>{t("สัญลักษณ์")}</th><th>{t("อ่านว่า")}</th><th>{t("แทนอะไร")}</th><th>{t("หน่วย")}</th></tr>
           </thead>
           <tbody>
             {groups.map(({ g, items }) => (
               <React.Fragment key={g}>
                 <tr className="gl-quick-group"><td colSpan={4}>{GROUP_LABEL[g]}</td></tr>
                 {items.map((e) => (
-                  <tr key={e.id} onClick={() => jumpTo(e.id)} title="กดเพื่อไปที่คำอธิบายเต็ม">
+                  <tr key={e.id} onClick={() => jumpTo(e.id)} title={t("กดเพื่อไปที่คำอธิบายเต็ม")}>
                     <td className="gl-quick-sym">{e.tex ? <Tex tex={e.tex} /> : e.sym}</td>
                     <td className="gl-quick-say">{e.say ?? '—'}</td>
                     <td>{e.nameTh}<span className="gl-quick-en">{e.name}</span></td>
@@ -152,15 +153,15 @@ export const GlossaryPanel: React.FC = () => {
   return (
     <div className="modal-body glossary">
       <div className="gl-search">
-        <input autoFocus type="search" value={q} placeholder="ค้นหาสัญลักษณ์ เช่น Γ, SWR, b, βl, VF, stub…" onChange={(ev) => setQ(ev.target.value)} />
-        <span className="muted">{found.length} / {GLOSSARY.length} รายการ</span>
-        {q && <button className="mini wide" onClick={() => setQ('')}>ล้าง</button>}
+        <input autoFocus type="search" value={q} placeholder={t("ค้นหาสัญลักษณ์ เช่น Γ, SWR, b, βl, VF, stub…")} onChange={(ev) => setQ(ev.target.value)} />
+        <span className="muted">{found.length} / {GLOSSARY.length} {t("รายการ")}</span>
+        {q && <button className="mini wide" onClick={() => setQ('')}>{t("ล้าง")}</button>}
         <button className="chip course-link" onClick={() => dispatch({ type: 'course_section', chapter: SYMBOLS_SECTION.chapter, section: SYMBOLS_SECTION.section })}>
-          📖 ดูในคอร์ส
+          {t("📖 ดูในคอร์ส")}
         </button>
       </div>
       <QuickTable entries={found} />
-      {groups.length === 0 && <div className="gl-empty">ไม่พบสัญลักษณ์ที่ค้นหา ลองพิมพ์เป็นภาษาอังกฤษ เช่น admittance หรือ stub</div>}
+      {groups.length === 0 && <div className="gl-empty">{t("ไม่พบสัญลักษณ์ที่ค้นหา ลองพิมพ์เป็นภาษาอังกฤษ เช่น admittance หรือ stub")}</div>}
       {groups.map(({ g, items }) => (
         <div key={g} className="gl-group">
           <h3>{GROUP_LABEL[g]}</h3>

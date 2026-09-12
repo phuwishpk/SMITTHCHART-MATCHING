@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { t } from '../engine/i18n';
 
 /** What scripts/tts.mjs writes next to the audio files. */
 interface Manifest {
@@ -120,7 +121,7 @@ export const Narration: React.FC<{ manifest: Manifest | null; chapter: string; s
         {playing ? '⏸ หยุดอ่าน' : '🔊 ฟังเสียงอ่าน'}
       </button>
       {playing && item.files.length > 1 && (
-        <span className="narrate-part">ตอนที่ {(part ?? 0) + 1} / {item.files.length}</span>
+        <span className="narrate-part">{t("ตอนที่")} {(part ?? 0) + 1} / {item.files.length}</span>
       )}
     </div>
   );
