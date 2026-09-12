@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.json && vite build",
     "preview": "vite preview",
     "test": "tsx src/engine/selftest.ts",
-    "tts": "node scripts/tts.mjs"
+    "tts": "node scripts/tts.mjs",
+    "pdf": "tsx scripts/build-course-pdf.tsx docs/smith-chart-basics-course.html && node scripts/print-pdf.mjs \"$PWD/docs/smith-chart-basics-course.html\" \"$PWD/docs/smith-chart-basics-course.pdf\""
   },
   "dependencies": {
     "katex": "^0.16.22",

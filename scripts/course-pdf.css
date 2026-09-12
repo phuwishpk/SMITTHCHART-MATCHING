@@ -1,0 +1,121 @@
+/* ---------- หน้ากระดาษ ---------- */
+@page { size: A4; margin: 16mm 15mm 17mm; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Sarabun', 'IBM Plex Sans Thai', 'Noto Sans Thai', sans-serif;
+  font-size: 10.5pt; line-height: 1.62; color: #111827; }
+mark { background: #fef3c7; padding: 0 2px; border-radius: 2px; color: inherit; }
+b, strong { font-weight: 700; }
+a { color: inherit; text-decoration: none; }
+
+/* ---------- ปก ---------- */
+.cover { text-align: center; padding-top: 38mm; break-after: page; }
+.cover-mark { width: 62mm; margin: 0 auto 10mm; }
+.cover h1 { font-size: 30pt; margin: 0 0 4mm; letter-spacing: -0.5px; }
+.cover-sub { font-size: 13pt; color: #374151; margin: 0 0 16mm; }
+.cover-meta { font-size: 10pt; color: #6b7280; line-height: 1.8; }
+
+.front, .toc { break-after: page; }
+.front h2, .toc h2 { font-size: 17pt; margin: 0 0 5mm; padding-bottom: 2mm; border-bottom: 2px solid #111827; }
+
+/* ---------- สารบัญ ---------- */
+.toc-list { list-style: none; padding: 0; margin: 0; font-size: 10pt; }
+.toc-ch { margin: 3mm 0; break-inside: avoid; }
+.toc-ch > a { font-size: 11pt; }
+.toc-ch ul { list-style: none; padding: 0 0 0 8mm; margin: 1mm 0 0; column-count: 2; column-gap: 8mm; }
+.toc-ch li { color: #374151; margin: 0.6mm 0; }
+.tn { font-family: 'IBM Plex Mono', monospace; color: #6b7280; font-size: 9pt; margin-right: 2mm; }
+
+/* ---------- บทและหัวข้อ ---------- */
+.chapter { break-before: page; }
+.chapter h2 { font-size: 20pt; margin: 0 0 2mm; line-height: 1.25; }
+.chnum { display: block; font-size: 10pt; font-weight: 700; letter-spacing: 2px;
+  color: #1d4ed8; text-transform: uppercase; margin-bottom: 1mm; }
+.chsub { margin: 0 0 3mm; color: #4b5563; font-size: 11pt; }
+.chintro { margin: 0 0 6mm; padding: 3mm 4mm; background: #f3f4f6; border-left: 3px solid #1d4ed8; border-radius: 0 4px 4px 0; }
+.sec { break-inside: auto; }
+.sec h3 { font-size: 13pt; margin: 7mm 0 2mm; break-after: avoid; }
+.secnum { font-family: 'IBM Plex Mono', monospace; color: #1d4ed8; margin-right: 2.5mm; }
+p { margin: 0 0 2.6mm; orphans: 2; widows: 2; }
+
+/* ---------- กล่องข้อความ ---------- */
+.cal { margin: 3mm 0; padding: 2.6mm 3.5mm; border-radius: 4px; font-size: 10pt; break-inside: avoid; }
+.cal b { display: inline-block; margin-right: 1.5mm; }
+.cal.note { background: #eff6ff; border-left: 3px solid #2563eb; }
+.cal.note b { color: #1e40af; }
+.cal.warn { background: #fef3c7; border-left: 3px solid #d97706; }
+.cal.warn b { color: #92400e; }
+.steps { margin: 3mm 0; padding: 2.6mm 3.5mm; background: #f8fafc; border: 1px solid #e5e7eb;
+  border-radius: 4px; font-size: 10pt; break-inside: avoid; }
+.steps > div { margin: 0.6mm 0; }
+
+/* ---------- สมการ ---------- */
+.eq { margin: 3.5mm 0; text-align: center; break-inside: avoid; }
+.eq .katex { font-size: 1.02em; }
+.eq.res { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; padding: 2.4mm 3mm; }
+
+/* ---------- รูป ---------- */
+.fig { margin: 5mm 0 6mm; break-inside: avoid; page-break-inside: avoid; }
+.fig-no { font-family: 'IBM Plex Mono', monospace; font-size: 8.5pt; color: #1d4ed8; font-weight: 500; }
+.fig-title { font-weight: 700; font-size: 10.5pt; margin: 0.5mm 0 2mm; }
+.fig-body { display: flex; justify-content: center; }
+.fig-body > * { max-width: 100%; }
+figcaption { margin-top: 2mm; font-size: 9.2pt; color: #4b5563; line-height: 1.5; }
+.smith-figure { width: 82mm; }
+.smith-full { width: 150mm; }
+.miniplot { width: 145mm; }
+.schematic { width: 140mm; }
+.stub-intro { width: 100%; font-size: 9.5pt; }
+.fig svg { display: block; width: 100%; height: auto; }
+
+/* ---------- ตาราง ---------- */
+.tbl { width: 100%; overflow: visible; }
+table { width: 100%; border-collapse: collapse; font-size: 9.4pt; }
+thead { display: table-header-group; }
+th, td { border: 1px solid #d1d5db; padding: 1.5mm 2mm; text-align: left; vertical-align: top; }
+th { background: #f3f4f6; font-weight: 700; }
+td.k { font-family: 'IBM Plex Mono', monospace; white-space: nowrap; }
+
+/* ---------- ควิซ ---------- */
+.quiz { width: 100%; border: 1px solid #c7d2fe; background: #f5f7ff; border-radius: 5px; padding: 3mm 4mm; }
+.quiz-q { font-weight: 700; margin-bottom: 2mm; }
+.quiz-choices { margin: 0 0 2mm; padding-left: 6mm; }
+.quiz-choices li { margin: 0.8mm 0; }
+.quiz-choices li.right { font-weight: 700; color: #166534; }
+.quiz .tag { font-size: 8pt; background: #166534; color: #fff; border-radius: 3px; padding: 0 1.5mm; vertical-align: 1px; }
+.quiz-hint, .quiz-explain { font-size: 9.6pt; margin: 1.4mm 0 0; }
+.quiz .smith-full { width: 120mm; margin: 3mm auto 0; }
+
+/* ---------- กล่อง Lab ---------- */
+.lab { width: 100%; border: 1px dashed #94a3b8; border-radius: 5px; padding: 3mm 4mm; background: #fbfdff; }
+.lab-head { font-weight: 700; color: #0f766e; margin-bottom: 1.5mm; }
+.lab-note { font-size: 9.6pt; color: #475569; margin: 0 0 2mm; }
+.lab-ckt { margin: 2mm auto; width: 130mm; }
+.lab-list { font-size: 9pt; color: #475569; margin-top: 1.5mm; }
+.lab-list summary { cursor: default; }
+.lab-list ul { margin: 1mm 0 0; padding-left: 6mm; font-family: 'IBM Plex Mono', monospace; }
+
+/* ---------- กราฟเปล่า ---------- */
+.blank-chart { width: 100%; }
+.blank-chart .smith-full { width: 100%; }
+
+/* แถบสเกลใต้กราฟของ SmithFull กว้างกว่าหน้ากระดาษได้ ต้องบีบให้พอดี */
+.smith-full-scroll { overflow: visible !important; }
+.rs-wrap, .smith-full svg { max-width: 100%; }
+
+/* KaTeX ใช้ฟอนต์ของตัวเองซึ่งไม่มีอักษรไทย ข้อความไทยใน \text{} จึงต้องบังคับกลับมาใช้ฟอนต์เอกสาร */
+.katex .brahmic_fallback, .katex .mord.text .brahmic_fallback {
+  font-family: 'Sarabun', 'IBM Plex Sans Thai', 'Noto Sans Thai', sans-serif !important;
+  font-size: 0.94em;
+}
+.lab-list-head { font-weight: 600; color: #475569; margin-bottom: 0.8mm; }
+/* กล่องพับทุกชนิดต้องกางบนกระดาษ */
+details { display: block; }
+details > summary { display: block; font-weight: 600; }
+details > *:not(summary) { display: revert !important; }
+
+.front { break-before: page; }
+
+/* CSS ของแอปจัดตัวเลือกควิซเป็นปุ่มเรียงแถว บนกระดาษต้องกลับเป็นรายการแนวตั้ง */
+.quiz-choices { display: block !important; list-style: decimal !important; padding-left: 7mm !important; }
+.quiz-choices li { display: list-item !important; float: none !important; width: auto !important;
+  margin: 1mm 0 !important; padding: 0 !important; border: 0 !important; background: none !important; }
