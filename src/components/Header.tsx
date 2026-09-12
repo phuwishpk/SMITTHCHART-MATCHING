@@ -27,11 +27,9 @@ export const Header: React.FC = () => {
   return (
     <header className="header" ref={headerRef}>
       <div className="brand">
-        <span className="logo">◎</span>
-        <div>
-          <h1>RF + SMITH CHART LAB</h1>
-          <p>Circuit → X_L / X_C → Z_L → z_L → Smith Chart → SWR → Matching</p>
-        </div>
+        {/* โลโก้วางบน ชื่อแอปวางล่าง · ถ้ายังไม่มีไฟล์ public/logo.png จะซ่อนรูปไว้เฉย ๆ ไม่ขึ้นรูปแตก */}
+        <img className="brand-logo" src="logo.png" alt="RF" onError={(e) => { e.currentTarget.hidden = true; }} />
+        <h1>+ SMITH CHART LAB</h1>
       </div>
       <div className="header-mid">
         <div className="seg view-seg">

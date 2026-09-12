@@ -80,13 +80,28 @@ const { stream } = await send('Page.printToPDF', {
 const chunks = [];
 for (;;) {
   const r = await send('IO.read', { handle: stream, size: 1 << 20 }, sessionId);
-  if (r.data) chunks.push(Buffer.from(r.data, r.base64Encoded ? 'base64' : 'utf8'));
+  if (r.data) {
+    /** ต้อง base64 เท่านั้น: JSON ส่งไบต์ไบนารีดิบไม่ได้ ถ้าหลุดมาเป็นสตริงจะถูกแทนด้วย U+FFFD จน PDF พังเงียบๆ */
+    if (r.base64Encoded !== true) throw new Error('IO.read ไม่ได้ส่งข้อมูลเป็น base64 — ไบต์ไบนารีเสียแล้ว ไม่เขียนไฟล์');
+    chunks.push(Buffer.from(r.data, 'base64'));
+  }
   if (r.eof) break;
 }
 await send('IO.close', { handle: stream }, sessionId);
-writeFileSync(output, Buffer.concat(chunks));
+const pdf = Buffer.concat(chunks);
 ws.close();
 chrome.kill();
-const mb = (Buffer.concat(chunks).length / 1048576).toFixed(1);
-console.log(`เขียน ${output} · ${mb} MB`);
+
+/** ตรวจก่อนเขียน เพราะ PDF ที่สารบัญ (xref) ชี้ผิดตำแหน่งจะเปิดแล้วขึ้นจอขาวโดยไม่ฟ้องอะไรเลย */
+const check = (ok, why) => { if (!ok) throw new Error(`PDF ไม่ผ่านการตรวจ: ${why}`); };
+check(pdf.subarray(0, 5).toString('latin1') === '%PDF-', 'ไม่มีหัวไฟล์ %PDF-');
+check(!pdf.subarray(0, 1024).includes(Buffer.from([0xef, 0xbf, 0xbd])), 'พบ U+FFFD แปลว่าไบต์ไบนารีถูกทำลาย');
+const m = /startxref\s+(\d+)\s+%%EOF\s*$/.exec(pdf.subarray(-2048).toString('latin1'));
+check(m, 'ไม่พบ startxref/%%EOF ท้ายไฟล์');
+const at = pdf.subarray(Number(m[1]), Number(m[1]) + 4).toString('latin1');
+check(at === 'xref' || /^\d/.test(at), `startxref ชี้ไบต์ที่ ${m[1]} ซึ่งไม่ใช่ตาราง xref`);
+const pages = (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
+
+writeFileSync(output, pdf);
+console.log(`เขียน ${output} · ${(pdf.length / 1048576).toFixed(1)} MB · ${pages} หน้า`);
 process.exit(0);

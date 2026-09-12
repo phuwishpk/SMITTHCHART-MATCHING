@@ -5,7 +5,7 @@
 // INTERACTIVE RECREATIONS computed by this app's engines, following
 // the idea of each book figure; they are not copies of the book art.
 // ---------------------------------------------------------------
-import { Circuit, AntennaPoint, CircuitElement, buildCircuit, makeElement } from './circuit';
+import { Circuit, AntennaPoint, CircuitElement, buildCircuit, makeElement, wavelength } from './circuit';
 import { t } from './i18n';
 import { StepLine } from './explain';
 import { Complex, C, abs, fmtNum } from './complex';
@@ -62,6 +62,22 @@ const R = (tex: string): StepLine => ({ kind: 'result', tex });
 const K = (text: string): StepLine => ({ kind: 'code', text });
 const fz = (z: Complex, d = 2) => `${fmtNum(z.re, d)} ${z.im < 0 ? '−' : '+'} j${fmtNum(Math.abs(z.im), d)}`;
 const linspace = (a: number, b: number, n: number) => Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
+
+/** แถวตารางแปลงระยะบนสาย: ความยาวจริง ↔ ความยาวไฟฟ้า ↔ มุม (คำนวณสดทุกค่า) */
+const distRow = (f: number, vf: number, l: number, note: string): string[] => {
+  const lam = wavelength(f, vf);
+  const n = l / lam;
+  return [`${fmtNum(f / 1e6, 1)} MHz`, fmtNum(vf, 2), `${fmtNum(l, 4)} m`, `${fmtNum(lam, 4)} m`,
+    `${fmtNum(n, 4)} λ`, `${fmtNum(n * 360, 2)}°`, `${fmtNum(n * 720, 1)}°`, note];
+};
+
+/** สาย 0.5 m เส้นเดียวกันที่ 100 MHz มองผ่านสองค่า VF — ใช้ร่วมกันทั้งกราฟเส้นและกราฟสมิธของหัวข้อ I.2 */
+const LAM_AIR = wavelength(100e6, 1);
+const LAM_RG8 = wavelength(100e6, 0.66);
+const DIST_ZL = C(25, 25);
+/** จุดบนวงกลม SWR ตั้งแต่โหลดจนถึงระยะ dMax (หน่วย λ) สำหรับวาดส่วนโค้งการเดินทาง */
+const walkZs = (dMax: number, n = 60): Complex[] =>
+  linspace(0, dMax, n).map((d) => normalize(lineInput(DIST_ZL, 50, d, 0), 50));
 
 // ---------- data from the book (as given in the summary) ----------
 export const EX1_TABLE: AntennaPoint[] = [{ f: 12.0e6, R: 10, X: -60 }, { f: 12.2e6, R: 16.5, X: -55 }, { f: 12.4e6, R: 20, X: -50 }];
@@ -237,7 +253,47 @@ export const COURSE: Chapter[] = [
           T('Fig. 1-4/1-5: การแทน R, L, C ด้วยเวกเตอร์ (เฟเซอร์) ในวงจร RLC อนุกรม: แรงดันบน L นำหน้ากระแส 90° บน C ตามหลัง 90° รวมเป็น Z = R + j(X_L − X_C)'),
           M('\\beta = \\frac{2\\pi}{\\lambda},\\qquad \\lambda = \\frac{v_p}{f} = \\frac{c\\,\\text{VF}}{f},\\qquad v_p = \\frac{1}{\\sqrt{LC}}'),
           T('Fig. 1-6: คลื่นเดินทาง (travelling wave) แทนด้วยเวกเตอร์ที่หมุนตามตำแหน่ง βl และรูปไซน์ตามเวลา คลื่นตกกระทบ E⁺ เดินไปทางโหลด คลื่นสะท้อน E⁻ เดินกลับทาง generator'),
+          T('ระยะบนสายเขียนได้สามแบบ และต้องแปลงไปมาให้คล่อง เพราะโจทย์แต่ละข้อให้มาไม่เหมือนกัน: ความยาวจริงเป็นเมตร · ความยาวไฟฟ้าเป็นเท่าของ λ · และมุม βl เป็นองศา'),
+          M('\\frac{l}{\\lambda} = \\frac{l\\,f}{c\\,\\text{VF}},\\qquad \\beta l = 360^\\circ \\times \\frac{l}{\\lambda},\\qquad \\text{มุมหมุนบนกราฟ} = 2\\beta l'),
+          T('ตัวอย่างที่ 1 — จากเมตรไปเป็น λ: สาย RG-8 (VF = 0.66) ยาว 0.5 m ที่ 100 MHz · λ ในสาย = c × 0.66 / 100 MHz = 1.9786 m · l/λ = 0.5 / 1.9786 = 0.2527 λ · βl = 360° × 0.2527 = 90.97° · จุดบนกราฟหมุนไป 2βl = 181.9° (คำนวณโดยแอป)'),
+          T('ตัวอย่างที่ 2 — ย้อนทางจาก λ ไปเป็นเมตร: โจทย์บอก 0.15 λ บนสายเส้นเดิมที่ 100 MHz ความยาวจริงคือ 0.15 × 1.9786 = 0.2968 m ส่วนที่ 29 MHz สายเส้นเดียวกันต้องยาวถึง 1.0234 m จึงจะได้ 0.15 λ เท่ากัน'),
+          N('VF เปลี่ยนคำตอบทั้งหมด: สายยาวเท่ากัน 0.5 m ที่ความถี่เดียวกัน ถ้าเดินในอากาศ (VF = 1) ได้แค่ 0.1668 λ แต่ถ้าเป็น RG-8 (VF = 0.66) ได้ 0.2527 λ เกือบ λ/4 — นี่คือเหตุผลที่ต้องกรอก VF ให้ตรงรุ่นสายเสมอ'),
           N('ในแอป: อุปกรณ์ Transmission Line มี Velocity factor (VF) สำหรับแปลงความยาวไฟฟ้า (λ) เป็นความยาวจริง (เมตร) ดูได้ในแผง PROPERTIES'),
+        ],
+        figures: [
+          { kind: 'plot', title: 'ความยาวจริงเป็นเมตร แปลงเป็นความยาวไฟฟ้า (λ) ที่ 100 MHz',
+            xLabel: 'ความยาวจริงของสาย (m)', yLabel: 'ความยาวไฟฟ้า (λ)', xMin: 0, xMax: 1, yMin: 0, yMax: 0.55,
+            series: [
+              { name: 'ในอากาศ VF = 1.00', points: linspace(0, 1, 51).map((l) => [l, l / LAM_AIR] as [number, number]) },
+              { name: 'RG-8 VF = 0.66', points: linspace(0, 1, 51).map((l) => [l, l / LAM_RG8] as [number, number]) },
+            ],
+            xTicks: [0, 0.25, 0.5, 0.75, 1], yTicks: [0, 0.125, 0.25, 0.375, 0.5],
+            markers: [
+              { x: 0.5, y: 0.5 / LAM_AIR, text: 'VF 1.00 → 0.1668 λ' },
+              { x: 0.5, y: 0.5 / LAM_RG8, text: 'VF 0.66 → 0.2527 λ' },
+            ],
+            caption: 'ทั้งสองเส้นเป็นเส้นตรงผ่านจุดกำเนิด ความชันคือ 1/λ ของสายเส้นนั้น · ลากขึ้นจาก 0.5 m จะตัดสองเส้นคนละที่ นั่นคือคำตอบของสองแถวแรกในตารางถัดไป · เส้น RG-8 ชันกว่าเพราะคลื่นเดินช้ากว่า λ จึงสั้นกว่า ความยาวจริงเท่าเดิมจึงนับเป็น λ ได้มากกว่า' },
+          { kind: 'table', title: 'ตัวอย่างการหาระยะ: ความยาวจริง ↔ ความยาวไฟฟ้า ↔ มุม (คำนวณโดยแอป)',
+            head: ['ความถี่', 'VF', 'ความยาวจริง l', 'λ ในสาย', 'l/λ', 'βl', 'มุมหมุนบนกราฟ 2βl', 'ที่มาของตัวเลข'],
+            rows: [
+              distRow(100e6, 1, 0.5, 'สายยาวเท่ากัน แต่เดินในอากาศ'),
+              distRow(100e6, 0.66, 0.5, 'สายวัดของหัวข้อ 11.6'),
+              distRow(29e6, 0.66, 0.85344, 'สาย 2.8 ft ของ Example 5'),
+              distRow(200e6, 0.66, 0.1029, 'สตับของโจทย์ series stub'),
+            ],
+            caption: 'สองแถวแรกคือสายยาวเท่ากันที่ความถี่เดียวกัน ต่างกันแค่ VF · แถวที่สามกับสี่คือความยาวจริงที่ใช้ในบทหลัง เมื่อแปลงเป็น λ แล้วตรงกับตัวเลขในโจทย์พอดี (0.1251 λ และ 0.104 λ) · คอลัมน์สุดท้ายคือมุมที่จุดหมุนไปบนกราฟ ซึ่งเป็นสองเท่าของ βl เสมอ' },
+          { kind: 'smith', title: 'ผลบนกราฟ: สาย 0.5 m เส้นเดียวกัน แต่คนละ VF พาจุดไปคนละที่ (โหลด 25 + j25 Ω · คำนวณโดยแอป)',
+            points: [
+              { z: normalize(DIST_ZL, 50), label: 'โหลด 25 + j25 Ω', cls: 'load' },
+              { z: normalize(lineInput(DIST_ZL, 50, 0.5 / LAM_AIR, 0), 50), label: 'VF 1.00 · 0.1668 λ', cls: 'gen' },
+              { z: normalize(lineInput(DIST_ZL, 50, 0.5 / LAM_RG8, 0), 50), label: 'VF 0.66 · 0.2527 λ', cls: 'in' },
+            ],
+            curves: [
+              { zs: walkZs(0.5 / LAM_AIR), cls: 'gen', arrow: true },
+              { zs: walkZs(0.5 / LAM_RG8), cls: 'in', dashed: true, arrow: true },
+            ],
+            swr: [2.618],
+            caption: 'ทั้งสองเส้นทางออกจากจุดโหลดจุดเดียวกัน เดินตามวงกลม SWR วงเดียวกัน (SWR = 2.618 ไม่เปลี่ยนเพราะสายไร้การสูญเสีย) ต่างกันแค่เดินไปไกลเท่าไร · สายในอากาศหมุนไป 120.1° ได้ 130.2 − j8.9 Ω · สาย RG-8 หมุนไป 181.9° เกือบครึ่งรอบ ได้ 48.3 − j49.1 Ω ซึ่งเกือบเป็นส่วนกลับของโหลด · สายเส้นเดียวกันยาวเท่ากันแท้ ๆ แต่เครื่องวัดอ่านได้คนละค่า' },
         ],
       },
       {

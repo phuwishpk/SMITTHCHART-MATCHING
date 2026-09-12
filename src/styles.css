@@ -32,10 +32,11 @@ h1, h2, h3 { margin: 0; }
 
 /* ---------- header ---------- */
 .header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 8px 16px; background: #0f172a; color: #fff; border-bottom: 3px solid var(--accent); position: sticky; top: 0; z-index: 20; }
-.brand { display: flex; align-items: center; gap: 12px; }
-.brand .logo { font-size: 30px; color: #60a5fa; }
+.brand { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; }
+.brand .brand-logo { display: block; height: 24px; width: auto; max-width: 230px; object-fit: contain; }
+/* display: block ด้านบนจะชนะกฎ [hidden] ของเบราว์เซอร์ ถ้ายังไม่มีไฟล์โลโก้จึงต้องสั่งซ่อนเอง */
+.brand .brand-logo[hidden] { display: none; }
 .brand h1 { font-size: 17px; letter-spacing: 0.12em; font-weight: 700; }
-.brand p { margin: 0; font-size: 11.5px; color: #94a3b8; font-family: var(--mono); }
 .header-mid { display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap; }
 .lesson-pill { background: #1e3a8a; color: #bfdbfe; padding: 4px 10px; border-radius: 999px; font-size: 12px; white-space: nowrap; }
 .header-actions { display: flex; gap: 8px; }
@@ -489,8 +490,6 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
 /* ---------- short viewports: let the page scroll instead of clipping ---------- */
 @media (max-height: 880px) and (min-width: 1080.02px) {
   .header { padding: 5px 14px; }
-  .brand .logo { font-size: 24px; }
-  .brand p { display: none; }
   .main { gap: 8px; padding: 8px; }
   .bottom { padding: 0 8px 8px; }
   .app:not(.max) { height: auto; min-height: 100vh; }
@@ -1177,9 +1176,8 @@ img, svg, table { max-width: 100%; }
   .header .lg { display: none; }
   .header .sm { display: inline; }
   .brand { gap: 8px; }
-  .brand .logo { font-size: 22px; }
   .brand h1 { font-size: 14px; letter-spacing: 0.06em; }
-  .brand p { display: none; }
+  .brand .brand-logo { height: 20px; max-width: 170px; }
   /* flex-basis 0 would squeeze this row to a few pixels and let its content spill */
   .header-mid { gap: 6px; flex: 1 1 100%; width: 100%; order: 3; overflow: hidden; }
   .header-actions { gap: 5px; flex-wrap: wrap; margin-left: auto; }
@@ -1321,6 +1319,7 @@ img, svg, table { max-width: 100%; }
 @media (max-width: 420px) {
   .palette-list .pal-item { width: 138px; }
   .brand h1 { font-size: 13px; }
+  .brand .brand-logo { height: 18px; max-width: 150px; }
   .header-actions .btn { padding: 4px 7px; font-size: 11.5px; }
   .course-body { padding: 10px 9px 20px; }
   .gl-row { grid-template-columns: 1fr; }
