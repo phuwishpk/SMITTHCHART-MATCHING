@@ -10,6 +10,7 @@ import { buildSolution, applySolutionStep } from './solutions';
 import { smithMethodSteps } from './smithMethod';
 import { courseFiguresFinite, COURSE, ex1Book, ex2Book, ex5Full } from './course';
 import { solveSweep, sweepMaxSwr } from './solver';
+import { FREQUENCY_EXAMPLES, frequencySample, frequencyBand } from './frequencyExplorer';
 
 let fails = 0;
 const check = (name: string, ok: boolean, info = '') => {
@@ -708,6 +709,40 @@ if (fails > 0) throw new Error(`${fails} self-test(s) failed`);
   const capacitive = voltageWaveSample(gammas[4], 0, Math.PI / 2);
   check('reactive load phase changes the reflected wave, not just its amplitude',
     near(inductive.reflected, -capacitive.reflected, 1e-12) && Math.abs(inductive.reflected) > 0.1);
+}
+
+// The frequency graphics must agree with the independent full-circuit solver.
+{
+  let lengthsFixed = true, circuitAgrees = true, passive = true;
+  for (const example of ['ex78', 'ex710'] as const) {
+    const design = FREQUENCY_EXAMPLES[example];
+    for (const mhz of [8, 9, 10, 11, 12, 13, 14]) {
+      const sample = frequencySample(example, mhz);
+      lengthsFixed &&= near(sample.d * sample.wavelength, design.d0 * 30, 1e-12)
+        && near(sample.ls * sample.wavelength, design.l0 * 30, 1e-12);
+      const circuit = buildCircuit(mhz * 1e6, 300, [
+        ['stub_short', 'shunt', { Z0: 300, len: sample.ls }],
+        ['tline', 'series', { Z0: 300, len: sample.d, vf: 1, lossDb: 0 }],
+        ['load', 'series', { R: design.load.re, X: design.load.im }],
+      ]);
+      circuitAgrees &&= near(sample.swr, solveCircuit(circuit).swrIn, 1e-9);
+      passive &&= Number.isFinite(sample.swr) && sample.swr >= 1
+        && sample.reflectedPercent >= 0 && sample.reflectedPercent <= 100;
+    }
+  }
+  check('frequency explorer preserves both physical cable lengths', lengthsFixed);
+  check('frequency explorer agrees with full-circuit SWR for both examples', circuitAgrees);
+  check('frequency explorer stays passive and finite across the sweep', passive);
+  const band = frequencyBand('ex78', 2), narrow = frequencyBand('ex78', 1.5);
+  check('frequency bandwidth edges are actual SWR crossings',
+    near(frequencySample('ex78', band.low).swr, 2, 1e-9)
+    && near(frequencySample('ex78', band.high).swr, 2, 1e-9));
+  check('stricter SWR threshold narrows the connected bandwidth', narrow.low > band.low && narrow.high < band.high);
+  const clipped = frequencyBand('ex710', 2);
+  check('bandwidth marks sweep boundaries without claiming a crossing', clipped.lowClipped && clipped.low === 8 && !clipped.highClipped);
+  check('chapter 10 retains rounded Example 7-8 values and exact Example 7-10 match',
+    near(frequencySample('ex78', 12).swr, 2.35850762, 1e-7)
+    && near(frequencySample('ex710', 10).swr, 1, 1e-12));
 }
 
 console.log(fails === 0 ? '\nALL PASS (basics course)' : `\n${fails} FAILED`);

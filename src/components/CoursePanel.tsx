@@ -15,6 +15,8 @@ import { LinePositionIntro } from './LinePositionIntro';
 import { AdmittanceIntro, ShuntAdmittanceIntro } from './AdmittanceIntro';
 import { SwrCircleIntro, DistanceIntro } from './SwrDistanceIntro';
 import { StubReactanceIntro } from './StubReactanceIntro';
+import { SingleStubWalkthrough } from './SingleStubWalkthrough';
+import { FrequencyExplorer } from './FrequencyExplorer';
 import { FiveMinuteIntro } from './FiveMinuteIntro';
 import { CircuitSchematic } from './CircuitSchematic';
 import { solveCircuit, solveSweep, sweepMaxSwr } from '../engine/solver';
@@ -63,6 +65,8 @@ const LCases: React.FC<{ table: AntennaPoint[]; f0: number; Z0: number }> = ({ t
 const FigureView: React.FC<{ fig: Figure }> = ({ fig }) => {
   const dispatch = useDispatch();
   switch (fig.kind) {
+    case 'single-stub-walkthrough':
+      return <div className="cfig wide"><SingleStubWalkthrough /></div>;
     case 'stub-reactance':
       return <div className="cfig wide stub-figure"><StubReactanceIntro /></div>;
     case 'plot':
@@ -352,6 +356,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
           <p className="course-intro">{chapter.intro}</p>
           {!basics && <NarrationChapter manifest={narration} chapter={chapter.id} sections={sections} />}
         </header>
+        {basics && chapter.id === 'b10' && <FrequencyExplorer />}
         {sections.map((sec, si) => (
           <section key={sec.id} id={`sec-${sec.id}`} className="course-section">
             <h3>{chapter.num && <span className="secnum">{chapter.num}.{si + 1}</span>} {sec.title}</h3>
@@ -364,7 +369,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
             {basics && chapter.id === 'b5' && sec.id === 'halflambda' && <DistanceIntro />}
             {basics && chapter.id === 'b6' && sec.id === 'y' && <AdmittanceIntro />}
             {basics && chapter.id === 'b6' && sec.id === 'move' && <ShuntAdmittanceIntro />}
-            {!(basics && chapter.id === 'b0') && <StepLines lines={sec.lines} />}
+            {!(basics && (chapter.id === 'b0' || sec.id === 'ex78')) && <StepLines lines={sec.lines} />}
             {!(basics && chapter.id === 'b0') && sec.figures && sec.figures.length > 0 && (
               <div className="cfigs">
                 {sec.figures.map((fg, i) => (
@@ -372,6 +377,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
                 ))}
               </div>
             )}
+            {basics && sec.id === 'ex78' && <details className="stub-reference"><summary>เปิดวิธีคำนวณฉบับเต็มและเทียบค่ากับหนังสือ</summary><StepLines lines={sec.lines} /></details>}
           </section>
         ))}
         <div className="course-footer">
