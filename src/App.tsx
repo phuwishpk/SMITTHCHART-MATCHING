@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useRef } from 'react';
+import { Splitter, savedSplits } from './components/Splitter';
 import { t } from './engine/i18n';
 import { Header } from './components/Header';
 import { Palette } from './components/Palette';
@@ -68,11 +69,13 @@ export const App: React.FC = () => {
           <CoursePanel course="basics" />
         </Suspense>
       ) : (
-      <main className="main">
+      <main className="main" style={savedSplits()}>
         <aside className="col-left">
           <Palette />
+          <Splitter axis="palette" fallback={320} label={t('ปรับส่วนสูงของกล่องอุปกรณ์')} />
           <Inspector />
         </aside>
+        <Splitter axis="left" fallback={264} label={t('ปรับความกว้างคอลัมน์ซ้าย')} />
         <section className="col-center">
           <div className="panel-head">
             <span className="panel-title">CIRCUIT CANVAS</span>
@@ -82,6 +85,7 @@ export const App: React.FC = () => {
           <GuidePanel />
           <CircuitCanvas />
         </section>
+        <Splitter axis="right" fallback={600} label={t('ปรับความกว้างคอลัมน์ขวา')} />
         <aside className="col-right">
           <SmithChart />
         </aside>

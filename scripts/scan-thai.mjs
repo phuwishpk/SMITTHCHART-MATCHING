@@ -83,6 +83,9 @@ const visit = async (hash, label) => {
   }
   await evaluate('window.scrollTo(0, 0)');
   await wait(500);
+  // กางกล่อง <details> ทุกใบก่อนเก็บ เพราะเนื้อหาที่พับอยู่ไม่ถูกนับเป็นข้อความบนจอ
+  await evaluate("document.querySelectorAll('details').forEach((d) => { d.open = true; })");
+  await wait(400);
   const found = await evaluate(COLLECT);
   for (const s of found ?? []) seen.add(`${label}|${s}`);
 };

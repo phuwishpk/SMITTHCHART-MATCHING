@@ -32,16 +32,53 @@ h1, h2, h3 { margin: 0; }
 
 /* ---------- header ---------- */
 .header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 8px 16px; background: #0f172a; color: #fff; border-bottom: 3px solid var(--accent); position: sticky; top: 0; z-index: 20; }
-.brand { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; }
-.brand .brand-logo { display: block; height: 24px; width: auto; max-width: 230px; object-fit: contain; }
+.brand { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; }
+/* โลโก้ SIET+KMITL กว้าง 5.4:1 และมีบรรทัดชื่อเต็มตัวเล็ก ต่ำกว่า ~30px แล้วบรรทัดนั้นอ่านไม่ออก */
+.brand .brand-logo { display: block; height: 30px; width: auto; max-width: 230px; object-fit: contain; }
 /* display: block ด้านบนจะชนะกฎ [hidden] ของเบราว์เซอร์ ถ้ายังไม่มีไฟล์โลโก้จึงต้องสั่งซ่อนเอง */
 .brand .brand-logo[hidden] { display: none; }
 .brand h1 { font-size: 17px; letter-spacing: 0.12em; font-weight: 700; }
 .header-mid { display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap; }
 .lesson-pill { background: #1e3a8a; color: #bfdbfe; padding: 4px 10px; border-radius: 999px; font-size: 12px; white-space: nowrap; }
-.header-actions { display: flex; gap: 8px; }
+/* margin-left:auto ดันไปชิดขอบขวาเสมอ ทั้งตอนอยู่แถวเดียวกับแท็บและตอนตกลงมาแถวใหม่
+   ส่วน justify-content กันปุ่มเมนูตกไปอยู่ซ้ายล่างตอนแถบลัดขึ้นบรรทัดใหม่บนจอแคบ */
+.header-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .header .btn { background: #1e293b; color: #e2e8f0; border-color: #334155; }
 .header .btn:hover { background: #334155; }
+
+/* ---------- ไอคอนในปุ่ม ---------- */
+.icon { flex: 0 0 auto; }
+.header .btn, .header .seg button, .header .chip { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---------- แถบปุ่มลัด + เมนูมุมขวา ---------- */
+/* แถบลัดยุบหายได้ทั้งแถบ เมนูจึงต้องอยู่นอกมัน ไม่งั้นจะไม่เหลือทางเรียกมันกลับมา
+   display:contents ให้ปุ่มข้างในเป็นลูกของ .header-actions โดยตรง ปุ่มลัดกับปุ่มเมนู
+   จึงไหลต่อกันในชุดแถวเดียว ไม่ใช่ก้อนลัดกินเต็มแถวแล้วดันปุ่มเมนูตกลงไปอยู่แถวล่างลำพัง */
+.quick-bar { display: contents; }
+.menu-wrap { position: relative; flex: 0 0 auto; }
+.menu-btn.btn { background: #1e293b; }
+.menu-pop {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 40;
+  min-width: 236px; max-width: min(300px, calc(100vw - 24px));
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 6px; border: 1px solid #334155; border-radius: 10px; background: #0f172a;
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.55);
+}
+.menu-label { color: #64748b; font-size: 11px; letter-spacing: 0.04em; padding: 6px 10px 3px; }
+.menu-lang { margin: 0 4px 2px; }
+.menu-lang button { flex: 1; justify-content: center; }
+.menu-sep { height: 1px; background: #1e293b; margin: 4px 2px; }
+.menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  border: 0; border-radius: 7px; background: transparent; color: #e2e8f0; padding: 8px 10px; font-size: 13px;
+}
+.menu-item:hover { background: #1e293b; }
+/* ช่องติ๊กกว้างคงที่ ข้อความจึงไม่ขยับตอนติ๊กหาย */
+.menu-check { width: 16px; display: inline-flex; justify-content: center; color: var(--accent); }
+/* จอแคบ: ปุ่มเมนูอาจตกไปอยู่กลางแถว การเกาะปุ่มจึงดันกล่องหลุดจอ ผูกกับขอบขวาของจอแทน */
+@media (max-width: 720px) {
+  .menu-pop { position: fixed; top: calc(var(--header-h, 64px) + 6px); right: 12px; left: auto; min-width: 0; width: calc(100vw - 24px); max-width: 320px; }
+}
 
 .seg { display: inline-flex; border: 1px solid #334155; border-radius: 8px; overflow: hidden; background: #1e293b; }
 .seg button { border: 0; background: transparent; color: #cbd5e1; padding: 6px 12px; font-size: 13px; white-space: nowrap; }
@@ -51,11 +88,19 @@ h1, h2, h3 { margin: 0; }
 .seg.small button.on { background: #fff; color: var(--accent); font-weight: 600; box-shadow: inset 0 0 0 1px var(--accent); }
 
 /* ---------- layout ---------- */
-.main { --left-col: 264px; --right-base: 600px; --right-col: var(--right-base); display: grid;
-  grid-template-columns: var(--left-col) minmax(0, 1fr) var(--right-col); gap: 10px; padding: 10px; min-height: 0; }
+.main { --left-base: 264px; --right-base: 600px;
+  /* --left-user / --right-user ถูกเขียนโดยที่จับลาก ถ้ายังไม่เคยลากก็ใช้ค่าฐาน */
+  --left-col: var(--left-user, var(--left-base)); --right-col: var(--right-user, var(--right-base)); display: grid;
+  grid-template-columns: var(--left-col) 8px minmax(0, 1fr) 8px var(--right-col); gap: 6px; padding: 10px; min-height: 0; }
+
+/* ที่จับลากปรับขนาดแผง */
+.splitter { border-radius: 4px; background: transparent; align-self: stretch; }
+.splitter:hover, .splitter:focus-visible { background: var(--accent); opacity: 0.35; outline: none; }
+.splitter-v { cursor: col-resize; width: 8px; }
+.splitter-h { cursor: row-resize; height: 8px; flex: 0 0 8px; margin: -2px 0; }
 .col-left, .col-center, .col-right { min-height: 0; display: flex; flex-direction: column; gap: 10px; }
 .col-left { overflow: hidden; }
-.palette { display: flex; flex-direction: column; flex: 0 0 auto; max-height: 52%; }
+.palette { display: flex; flex-direction: column; flex: 0 0 auto; height: var(--palette-h, auto); max-height: var(--palette-h, 52%); }
 .inspector { flex: 1 1 auto; min-height: 160px; overflow: auto; }
 .col-center { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: auto; }
 .col-right { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
@@ -379,10 +424,10 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
 
 /* ---------- responsive ---------- */
 @media (max-width: 1560px) and (min-width: 1280.02px) {
-  .main { --left-col: 252px; --right-base: 520px; }
+  .main { --left-base: 252px; --right-base: 520px; }
 }
 @media (max-width: 1280px) and (min-width: 1080.02px) {
-  .main { --left-col: 234px; --right-base: 452px; }
+  .main { --left-base: 234px; --right-base: 452px; }
 }
 @media (max-width: 1080px) {
   .app { height: auto; min-height: 100vh; }
@@ -1124,9 +1169,11 @@ mark.key { background: linear-gradient(transparent 55%, #fde68a 55%); color: inh
 .canvas-wrap, .smith-wrap, .explain, .course-body, .modal, .modal-body { min-width: 0; }
 .step-body, .course-section, .gl-body, .mt-body, .mt-left { min-width: 0; }
 /* flex items default to min-width:auto, which keeps nowrap pills at their full text width */
-.header-mid, .header-actions, .brand, .lesson-pill, .seg, .chip-row, .stats-row, .guide-head, .mk-head { min-width: 0; }
+.header-actions, .brand, .lesson-pill, .seg, .chip-row, .stats-row, .guide-head, .mk-head { min-width: 0; }
 /* the view tabs must never be squeezed: the header wraps to a new row instead */
 .header .seg { flex: 0 0 auto; }
+/* ต้องเป็น min-content ไม่ใช่ 0 ไม่งั้นแถวกลางถูกบีบจนแท็บที่ห้ามย่อล้นไปทับปุ่มฝั่งขวา */
+.header-mid { min-width: min-content; }
 .header-mid { flex-wrap: wrap; row-gap: 6px; }
 .lesson-pill { flex: 0 1 auto; }
 /* chips carry long Thai labels; let them truncate instead of widening the page */
@@ -1725,3 +1772,26 @@ img, svg, table { max-width: 100%; }
 .lnet-inputs { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
 .lnet-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
 .lnet-field input { width: 118px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--mono); font-size: 13px; }
+
+/* ---------- บท 11: การ์ดทักษะการอ่านและพล็อต ---------- */
+.skill-recap { display: grid; gap: 10px; margin: 12px 0 20px; }
+.sk-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sk-toolbar .ri-choices button { padding: 6px 12px; font-size: 12.5px; }
+.sk-group { margin: 12px 0 0; font-size: 12px; letter-spacing: .14em; font-weight: 700; color: #1d4ed8; text-transform: uppercase; }
+.sk-card { border: 1px solid #bfdbfe; border-radius: 14px; background: #fff; }
+.sk-card > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; }
+.sk-card > summary::-webkit-details-marker { display: none; }
+.sk-card > summary:hover { background: #f8fafc; border-radius: 14px; }
+.sk-num { font-family: var(--mono); font-weight: 700; color: #1d4ed8; background: #dbeafe; border-radius: 10px; text-align: center; padding: 7px 0; }
+.sk-title { display: block; font-weight: 700; color: #0f172a; }
+.sk-key { display: block; color: #475569; font-size: 13px; margin-top: 2px; line-height: 1.55; }
+.sk-open { font-size: 12px; color: #1d4ed8; white-space: nowrap; }
+.sk-card[open] > summary { border-bottom: 1px solid #e2e8f0; border-radius: 14px 14px 0 0; }
+.sk-card[open] .sk-open { visibility: hidden; }
+.sk-body { padding: 14px 16px 16px; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.sk-body ol { margin: 6px 0 12px 20px; line-height: 1.75; }
+.sk-ex { background: #f8fafc; border-left: 3px solid #1d4ed8; padding: 8px 12px; border-radius: 8px; font-size: 13.5px; line-height: 1.75; font-family: var(--mono); }
+.sk-ex b { display: block; font-family: inherit; margin-bottom: 2px; }
+.sk-body .smith-figure { max-width: 300px; margin: 0 auto; }
+.sk-actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 760px) { .sk-body { grid-template-columns: 1fr; } }

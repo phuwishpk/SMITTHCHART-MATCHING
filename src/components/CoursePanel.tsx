@@ -15,6 +15,7 @@ import { ReflectionIntro } from './ReflectionIntro';
 import { LinePositionIntro } from './LinePositionIntro';
 import { AdmittanceIntro, ShuntAdmittanceIntro, SeriesImpedanceIntro } from './AdmittanceIntro';
 import { LNetworkExplorer } from './LNetworkExplorer';
+import { SkillRecap } from './SkillRecap';
 import { SwrCircleIntro, DistanceIntro } from './SwrDistanceIntro';
 import { StubReactanceIntro } from './StubReactanceIntro';
 import { SingleStubWalkthrough } from './SingleStubWalkthrough';
@@ -426,6 +427,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
             {basics && chapter.id === 'b5' && sec.id === 'halflambda' && <DistanceIntro />}
             {basics && chapter.id === 'b6' && sec.id === 'y' && <AdmittanceIntro />}
             {!basics && chapter.id === 'ch4' && sec.id === 'lnet' && <LNetworkExplorer />}
+            {basics && chapter.id === 'b11' && sec.id === 'recap' && <SkillRecap />}
             {basics && chapter.id === 'b6' && sec.id === 'move' && <ShuntAdmittanceIntro />}
             {basics && chapter.id === 'b6' && sec.id === 'move' && <SeriesImpedanceIntro />}
             {!(basics && (chapter.id === 'b0' || sec.id === 'ex78')) && <StepLines lines={sec.lines} />}

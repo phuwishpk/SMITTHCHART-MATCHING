@@ -209,7 +209,7 @@ const MOVE_SS = solveSingleStub(APP_ZL, APP_Z0, 'short')[0];
 /** turning b = +1 into a real capacitor needs a frequency; 100 MHz is the assumed one */
 const MOVE_F = 100e6;
 const MOVE_CPF = ((MOVE_B1 / APP_Z0) / (2 * Math.PI * MOVE_F)) * 1e12;
-/** chapter 11.4: what a VNA actually reads — reference plane, cable rotation, cable loss.
+/** chapter 11.6: what a VNA actually reads — reference plane, cable rotation, cable loss.
  *  Only f, vf, the cable length and the dB/m figure are assumed; everything else is computed. */
 const VNA_F = 100e6;
 const VNA_VF = 0.66;
@@ -2200,8 +2200,16 @@ export const BASICS: Chapter[] = [
   // ============================================================
   {
     id: 'b11', num: '11', title: 'สรุปและรูปแบบการทำโจทย์', titleTh: 'ทักษะที่ต้องทำได้',
-    intro: 'บทสุดท้ายเปรียบเทียบสองวิธี matching และสรุปเป็นแผนผังเดียวที่ใช้ตอบโจทย์ Smith Chart ได้เกือบทุกข้อ',
+    intro: 'บทสุดท้ายรวบทักษะการอ่านและพล็อต Smith Chart จากทุกบทไว้เป็นการ์ด 13 ใบ กดดูขั้นตอนและตัวอย่างได้ทีละใบ จากนั้นเปรียบเทียบสองวิธี matching และสรุปเป็นแผนผังเดียวที่ใช้ตอบโจทย์ได้เกือบทุกข้อ',
     sections: [
+      {
+        id: 'recap', title: 'อ่านและพล็อต Smith Chart: ทุกทักษะในหน้าเดียว',
+        lines: [
+          T('การ์ดข้างบนเรียงตามลำดับที่ใช้จริงเวลาทำโจทย์: อ่านค่าให้ถูกก่อน แล้วค่อยเดินบนกราฟ แล้วค่อยใส่อุปกรณ์ · แต่ละใบมีใจความสำคัญบรรทัดเดียวไว้ให้จำ ถ้าจำได้ครบ 13 บรรทัดนี้ ก็ทำโจทย์ Smith Chart ระดับพื้นฐานได้ทุกข้อ'),
+          K('สามอย่างที่ต้องท่องให้ขึ้นใจ\n1. หาร Z₀ ก่อนเสมอ และ +x ครึ่งบน −x ครึ่งล่าง\n2. ไปทางเครื่องส่ง = ตามเข็ม · 0.5 λ = ครบรอบ · จุดวิ่งบนวง SWR เดิม\n3. อนุกรมไถลบนวง r · ขนานไถลบนวง g · เป้าคือวง r = 1 หรือ g = 1'),
+          N('ทุกใบมีปุ่ม "อ่านฉบับเต็ม" กระโดดไปบทที่สอนเรื่องนั้น และใบที่มีวงจรมีปุ่ม 🔬 เปิดใน Lab ให้ลากค่าดูเองได้ทันที'),
+        ],
+      },
       {
         id: 'compare', title: 'หม้อแปลง λ/4 เทียบกับ stub',
         lines: [
