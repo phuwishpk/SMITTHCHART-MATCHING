@@ -29,7 +29,7 @@ export interface State {
   maximized: PanelId | null;
   /** panels folded away to give the rest of the layout more room */
   collapsed: { palette: boolean; inspector: boolean; nav: boolean };
-  /** แถบปุ่มลัดบนแถบหัว · ปิดเพื่อให้แถบหัวโล่ง แล้วเรียกคืนได้จากเมนูมุมขวา */
+  /** แถบปุ่มลัดบนแถบหัว · ตั้งต้นปิดไว้ให้แถบหัวโล่ง เปิดได้จากเมนูมุมขวา */
   quickBar: boolean;
   selectedId: string | null; // element id or 'source'
   mode: 'guided' | 'free';
@@ -127,7 +127,7 @@ const defaultState = (): State => ({
   circuit: emptyCircuit(),
   maximized: null,
   collapsed: { palette: false, inspector: false, nav: false },
-  quickBar: true,
+  quickBar: false,
   selectedId: null,
   mode: 'guided',
   lessonId: null,
