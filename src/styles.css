@@ -1795,3 +1795,9 @@ img, svg, table { max-width: 100%; }
 .sk-body .smith-figure { max-width: 300px; margin: 0 auto; }
 .sk-actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 760px) { .sk-body { grid-template-columns: 1fr; } }
+
+/* ---------- บท 0: ที่มาของ Smith Chart ---------- */
+.origin-timeline { list-style: none; margin: 8px 0 14px; padding: 0; display: grid; gap: 6px; }
+.origin-timeline li { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: baseline; padding: 8px 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; line-height: 1.6; }
+.origin-timeline b { font-family: var(--mono); color: #1d4ed8; white-space: nowrap; }
+.origin-intro .ri-reading .smith-figure { max-width: 320px; }

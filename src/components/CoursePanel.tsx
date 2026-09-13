@@ -16,6 +16,10 @@ import { LinePositionIntro } from './LinePositionIntro';
 import { AdmittanceIntro, ShuntAdmittanceIntro, SeriesImpedanceIntro } from './AdmittanceIntro';
 import { LNetworkExplorer } from './LNetworkExplorer';
 import { SkillRecap } from './SkillRecap';
+import { SmithOrigin } from './SmithOrigin';
+
+/** หัวข้อของบท 0 ที่แสดงบนจอ (แต่ละหัวข้อมีคอมโพเนนต์ของตัวเอง) ที่เหลือเก็บไว้ให้ PDF และสคริปต์เสียง */
+const B0_SHOWN = new Set(['what', 'origin']);
 import { SwrCircleIntro, DistanceIntro } from './SwrDistanceIntro';
 import { StubReactanceIntro } from './StubReactanceIntro';
 import { SingleStubWalkthrough } from './SingleStubWalkthrough';
@@ -194,7 +198,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
   // reference sections remain in the course data for compatibility, but are
   // taught later in the chapters where each concept is actually used.
   const sections = useMemo(
-    () => (basics && chapter.id === 'b0' ? chapter.sections.slice(0, 1) : chapter.sections),
+    () => (basics && chapter.id === 'b0' ? chapter.sections.filter((s) => B0_SHOWN.has(s.id)) : chapter.sections),
     [basics, chapter],
   );
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -386,7 +390,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
               </button>
               {c.id === chapter.id && (
                 <ul className="course-sections">
-                  {(basics && c.id === 'b0' ? c.sections.slice(0, 1) : c.sections).map((s, si) => (
+                  {(basics && c.id === 'b0' ? c.sections.filter((x) => B0_SHOWN.has(x.id)) : c.sections).map((s, si) => (
                     <li key={s.id} data-sec={s.id} className={s.id === activeSec ? 'active' : ''}>
                       <button onClick={() => jumpAcross(c.id, s.id)}>
                         {c.num && <span className="snum">{c.num}.{si + 1}</span>}
@@ -420,6 +424,7 @@ export const CoursePanel: React.FC<{ course?: 'caron' | 'basics' }> = ({ course 
             <h3>{chapter.num && <span className="secnum">{chapter.num}.{si + 1}</span>} {t(sec.title)}</h3>
             {!basics && <Narration manifest={narration} chapter={chapter.id} section={sec.id} />}
             {basics && chapter.id === 'b0' && sec.id === 'what' && <FiveMinuteIntro />}
+            {basics && chapter.id === 'b0' && sec.id === 'origin' && <SmithOrigin />}
             {basics && chapter.id === 'b1' && sec.id === 'mismatch' && <ReflectionIntro />}
             {basics && chapter.id === 'b1' && sec.id === 'along' && <LinePositionIntro />}
             {basics && chapter.id === 'b1' && sec.id === 'why' && <LinePositionIntro findReal />}
